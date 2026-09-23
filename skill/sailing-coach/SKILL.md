@@ -94,7 +94,7 @@ Save the debrief as `<dir>/report/debrief.md`, then build one self-contained pag
 python scripts/html_report.py <dir>/report --debrief <dir>/report/debrief.md
 ```
 
-It writes `<dir>/report/report.html` as tabbed pages: **Summary** (the executive summary and the all-races table), **Debrief**, **Starts**, **Maneuvers**, **Upwind**, **Downwind** (each comparing every race side by side, with its plots) and **Race by race**. Printing puts each page on its own sheet. (`analyze.py ... --html --debrief <file>` does steps 4 and 7 in one go when the debrief already exists.) Share the HTML file itself; nothing else is needed to open it.
+It writes `<dir>/report/report.html` as tabbed pages: **Summary** (the executive summary and the all-races table), **Debrief**, **Starts**, **Maneuvers**, **Upwind**, **Downwind** (each comparing every race side by side, with its plots) and **Race by race**. Charts are interactive: hover (or tap on a phone) shows time from the gun (time *to* the gun on the start charts), speed, VMG, heading and heel; drag to zoom, double-click to reset. They come from each race's `plotdata.json` and the Plotly library in `scripts/vendor/`, all inlined, so the file still works offline. Add `--static` to `html_report.py` for PNG charts instead. Printing puts each page on its own sheet. (`analyze.py ... --html --debrief <file>` does steps 4 and 7 in one go when the debrief already exists.) Share the HTML file itself; nothing else is needed to open it.
 
 ## Debrief template
 

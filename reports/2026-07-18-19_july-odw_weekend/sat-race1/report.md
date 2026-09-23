@@ -26,7 +26,7 @@ Legs: detected from heel (course has no marks).
 | 4 | downwind | 10:29 | 1.04 | 5.96 | 5.97 | – | 0 | 1.9 | 1.6 | – | – | 6.08/5.94 | 1.8/2.0 | 24 |
 
 ## Maneuvers
-- Gybes: 1, avg entry 5.25 kt, avg loss 0.98 kt (19%), avg recovery 6.0 s, avg -1.4 m lost (total -1 m); onto port -1.4 m vs onto stbd None m.
+- Gybes: 1, avg entry 5.25 kt, avg loss 0.98 kt (19%), avg recovery 6.0 s, avg -1.4 m lost (total -1 m).
 - Tacks: 7, avg entry 5.79 kt, avg loss 1.93 kt (33%), avg recovery 12.9 s, avg 2.8 m lost (total 20 m); onto port 6.6 m vs onto stbd -0.1 m.
 
 | Time | Kind | Onto | Leg | Entry kt | Min kt | Loss % | Recover s | Lost m | Note |

@@ -138,7 +138,7 @@ def test_html_report(results, tmp_path):
     debrief.write_text(
         "## Debrief\n\n**Top 3**\n1. **Starts** — late.\n\n| A | B |\n|---|---|\n| 1 | 2 |\n"
     )
-    page = write_html(out, debrief, tmp_path / "r.html").read_text()
+    page = write_html(out, debrief, tmp_path / "r.html", interactive=False).read_text()
     assert "<title>Mojo · July ODW · Sun 19 Jul 2026</title>" in page
     assert page.count("data:image/png;base64,") == 12  # 6 plots x 2 races, each shown once
     assert '<section class="page" id="debrief">' in page
@@ -220,3 +220,33 @@ def test_html_pages(results, tmp_path):
     assert "Executive summary" in page.split('id="starts"')[0]
     assert page.count("downwind.png") == 0  # embedded, not linked
     assert '<nav class="pages">' in page
+
+
+def test_interactive_charts(results, tmp_path):
+    from html_report import write_html
+
+    out, _ = results
+    page = write_html(out, None, tmp_path / "i.html").read_text()
+    assert "data:image/png" not in page  # charts replace the PNGs
+    kinds = re.findall(r'<div class="chart" data-chart="(\w+)" data-race="(\w+)"', page)
+    assert ("startMap", "race2") in kinds and ("startTime", "race2") in kinds
+    assert {k for k, _ in kinds} == {
+        "startMap",
+        "startTime",
+        "maneuvers",
+        "shifts",
+        "downwind",
+        "track",
+        "timeline",
+    }
+    assert (
+        page.count('<script type="application/json" id="race-race') == 2
+    )  # data embedded once per race
+    assert "plotly.js (basic - minified)" in page and "window.renderCharts" in page
+    import json
+
+    d = json.loads((out / "race2" / "plotdata.json").read_text())
+    s = d["series"]
+    i = s["t"].index(-30)
+    assert (s["sog"][i], s["below"][i], s["hdg"][i]) == (2.13, 42.0, 246)
+    assert len({len(v) for v in s.values() if v is not None}) == 1  # all series aligned

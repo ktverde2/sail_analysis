@@ -17,6 +17,7 @@ Writes, per race, <out>/<stem>/:
   maneuvers.csv   one row per tack/gybe
   targets.csv     upwind vs. Etchells card by wind band (only when wind is trustworthy)
   track.png, timeline.png, start.png, maneuvers.png, shifts.png, downwind.png
+  plotdata.json   1 Hz series for the interactive HTML charts
 and, across all races, <out>/executive.md (one factual line overall, per day and per race,
 with flags for outliers) and <out>/event.md (the comparison table). With --html, also <out>/report.html: one self-contained
 page (plots embedded) with an optional --debrief Markdown file at the top. html_report.py can
@@ -1189,6 +1190,93 @@ def plt_colorbar(ax, mappable):
     return cb
 
 
+def plot_data(race: Race, res: dict) -> dict:
+    """1 Hz series for the interactive HTML charts, in metres with upwind up.
+
+    Origin is the start line's middle (else the first point). Values are rounded to what the
+    charts show, and missing values are null.
+    """
+    df = race.df
+    line = next((c for c in race.course if c["type"] == "StartLine"), None)
+    if line:
+        lat0 = (line["coord1"]["lat"] + line["coord2"]["lat"]) / 2
+        lon0 = (line["coord1"]["lon"] + line["coord2"]["lon"]) / 2
+    else:
+        lat0, lon0 = float(df.Lat.iloc[0]), float(df.Lon.iloc[0])
+    rot = math.radians(res["upwind_axis"] or 0)
+
+    def xy(lat, lon):
+        x, y = local_xy(lat, lon, lat0, lon0)
+        return x * math.cos(rot) - y * math.sin(rot), x * math.sin(rot) + y * math.cos(rot)
+
+    def col(values, nd):
+        return [
+            None if v is None or (isinstance(v, float) and math.isnan(v)) else round(float(v), nd)
+            for v in values
+        ]
+
+    x, y = xy(df.Lat.values, df.Lon.values)
+    hdg = df.Heading if "Heading" in df else df.COG
+    leg_of = pd.Series(np.nan, index=df.index)
+    for lg in res["legs"]:
+        t0 = race.gun + pd.Timedelta(seconds=lg["start_s"])
+        leg_of[(df.t >= t0) & (df.t <= t0 + pd.Timedelta(seconds=lg["duration_s"]))] = lg["leg"]
+    series = {
+        "t": col(df.tg, 0),
+        "x": col(x, 1),
+        "y": col(y, 1),
+        "sog": col(df.SOG, 2),
+        "vmg": col(df.vmg_wind, 2),
+        "hdg": col(hdg, 0),
+        "heel": col(df.Heel, 1) if "Heel" in df else None,
+        "twa": col(df.twa_gps, 0),
+        "shift": col(df.shift_s, 1) if "shift_s" in df else None,
+        "below": col(df.BelowLineCalc, 1) if "BelowLineCalc" in df else None,
+        "leg": [None if math.isnan(v) else int(v) for v in leg_of],
+        "tack": [{"stbd": "s", "port": "p"}.get(v) for v in df.tack],
+    }
+    course = []
+    for c in race.course:
+        pts = [xy(c[k]["lat"], c[k]["lon"]) for k in ("coord1", "coord2") if c.get(k)]
+        course.append({"type": c["type"], "pts": [[round(a, 1), round(b, 1)] for a, b in pts]})
+    calls = {c["time_s"]: c for c in (res.get("shifts") or {}).get("tacks", [])}
+    mans = [
+        {
+            k: m.get(k)
+            for k in (
+                "time_s",
+                "kind",
+                "onto",
+                "leg",
+                "entry_sog",
+                "min_sog",
+                "speed_loss_pct",
+                "recovery_s",
+                "distance_lost_m",
+                "note",
+            )
+        }
+        | {
+            "call": (calls.get(m["time_s"]) or {}).get("verdict"),
+            "kind_call": (calls.get(m["time_s"]) or {}).get("verdict_kind"),
+        }
+        for m in res["maneuvers"]
+    ]
+    return {
+        "race": res["race"],
+        "series": series,
+        "course": course,
+        "legs": [
+            {k: lg[k] for k in ("leg", "type", "start_s", "duration_s")} for lg in res["legs"]
+        ],
+        "maneuvers": mans,
+        "beats": [
+            {k: b[k] for k in ("leg", "twd_median", "trend_deg", "pattern")}
+            for b in (res.get("shifts") or {}).get("beats", [])
+        ],
+    }
+
+
 def make_plots(race: Race, res: dict, out: Path):
     import matplotlib
 
@@ -1509,9 +1597,9 @@ def write_report(res: dict, out: Path):
             f"({v['speed_loss_avg_pct']}%), avg recovery {v['recovery_avg_s']} s, "
             f"avg {v['distance_lost_avg_m']} m lost (total {v['distance_lost_total_m']} m)"
             + (
-                f"; onto port {v.get('distance_lost_avg_onto_port_m')} m vs onto stbd "
-                f"{v.get('distance_lost_avg_onto_stbd_m')} m"
-                if "distance_lost_avg_onto_port_m" in v
+                f"; onto port {v['distance_lost_avg_onto_port_m']} m vs onto stbd "
+                f"{v['distance_lost_avg_onto_stbd_m']} m"
+                if "distance_lost_avg_onto_port_m" in v and "distance_lost_avg_onto_stbd_m" in v
                 else ""
             )
             + (
@@ -1893,6 +1981,7 @@ def run(
         if res["targets"]["available"]:
             pd.DataFrame(res["targets"]["bands"]).to_csv(d / "targets.csv", index=False)
         write_report(res, d)
+        (d / "plotdata.json").write_text(json.dumps(plot_data(race, res), separators=(",", ":")))
         if plots:
             make_plots(race, res, d)
         results.append(res)

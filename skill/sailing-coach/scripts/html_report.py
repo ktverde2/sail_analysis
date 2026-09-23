@@ -5,8 +5,10 @@ Usage:
   python html_report.py <report_dir> [--debrief debrief.md] [--out report.html]
 
 Reads <report_dir>/event.md, each <race>/report.md and its PNGs, and an optional debrief
-(Markdown written by the coach). Images are embedded, so the HTML file can be opened, emailed
-or uploaded on its own. No third-party packages.
+(Markdown written by the coach). Charts are interactive (hover for time, speed, VMG and heading;
+drag to zoom) using the bundled Plotly library and each race's plotdata.json; --static uses the
+PNGs instead. Everything is inlined, so the HTML file works offline, emailed or uploaded on its
+own. No third-party Python packages.
 """
 
 from __future__ import annotations
@@ -77,6 +79,8 @@ figcaption { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
 .plots { display: grid; grid-template-columns: 1fr; gap: 8px; }
 figure.narrow img { max-width: 560px; display: block; margin: 0 auto; }
 figure.narrow figcaption { text-align: center; }
+.chart { width: 100%; min-height: 320px; margin: 8px 0 16px; }
+.chart-hint { color: var(--muted); font-size: 0.85rem; margin: 0 0 4px; }
 footer { color: var(--muted); font-size: 0.85rem; margin-top: 32px; }
 nav.pages a[aria-current="page"] { background: var(--accent); color: #fff; }
 nav.sub { margin: 0 0 8px; }
@@ -100,6 +104,7 @@ function show() {
   const id = (location.hash || '').slice(1);
   let target = pages.find(p => p.id === id) || (id && document.getElementById(id)?.closest('.page')) || pages[0];
   pages.forEach(p => p.classList.toggle('active', p === target));
+  if (window.renderCharts) window.renderCharts(target);
   document.querySelectorAll('nav.pages a').forEach(a => {
     if (a.getAttribute('href') === '#' + target.id) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
@@ -188,13 +193,16 @@ def race_section(race_dir: Path) -> tuple[str, str, str]:
     title = md.splitlines()[0].lstrip("# ").strip()
     body = md_to_html("\n".join(md.splitlines()[1:]))
     body = body.replace("<li>Wind: NOT trusted", '<li class="note">Wind: NOT trusted')
-    figs = [
-        img_tag(race_dir / f, cap, narrow=f == "track.png")
-        for f, cap in RACE_PLOTS
-        if (race_dir / f).exists()
-    ]
     anchor = race_dir.name
-    plots = f'<h2>Plots</h2><div class="plots">{"".join(figs)}</div>' if figs else ""
+    if INTERACTIVE and (race_dir / "plotdata.json").exists():
+        plots = "<h2>Plots</h2>" + plot(race_dir, ["track", "timeline"], "", "")
+    else:
+        figs = [
+            img_tag(race_dir / f, cap, narrow=f == "track.png")
+            for f, cap in RACE_PLOTS
+            if (race_dir / f).exists()
+        ]
+        plots = f'<h2>Plots</h2><div class="plots">{"".join(figs)}</div>' if figs else ""
     return (
         anchor,
         title,
@@ -245,6 +253,25 @@ def _mmss(sec):
 
 def _sgn(v, unit=""):
     return None if v is None else f"{v:+.1f}{unit}"
+
+
+VENDOR = Path(__file__).parent / "vendor" / "plotly-basic.min.js"
+CHARTS_JS = Path(__file__).parent / "charts.js"
+INTERACTIVE = True  # build() turns this off for --static or when the library is missing
+
+HINT = (
+    '<p class="chart-hint">Hover for time, speed, VMG and heading. Drag to zoom, '
+    "double-click to reset.</p>"
+)
+
+
+def plot(race_dir: Path, kinds: list[str], png: str, caption: str) -> str:
+    """Interactive chart(s) when the race has plotdata.json, else the static PNG."""
+    if INTERACTIVE and (race_dir / "plotdata.json").exists():
+        return HINT + "".join(
+            f'<div class="chart" data-chart="{k}" data-race="{race_dir.name}"></div>' for k in kinds
+        )
+    return figures([(race_dir / png, caption)])
 
 
 def figures(entries) -> str:
@@ -318,7 +345,12 @@ def starts_page(runs) -> str:
     plots = "".join(
         card(
             f"<h2>{html.escape(s['race'])}</h2>"
-            + figures([(d / "start.png", "Approach from 5 minutes, then the last 2 minutes")])
+            + plot(
+                d,
+                ["startMap", "startTime"],
+                "start.png",
+                "Approach from 5 minutes, then the last 2 minutes",
+            )
         )
         for d, s in runs
     )
@@ -406,7 +438,9 @@ def maneuvers_page(runs) -> str:
         )
         per_race += card(
             f"<h2>{html.escape(s['race'])}</h2>"
-            + figures([(d / "maneuvers.png", "Distance lost per maneuver (vs. VMG before it)")])
+            + plot(
+                d, ["maneuvers"], "maneuvers.png", "Distance lost per maneuver (vs. VMG before it)"
+            )
             + f"<details><summary>Every tack and gybe ({len(mans)})</summary>{detail}</details>"
         )
     return page(
@@ -485,7 +519,7 @@ def upwind_page(runs) -> str:
     body += "".join(
         card(
             f"<h2>{html.escape(s['race'])}</h2>"
-            + figures([(d / "shifts.png", "Wind shifts upwind and the call on each tack")])
+            + plot(d, ["shifts"], "shifts.png", "Wind shifts upwind and the call on each tack")
         )
         for d, s in runs
     )
@@ -550,10 +584,10 @@ def downwind_page(runs) -> str:
     plots = "".join(
         card(
             f"<h2>{html.escape(s['race'])}</h2>"
-            + figures([(d / "downwind.png", "Speed down each run, by gybe")])
+            + plot(d, ["downwind"], "downwind.png", "Speed down each run, by gybe")
         )
         for d, s in runs
-        if (d / "downwind.png").exists()
+        if any(lg["type"] == "downwind" for lg in s["legs"])
     )
     return page(
         "downwind",
@@ -563,7 +597,11 @@ def downwind_page(runs) -> str:
     )
 
 
-def build(report_dir: Path, debrief: str | None, title: str | None) -> str:
+def build(
+    report_dir: Path, debrief: str | None, title: str | None, interactive: bool = True
+) -> str:
+    global INTERACTIVE
+    INTERACTIVE = interactive and VENDOR.exists() and CHARTS_JS.exists()
     races = sorted(p.parent for p in report_dir.glob("*/report.md"))
     sections = [race_section(d) for d in races]
     runs = [
@@ -643,8 +681,22 @@ def build(report_dir: Path, debrief: str | None, title: str | None) -> str:
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>{html.escape(page_title)}</title><style>{CSS}</style>"
         f"<script>{PAGE_JS}</script></head>"
-        f"<body><main>{''.join(parts)}</main></body></html>"
+        f"<body><main>{''.join(parts)}</main>{chart_scripts(races)}</body></html>"
     )
+
+
+def chart_scripts(races: list[Path]) -> str:
+    """Race data (once each) plus the chart library and renderer, all inline for offline use."""
+    if not INTERACTIVE:
+        return ""
+    data = "".join(
+        f'<script type="application/json" id="race-{d.name}">'
+        + (d / "plotdata.json").read_text().replace("</", "<\\/")
+        + "</script>"
+        for d in races
+        if (d / "plotdata.json").exists()
+    )
+    return data + f"<script>{VENDOR.read_text()}</script><script>{CHARTS_JS.read_text()}</script>"
 
 
 def write_html(
@@ -652,10 +704,11 @@ def write_html(
     debrief_path: Path | None = None,
     out: Path | None = None,
     title: str | None = None,
+    interactive: bool = True,
 ) -> Path:
     debrief = debrief_path.read_text() if debrief_path else None
     out = out or report_dir / "report.html"
-    out.write_text(build(report_dir, debrief, title))
+    out.write_text(build(report_dir, debrief, title, interactive))
     return out
 
 
@@ -667,8 +720,9 @@ def main():
     ap.add_argument("--debrief", type=Path, help="Markdown debrief to put at the top")
     ap.add_argument("--out", type=Path, help="default: <report_dir>/report.html")
     ap.add_argument("--title")
+    ap.add_argument("--static", action="store_true", help="PNG plots instead of interactive charts")
     a = ap.parse_args()
-    print(write_html(a.report_dir, a.debrief, a.out, a.title))
+    print(write_html(a.report_dir, a.debrief, a.out, a.title, interactive=not a.static))
 
 
 if __name__ == "__main__":
