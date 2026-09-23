@@ -83,8 +83,29 @@ def test_maneuvers(results):
 def test_targets_with_user_wind(tmp_path):
     res = analyze.run([SAMPLES / "race2.csv"], tmp_path, tws=8, tz=None, plots=False)
     t = res[0]["targets"]
-    assert t["available"] and t["bands"][0]["band"] == "7-9"
+    assert t["available"] and [b["wind"] for b in t["bands"]] == ["8 kt"]
+    assert t["bands"][0]["speed_tgt"] == 5.5 and t["bands"][0]["heel_tgt"] == 14
     assert 80 < t["bands"][0]["speed_pct"] < 130
+
+
+def test_targets_with_wind_range(tmp_path):
+    res = analyze.run([SAMPLES / "race1.csv"], tmp_path, tws="8-10", tz=None, plots=False)
+    t = res[0]["targets"]
+    assert [b["wind"] for b in t["bands"]] == ["8 kt", "9 kt", "10 kt"]
+    # Same sailing, stricter card as the wind rises: % of target falls, heel excess shrinks
+    pct = [b["speed_pct"] for b in t["bands"]]
+    heel = [b["heel_delta"] for b in t["bands"]]
+    assert pct == sorted(pct, reverse=True) and heel == sorted(heel, reverse=True)
+    assert t["by_beat_heel_target"] == 16.0
+    assert {(b["leg"], b["tack"]) for b in t["by_beat"]} == {
+        (1, "stbd"),
+        (1, "port"),
+        (3, "stbd"),
+        (3, "port"),
+    }
+    assert "Speed % target" in (tmp_path / "event.md").read_text()
+    with pytest.raises(ValueError):
+        analyze.parse_tws("10-8")
 
 
 SATURDAY = ROOT / "samples/njord/2026-07-18_july-odw"

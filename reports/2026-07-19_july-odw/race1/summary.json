@@ -298,7 +298,95 @@
     }
   },
   "targets": {
-    "available": false,
-    "reason": "wind speed not trustworthy (74% of samples are exactly 10 kt); pass --tws"
+    "available": true,
+    "tws_source": "user-supplied TWS 8\u201310 kt",
+    "twa_source": "estimated from GPS tacking headings",
+    "speed_source": "SOG",
+    "bands": [
+      {
+        "wind": "8 kt",
+        "seconds": 1782,
+        "thin": false,
+        "speed_avg": 5.86,
+        "speed_tgt": 5.5,
+        "speed_pct": 106.6,
+        "heel_avg": 22.3,
+        "heel_tgt": 14.0,
+        "heel_delta": 8.3,
+        "heel_std": 4.7,
+        "twa_avg": 33.4,
+        "twa_tgt": 41.0,
+        "twa_delta": -7.6
+      },
+      {
+        "wind": "9 kt",
+        "seconds": 1782,
+        "thin": false,
+        "speed_avg": 5.86,
+        "speed_tgt": 5.7,
+        "speed_pct": 102.8,
+        "heel_avg": 22.3,
+        "heel_tgt": 16.0,
+        "heel_delta": 6.3,
+        "heel_std": 4.7,
+        "twa_avg": 33.4,
+        "twa_tgt": 39.0,
+        "twa_delta": -5.6
+      },
+      {
+        "wind": "10 kt",
+        "seconds": 1782,
+        "thin": false,
+        "speed_avg": 5.86,
+        "speed_tgt": 5.8,
+        "speed_pct": 101.1,
+        "heel_avg": 22.3,
+        "heel_tgt": 17.0,
+        "heel_delta": 5.3,
+        "heel_std": 4.7,
+        "twa_avg": 33.4,
+        "twa_tgt": 38.0,
+        "twa_delta": -4.6
+      }
+    ],
+    "by_beat": [
+      {
+        "leg": 1,
+        "tack": "stbd",
+        "seconds": 425,
+        "speed_avg": 5.58,
+        "heel_avg": 21.6,
+        "heel_std": 5.3,
+        "pct_heel_over_tgt_plus5": 60
+      },
+      {
+        "leg": 1,
+        "tack": "port",
+        "seconds": 510,
+        "speed_avg": 5.94,
+        "heel_avg": 22.9,
+        "heel_std": 4.6,
+        "pct_heel_over_tgt_plus5": 66
+      },
+      {
+        "leg": 3,
+        "tack": "stbd",
+        "seconds": 340,
+        "speed_avg": 5.95,
+        "heel_avg": 22.1,
+        "heel_std": 4.0,
+        "pct_heel_over_tgt_plus5": 62
+      },
+      {
+        "leg": 3,
+        "tack": "port",
+        "seconds": 507,
+        "speed_avg": 5.96,
+        "heel_avg": 22.3,
+        "heel_std": 4.7,
+        "pct_heel_over_tgt_plus5": 61
+      }
+    ],
+    "by_beat_heel_target": 16.0
   }
 }

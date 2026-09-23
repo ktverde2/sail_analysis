@@ -72,10 +72,10 @@ What's in it:
 The report fills **Upwind vs. targets** only when the logged wind speed passes the check. Otherwise ask Kevin for the wind range and rerun with it:
 
 ```bash
-python scripts/analyze.py <dir>/race*.csv --out <dir>/report --tws 9
+python scripts/analyze.py <dir>/race*.csv --out <dir>/report --tws 8-10
 ```
 
-That compares steady upwind sailing to the Etchells flat-water card (`references/etchells-targets.md`), using the GPS-estimated wind direction for TWA. With a single wind speed for a whole race, treat it as a rough check, not a verdict.
+That compares steady upwind sailing to the Etchells flat-water card (`references/etchells-targets.md`) at every knot across the range (8, 9, 10), plus a per-beat, per-tack heel table against the mid-range target. Coach off conclusions that hold across the whole range; if a verdict flips between the ends, say it depends on the wind. It's also worth checking which card wind the boat's speed and heel actually match: a big mismatch with the stated wind is a question to ask, not an error to coach.
 
 When the logged wind *is* good, `scripts/coach_calcs.py targets <csv>` still works on an upwind-only `get_data` export (`exclude_maneuvers: true`) and bins by the logged TWS.
 

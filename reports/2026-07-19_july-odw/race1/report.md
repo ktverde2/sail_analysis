@@ -41,7 +41,23 @@ Legs: Njord course.
 | 46:07 | Tack | Stbd | 3 | 5.95 | 4.42 | 26 | 16 | 2.8 | – |
 
 ## Upwind vs. targets
-Not computed: wind speed not trustworthy (74% of samples are exactly 10 kt); pass --tws.
+TWS: user-supplied TWS 8–10 kt. TWA: estimated from GPS tacking headings. Speed: SOG.
+
+| Wind | Time s | Speed | Target | % target | Heel (abs) | Target heel | Δ heel | Heel sd | TWA | Target TWA | Δ TWA |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 8 kt | 1782 | 5.86 | 5.5 | 106.6 | 22.3 | 14.0 | 8.3 | 4.7 | 33.4 | 41.0 | -7.6 |
+| 9 kt | 1782 | 5.86 | 5.7 | 102.8 | 22.3 | 16.0 | 6.3 | 4.7 | 33.4 | 39.0 | -5.6 |
+| 10 kt | 1782 | 5.86 | 5.8 | 101.1 | 22.3 | 17.0 | 5.3 | 4.7 | 33.4 | 38.0 | -4.6 |
+
+By beat and tack (heel target 16.0° at the middle of the wind range):
+
+| Leg | Tack | Time s | Speed | Heel (abs) | Heel sd | % time > target + 5° |
+|---|---|---|---|---|---|---|
+| 1 | stbd | 425 | 5.58 | 21.6 | 5.3 | 60 |
+| 1 | port | 510 | 5.94 | 22.9 | 4.6 | 66 |
+| 3 | stbd | 340 | 5.95 | 22.1 | 4.0 | 62 |
+| 3 | port | 507 | 5.96 | 22.3 | 4.7 | 61 |
+
 
 ## Plots
 track.png, timeline.png, start.png, maneuvers.png

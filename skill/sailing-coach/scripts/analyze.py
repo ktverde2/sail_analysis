@@ -286,7 +286,7 @@ def analyze_race(race: Race, tws_override: float | None) -> dict:
     if legs_source.startswith("detected") and twd_est is not None:
         axis = twd_est  # better than the mean upwind heading used to find the tacks
     start = start_stats(race, df, axis) if gun is not None else None
-    targets = target_bands(df, wind, tws_override)
+    targets = target_bands(df, wind, parse_tws(tws_override))
 
     return {
         "race": race.name,
@@ -555,54 +555,103 @@ def start_stats(race, df, axis):
     return out
 
 
-def target_bands(df, wind, tws_override):
-    """Upwind steady state vs. the Etchells card. Skipped unless wind speed is trustworthy."""
+def parse_tws(value) -> tuple[float, float] | None:
+    """--tws 9 or --tws 8-10 -> (low, high) in knots."""
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value), float(value)
+    lo, _, hi = str(value).partition("-")
+    lo, hi = float(lo), float(hi or lo)
+    if not 0 < lo <= hi:
+        raise ValueError(f"bad --tws {value!r}; use e.g. 9 or 8-10")
+    return lo, hi
+
+
+def target_bands(df, wind, tws_range):
+    """Upwind steady state vs. the Etchells card.
+
+    With a user-supplied wind (one speed or a range) there's one row per knot across the range,
+    so the reader sees how much the verdict depends on the exact wind. With trusted logged wind,
+    rows are the usual 2-kt bands. Otherwise nothing: comparing to a made-up wind misleads.
+    """
     up = df[(df.leg_type == "upwind") & df.steady & df.twa_gps.notna()].copy()
-    if tws_override is not None:
-        up["tws_used"] = tws_override
-        source = f"user-supplied TWS {tws_override:g} kt"
-    elif wind["trusted"]:
-        up["tws_used"] = up.TWS
-        source = "logged TWS"
-    else:
+    up = up[up.twa_gps <= 60]
+    spd = "BoatSpeed" if "BoatSpeed" in up else "SOG"
+    up["heel_abs"] = up.Heel.abs()
+    if tws_range is None and not wind["trusted"]:
         return {
             "available": False,
-            "reason": f"wind speed not trustworthy ({wind['reason']}); pass --tws",
+            "reason": f"wind speed not trustworthy ({wind['reason']}); pass --tws, e.g. --tws 8-10",
         }
-    up = up[up.twa_gps <= 60]
     if not len(up):
         return {"available": False, "reason": "no steady upwind data"}
-    t = interp_targets(up.tws_used)
-    spd = "BoatSpeed" if "BoatSpeed" in up else "SOG"
-    up["spd_pct"] = 100 * up[spd] / t["Vb"]
-    up["twa_delta"] = up.twa_gps - t["TWA"]
-    up["heel_abs"] = up.Heel.abs()
-    up["heel_delta"] = up.heel_abs - t["Heel"]
-    rows = []
-    for lo, hi in BANDS:
-        b = up[(up.tws_used >= lo) & (up.tws_used < hi)]
-        if not len(b):
-            continue
-        rows.append(
-            {
-                "band": f"{lo}-{hi}" if hi < 40 else f"{lo}+",
-                "seconds": len(b),
-                "thin": len(b) < 60,
-                "speed_avg": round(float(b[spd].mean()), 2),
-                "speed_pct": round(float(b.spd_pct.mean()), 1),
-                "twa_avg": round(float(b.twa_gps.mean()), 1),
-                "twa_delta": round(float(b.twa_delta.mean()), 1),
-                "heel_avg": round(float(b.heel_abs.mean()), 1),
-                "heel_delta": round(float(b.heel_delta.mean()), 1),
-                "heel_std": round(float(b.heel_abs.std()), 1),
-            }
+
+    def row(label, b, tws):
+        t = interp_targets(tws)
+        return {
+            "wind": label,
+            "seconds": len(b),
+            "thin": len(b) < 60,
+            "speed_avg": round(float(b[spd].mean()), 2),
+            "speed_tgt": round(float(np.mean(t["Vb"])), 2),
+            "speed_pct": round(float(np.mean(100 * b[spd] / t["Vb"])), 1),
+            "heel_avg": round(float(b.heel_abs.mean()), 1),
+            "heel_tgt": round(float(np.mean(t["Heel"])), 1),
+            "heel_delta": round(float(np.mean(b.heel_abs - t["Heel"])), 1),
+            "heel_std": round(float(b.heel_abs.std()), 1),
+            "twa_avg": round(float(b.twa_gps.mean()), 1),
+            "twa_tgt": round(float(np.mean(t["TWA"])), 1),
+            "twa_delta": round(float(np.mean(b.twa_gps - t["TWA"])), 1),
+        }
+
+    if tws_range is not None:
+        lo, hi = tws_range
+        winds = sorted({lo, hi, *range(math.ceil(lo), math.floor(hi) + 1)})
+        rows = [row(f"{w:g} kt", up, np.full(len(up), w)) for w in winds]
+        source = (
+            f"user-supplied TWS {lo:g}–{hi:g} kt" if hi > lo else f"user-supplied TWS {lo:g} kt"
         )
+        mid = (lo + hi) / 2
+        mid_heel = float(interp_targets([mid])["Heel"][0])
+    else:
+        rows = []
+        for lo_b, hi_b in BANDS:
+            b = up[(up.TWS >= lo_b) & (up.TWS < hi_b)]
+            if len(b):
+                rows.append(row(f"{lo_b}-{hi_b}" if hi_b < 40 else f"{lo_b}+", b, b.TWS.values))
+        source = "logged TWS"
+        mid_heel = None
+
+    # Per beat and tack: where the heel (and speed) actually differed
+    by_beat = []
+    for leg in sorted(up.Leg.dropna().unique()) if "Leg" in up else []:
+        for side in ("stbd", "port"):
+            b = up[(up.Leg == leg) & (up.tack == side)]
+            if len(b) < 60:
+                continue
+            tgt = (
+                mid_heel if mid_heel is not None else float(np.mean(interp_targets(b.TWS)["Heel"]))
+            )
+            by_beat.append(
+                {
+                    "leg": int(leg),
+                    "tack": side,
+                    "seconds": len(b),
+                    "speed_avg": round(float(b[spd].mean()), 2),
+                    "heel_avg": round(float(b.heel_abs.mean()), 1),
+                    "heel_std": round(float(b.heel_abs.std()), 1),
+                    "pct_heel_over_tgt_plus5": round(100 * float((b.heel_abs > tgt + 5).mean())),
+                }
+            )
     return {
         "available": True,
         "tws_source": source,
         "twa_source": "logged TWD" if wind["trusted"] else "estimated from GPS tacking headings",
         "speed_source": spd,
         "bands": rows,
+        "by_beat": by_beat,
+        "by_beat_heel_target": round(mid_heel, 1) if mid_heel is not None else None,
     }
 
 
@@ -956,22 +1005,52 @@ def write_report(res: dict, out: Path):
             md_table(
                 tg["bands"],
                 [
-                    ("TWS band", lambda r: r["band"] + (" (thin)" if r["thin"] else "")),
+                    ("Wind", lambda r: r["wind"] + (" (thin)" if r["thin"] else "")),
                     ("Time s", "seconds"),
                     ("Speed", "speed_avg"),
+                    ("Target", "speed_tgt"),
                     ("% target", "speed_pct"),
-                    ("TWA", "twa_avg"),
-                    ("Δ TWA", "twa_delta"),
                     ("Heel (abs)", "heel_avg"),
+                    ("Target heel", "heel_tgt"),
                     ("Δ heel", "heel_delta"),
                     ("Heel sd", "heel_std"),
+                    ("TWA", "twa_avg"),
+                    ("Target TWA", "twa_tgt"),
+                    ("Δ TWA", "twa_delta"),
                 ],
             ),
         ]
+        if tg.get("by_beat"):
+            ht = tg.get("by_beat_heel_target")
+            lines += [
+                "By beat and tack"
+                + (f" (heel target {ht}° at the middle of the wind range)" if ht else "")
+                + ":",
+                "",
+                md_table(
+                    tg["by_beat"],
+                    [
+                        ("Leg", "leg"),
+                        ("Tack", "tack"),
+                        ("Time s", "seconds"),
+                        ("Speed", "speed_avg"),
+                        ("Heel (abs)", "heel_avg"),
+                        ("Heel sd", "heel_std"),
+                        ("% time > target + 5°", "pct_heel_over_tgt_plus5"),
+                    ],
+                ),
+            ]
     else:
         lines.append(f"Not computed: {tg['reason']}.")
     lines += ["", "## Plots", "track.png, timeline.png, start.png, maneuvers.png", ""]
     (out / "report.md").write_text("\n".join(x for x in lines if x is not None) + "\n")
+
+
+def _mid_target(tg: dict) -> dict:
+    if not tg["available"] or not tg["bands"]:
+        return {}
+    b = tg["bands"][len(tg["bands"]) // 2]
+    return {"tgt_speed_pct": b["speed_pct"], "tgt_heel_delta": f"{b['heel_delta']:+}"}
 
 
 def write_event(results: list[dict], out: Path):
@@ -1001,6 +1080,7 @@ def write_event(results: list[dict], out: Path):
                 )
                 if up
                 else None,
+                **_mid_target(r["targets"]),
                 "tack_angle": round(
                     np.mean([lg["tacking_angle"] for lg in up if lg["tacking_angle"]]), 1
                 )
@@ -1023,8 +1103,18 @@ def write_event(results: list[dict], out: Path):
             ("Upwind SOG", "up_sog"),
             ("Upwind heel (abs)", "up_heel"),
             ("Tacking ∠", "tack_angle"),
-        ],
+        ]
+        + (
+            [("Speed % target", "tgt_speed_pct"), ("Δ heel", "tgt_heel_delta")]
+            if any(r["targets"]["available"] for r in results)
+            else []
+        ),
     )
+    tws = next((r["targets"]["tws_source"] for r in results if r["targets"]["available"]), None)
+    if tws:
+        text += (
+            f"\nTargets at the middle of the wind range ({tws}); per-race detail has the range.\n"
+        )
     text += "\nPer-race detail: " + ", ".join(f"{r['stem']}/report.md" for r in results) + "\n"
     (out / "event.md").write_text(text)
 
@@ -1059,7 +1149,8 @@ def main():
     ap.add_argument("csv", nargs="+", type=Path)
     ap.add_argument("--out", type=Path, required=True)
     ap.add_argument(
-        "--tws", type=float, help="true wind speed (kt) to use when the log's wind is unreliable"
+        "--tws",
+        help="true wind speed (kt) when the log's wind is unreliable: 9, or a range like 8-10",
     )
     ap.add_argument(
         "--tz", help="IANA timezone for displayed times (default: from <stem>-race.json, else UTC)"
