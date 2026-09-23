@@ -722,6 +722,112 @@ def _blues():
     return ListedColormap(colormaps["Blues"](np.linspace(0.35, 1.0, 256)))
 
 
+START_TRACK_S = (-300, 30)  # start map: 5 min before the gun to 30 s after
+
+
+def start_track(ax, race: Race, res: dict, df: pd.DataFrame):
+    """Map of the approach, rotated so upwind is up, coloured by time to the gun."""
+    from matplotlib.collections import LineCollection
+
+    w = df[(df.tg >= START_TRACK_S[0]) & (df.tg <= START_TRACK_S[1])].dropna(subset=["Lat", "Lon"])
+    if len(w) < 2:
+        ax.set_axis_off()
+        return
+    line = next((c for c in race.course if c["type"] == "StartLine"), None)
+    if line:
+        lat0 = (line["coord1"]["lat"] + line["coord2"]["lat"]) / 2
+        lon0 = (line["coord1"]["lon"] + line["coord2"]["lon"]) / 2
+    else:
+        lat0, lon0 = w.Lat.iloc[-1], w.Lon.iloc[-1]
+    rot = math.radians(res["upwind_axis"] or 0)
+
+    def xy(lat, lon):
+        x, y = local_xy(lat, lon, lat0, lon0)
+        return x * math.cos(rot) - y * math.sin(rot), x * math.sin(rot) + y * math.cos(rot)
+
+    x, y = xy(w.Lat.values, w.Lon.values)
+    pts = np.column_stack([x, y]).reshape(-1, 1, 2)
+    segs = np.concatenate([pts[:-1], pts[1:]], axis=1)
+    before = w.tg.values[1:] <= 0
+    lc = LineCollection(segs[before], cmap=_blues(), linewidths=2.2)
+    lc.set_array(w.tg.values[1:][before])
+    lc.set_clim(START_TRACK_S[0], 0)
+    ax.add_collection(lc)
+    ax.add_collection(LineCollection(segs[~before], colors=INK2, linewidths=1.6, linestyles="--"))
+    cb = plt_colorbar(ax, lc)
+    cb.set_ticks([-300, -240, -180, -120, -60, 0])
+    cb.set_ticklabels(["-5:00", "-4:00", "-3:00", "-2:00", "-1:00", "gun"])
+
+    # Minute marks along the track, and the position at the gun
+    for sec in (-300, -240, -180, -120, -60, -30):
+        p = _interp(df, "tg", sec)
+        if p:
+            px, py = xy(p["Lat"], p["Lon"])
+            ax.plot(px, py, "o", ms=4, color=INK2)
+            ax.annotate(
+                _fmt_mmss(sec),
+                (px, py),
+                xytext=(5, 3),
+                textcoords="offset points",
+                fontsize=8,
+                color=INK2,
+            )
+    p = _interp(df, "tg", 0)
+    if p:
+        px, py = xy(p["Lat"], p["Lon"])
+        ax.plot(px, py, "o", ms=8, mfc=ORANGE, mec="#fcfcfb", mew=1.5, zorder=5)
+        ax.annotate(
+            "gun",
+            (px, py),
+            xytext=(6, -12),
+            textcoords="offset points",
+            fontsize=9,
+            color=INK,
+            fontweight="bold",
+        )
+    for e in race.events:
+        if e.get("eventType") in ("Tack", "Gybe") and race.gun is not None:
+            sec = (e["t"] - race.gun).total_seconds()
+            q = _interp(df, "tg", sec) if START_TRACK_S[0] <= sec <= 0 else {}
+            if q:
+                qx, qy = xy(q["Lat"], q["Lon"])
+                ax.plot(qx, qy, "o", ms=6, mfc="none", mec=INK2, mew=1.2)
+
+    if line:
+        (ax_, ay_), (bx_, by_) = (xy(line[k]["lat"], line[k]["lon"]) for k in ("coord1", "coord2"))
+        ax.plot([ax_, bx_], [ay_, by_], color=INK, lw=2.5, solid_capstyle="round")
+        left, right = sorted([(ax_, ay_), (bx_, by_)])  # upwind is up, so the pin is on the left
+        ax.annotate(
+            "pin",
+            left,
+            xytext=(-6, -4),
+            textcoords="offset points",
+            ha="right",
+            fontsize=9,
+            color=INK,
+        )
+        ax.annotate(
+            "boat",
+            right,
+            xytext=(6, -4),
+            textcoords="offset points",
+            ha="left",
+            fontsize=9,
+            color=INK,
+        )
+    ax.set_aspect("equal")
+    ax.autoscale()
+    ax.margins(0.08)
+    ax.set_xlabel("metres (upwind is up)")
+    ax.set_title("Approach from 5:00 (open circles = tacks/gybes, dashed = after the gun)")
+
+
+def plt_colorbar(ax, mappable):
+    cb = ax.figure.colorbar(mappable, ax=ax, shrink=0.8, pad=0.015, fraction=0.03)
+    cb.ax.tick_params(labelsize=8)
+    return cb
+
+
 def make_plots(race: Race, res: dict, out: Path):
     import matplotlib
 
@@ -825,20 +931,26 @@ def make_plots(race: Race, res: dict, out: Path):
     fig.savefig(out / "timeline.png", dpi=130)
     plt.close(fig)
 
-    # Start: last 2 min to +30 s, SOG and distance behind the line
+    # Start: track from -5 min (left) beside SOG and distance-to-line from -2 min (right)
     pre = df[(df.tg >= -120) & (df.tg <= 30)]
     if len(pre) and "BelowLineCalc" in pre:
-        fig, (a1, a2) = plt.subplots(2, 1, figsize=(8, 5), sharex=True)
+        fig = plt.figure(figsize=(10, 10.5))
+        gs = fig.add_gridspec(3, 1, height_ratios=[1.5, 1, 1], hspace=0.28)
+        start_track(fig.add_subplot(gs[0]), race, res, df)
+        a1 = fig.add_subplot(gs[1])
+        a2 = fig.add_subplot(gs[2], sharex=a1)
         a1.plot(pre.tg, pre.SOG, color=BLUE, lw=2)
         a1.set_ylabel("SOG (kt)")
-        a1.set_title(f"{res['race']}: start")
+        a1.set_title("Last 2 minutes: speed and distance behind the line")
+        a1.tick_params(labelbottom=False)
         a2.plot(pre.tg, pre.BelowLineCalc, color=BLUE, lw=2)
         a2.axhline(0, color=INK, lw=1)
         a2.set_ylabel("m behind line")
         a2.set_xlabel("seconds from gun")
         for a in (a1, a2):
             a.axvline(0, color=INK, lw=1, ls="--")
-        fig.tight_layout()
+        fig.suptitle(f"{res['race']}: start", x=0.01, ha="left", fontweight="bold", fontsize=13)
+        fig.subplots_adjust(left=0.09, right=0.97, top=0.94, bottom=0.06)
         fig.savefig(out / "start.png", dpi=130)
         plt.close(fig)
 

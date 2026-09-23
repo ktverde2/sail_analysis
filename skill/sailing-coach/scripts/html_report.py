@@ -20,7 +20,7 @@ from datetime import datetime
 from pathlib import Path
 
 PLOTS = [
-    ("start.png", "Start"),
+    ("start.png", "Start: approach from 5 minutes, then the last 2 minutes"),
     ("track.png", "Track"),
     ("timeline.png", "Speed and heel"),
     ("maneuvers.png", "Distance lost per maneuver"),
