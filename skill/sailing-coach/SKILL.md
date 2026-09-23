@@ -89,7 +89,7 @@ For "seconds late" framing beyond the report, `python scripts/coach_calcs.py tod
 
 Use the template below. Ground every claim in a number from the data, and keep the whole thing readable on a phone.
 
-For each priority, check the matching file in `references/playbook/` (starts, upwind strategy, tactics, roundings, downwind, boat handling, Etchells technique) for the principle and the next-time fix. Use the playbook to pick the right fix, not to pad the debrief: one principle per priority, in your own words.
+For each priority, open `references/playbook/index.md`, which maps what the data shows to the right file (starts, upwind strategy, tactics, roundings, downwind, boat handling, Etchells technique), and take the principle and the next-time fix from there. Use the playbook to pick the right fix, not to pad the debrief: one principle per priority, in your own words.
 
 ### 7. Export the HTML report (when asked, or for a weekend debrief)
 
