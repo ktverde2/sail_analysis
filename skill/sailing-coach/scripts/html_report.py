@@ -168,6 +168,16 @@ def race_section(race_dir: Path) -> tuple[str, str, str]:
     )
 
 
+def nav_label(race_dir: Path, title: str) -> str:
+    """The race's own name ('Race 2', 'Sun Race 2'), not the boat and event prefix."""
+    summary = race_dir / "summary.json"
+    if summary.exists():
+        name = json.loads(summary.read_text()).get("race")
+        if name:
+            return name
+    return " ".join(title.split()[-2:])
+
+
 def default_title(races: list[Path]) -> str:
     """'Mojo · July ODW · Sun 19 Jul 2026' from the first race's summary.json."""
     if not races or not (races[0] / "summary.json").exists():
@@ -187,9 +197,7 @@ def build(report_dir: Path, debrief: str | None, title: str | None) -> str:
     parts = [f'<header class="top"><h1>{html.escape(page_title)}</h1>']
     parts.append("<p>Race analysis from Njord data</p></header>")
     nav = [("debrief", "Debrief")] if debrief else []
-    nav += [("summary", "Summary")] + [
-        (a, t.split()[-2] + " " + t.split()[-1]) for a, t, _ in sections
-    ]
+    nav += [("summary", "Summary")] + [(a, nav_label(report_dir / a, t)) for a, t, _ in sections]
     parts.append(
         "<nav>" + "".join(f'<a href="#{a}">{html.escape(t)}</a>' for a, t in nav) + "</nav>"
     )

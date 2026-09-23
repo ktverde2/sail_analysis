@@ -1,0 +1,6 @@
+time_s,kind,onto,leg,entry_sog,min_sog,speed_loss_kt,speed_loss_pct,recovery_s,distance_lost_m,heading_change,note
+71,Tack,Port,1,5.35,2.8,2.56,48,25,14.8,69,
+559,Tack,Stbd,1,5.15,3.76,1.4,27,24,20.0,-71,
+953,Tack,Port,1,5.49,3.59,1.89,35,11,4.0,77,
+1050,Tack,Stbd,1,5.42,3.41,2.01,37,23,14.0,-85,
+1334,Gybe,Port,2,4.63,3.33,1.31,28,20,5.9,-30,
