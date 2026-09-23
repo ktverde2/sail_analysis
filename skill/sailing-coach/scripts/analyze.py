@@ -29,6 +29,7 @@ Numbers only. No coaching judgments here; that's the debrief's job.
 from __future__ import annotations
 
 import argparse
+import itertools
 import json
 import math
 import sys
@@ -174,6 +175,12 @@ def wind_quality(df: pd.DataFrame, upwind_mask: pd.Series) -> dict:
     tws = df.TWS.dropna()
     top_share = float(tws.round(2).value_counts(normalize=True).iloc[0])
     reasons = []
+    smooth = float((tws.diff().dropna().abs() < 0.02).mean())
+    if smooth > 0.9:  # a real sensor jumps tenths of a knot a second; a model feed barely moves
+        reasons.append(
+            f"TWS changes by under 0.02 kt a second {smooth:.0%} of the time "
+            "(a smoothed model feed, not measured on board)"
+        )
     if top_share > 0.4:
         reasons.append(f"{top_share:.0%} of samples are exactly {tws.round(2).mode()[0]:g} kt")
     up_sog = df.SOG[upwind_mask].median()
@@ -192,18 +199,31 @@ def detect_maneuvers(race: Race) -> list[dict]:
     evs = [e for e in race.events if e.get("eventType") in kinds]
     if evs:
         return [{"t": e["t"], "kind": e["eventType"], "onto": e.get("direction")} for e in evs]
-    # Fallback: heading swing > 70 deg within 15 s, 30 s debounce
+    # Fallback (no Njord maneuver events): heading swing > 70 deg within 15 s, 30 s debounce.
+    # Heel tells tack from gybe: a tack swings the heel from one side to the other with
+    # upwind heel on at least one side. Njord heel is negative on starboard tack.
     df = race.df
     out, last = [], None
     hdg = df.Heading if "Heading" in df else df.COG
+    heel = df.Heel if "Heel" in df else None
     for i in range(15, len(df)):
         if df.SOG[i] < 1.5 or pd.isna(hdg[i]) or pd.isna(hdg[i - 15]):
             continue
         if abs(float(adiff(hdg[i - 15], hdg[i]))) > 70 and (
             last is None or (df.t[i] - last).total_seconds() > 30
         ):
-            last = df.t[i - 7]
-            out.append({"t": last, "kind": "Maneuver", "onto": None})
+            mid = i - 7
+            last = df.t[mid]
+            kind, onto = "Maneuver", None
+            if heel is not None:
+                before = heel[max(0, mid - 20) : max(0, mid - 5)].mean()
+                after = heel[mid + 8 : mid + 23].mean()
+                if pd.notna(before) and pd.notna(after):
+                    upwind = max(abs(before), abs(after)) >= UPWIND_HEEL_DEG
+                    kind = "Tack" if upwind and before * after < 0 else "Gybe"
+                    if kind == "Tack":
+                        onto = "Stbd" if after < 0 else "Port"
+            out.append({"t": last, "kind": kind, "onto": onto})
     return out
 
 
@@ -217,7 +237,13 @@ def analyze_race(race: Race, tws_override: float | None) -> dict:
     # --- legs: from Njord's course when it has marks, else detected from heel
     legs = []
     legs_source = "Njord course"
-    if not has_leg and gun is not None:
+    n_marks = sum(c["type"] in ("Mark", "Gate") for c in race.course)
+    if n_marks and gun is not None and (not has_leg or df.Leg.nunique() < n_marks + 1):
+        legs = course_legs(race) or []
+        if legs:
+            has_leg = False
+            legs_source = "from the course marks (Njord's leg split was incomplete)"
+    if not has_leg and not legs and gun is not None:
         legs = detect_legs(race)
         legs_source = "detected from heel (course has no marks)"
         if axis is None:
@@ -557,6 +583,80 @@ def finish_from_line(df, gun, end):
     return df.t[crossed].iloc[-1] if crossed.any() else end
 
 
+MARK_RADIUS_M = 100  # a passage is the closest approach while within this of the mark
+
+
+def _course_points(el: dict) -> list[tuple[float, float]]:
+    pts = [(el["coord1"]["lat"], el["coord1"]["lon"])]
+    if el.get("coord2"):
+        pts.append((el["coord2"]["lat"], el["coord2"]["lon"]))
+    return pts
+
+
+def _line_crossing(df, el, after) -> pd.Timestamp | None:
+    """First time after `after` that the track crosses the segment between el's two points."""
+    (alat, alon), (blat, blon) = _course_points(el)
+    bx, by = local_xy(blat, blon, alat, alon)
+    g = df[(df.t > after) & df.Lat.notna()]
+    px, py = local_xy(g.Lat.to_numpy(), g.Lon.to_numpy(), alat, alon)
+    side = np.sign(bx * py - by * px)  # which side of the line each fix is on
+    L2 = bx * bx + by * by
+    along = (px * bx + py * by) / L2  # 0..1 = between the ends
+    for i in range(1, len(g)):
+        if side[i] != side[i - 1] and side[i - 1] != 0 and -0.1 <= along[i] <= 1.1:
+            return g.t.iloc[i]
+    return None
+
+
+def course_legs(race: Race) -> list[dict] | None:
+    """Legs from the course: the closest approach to each mark or gate in order (offsets are
+    folded into the next leg), then the finish-line crossing. For when Njord's Leg column is
+    incomplete (it depends on Njord detecting each rounding)."""
+    df = race.df
+    marks = [c for c in race.course if c["type"] in ("Mark", "Gate")]
+    finish = next((c for c in race.course if c["type"] == "FinishLine"), None)
+    if not marks or race.gun is None:
+        return None
+    t, times = race.gun, [race.gun]
+    for el in marks:
+        g = df[(df.t > t + pd.Timedelta(seconds=60)) & df.Lat.notna()]
+        d = np.min(
+            [
+                np.hypot(*local_xy(g.Lat.to_numpy(), g.Lon.to_numpy(), lat, lon))
+                for lat, lon in _course_points(el)
+            ],
+            axis=0,
+        )
+        near = np.flatnonzero(d < MARK_RADIUS_M)
+        if not len(near):
+            return None  # never reached this mark: can't split the race
+        first = near[0]
+        run_end = first
+        while run_end + 1 < len(d) and d[run_end + 1] < MARK_RADIUS_M:
+            run_end += 1
+        t = g.t.iloc[first + int(np.argmin(d[first : run_end + 1]))]
+        times.append(t)
+    end = _line_crossing(df, finish, t + pd.Timedelta(seconds=30)) if finish else None
+    times.append(end if end is not None else df.t.iloc[-1])
+    axis = upwind_axis(race)
+    legs = []
+    for i, (a, b) in enumerate(itertools.pairwise(times), 1):
+        g = df[(df.t >= a) & (df.t <= b)]
+        leg_axis = float(bearing(g.Lat.iloc[0], g.Lon.iloc[0], g.Lat.iloc[-1], g.Lon.iloc[-1]))
+        up = axis is None or abs(float(adiff(axis, leg_axis))) < 90
+        legs.append(
+            {
+                "leg": i,
+                "type": "upwind" if up else "downwind",
+                "start": a,
+                "end": b,
+                "axis": leg_axis,
+                "detected": True,
+            }
+        )
+    return legs
+
+
 def detect_legs(race: Race) -> list[dict]:
     """Split gun-to-finish into upwind/downwind legs by heel when the course has no marks."""
     df = race.df
@@ -618,12 +718,27 @@ SETTLED_VMG = 0.9  # 10 s VMG back to this share of the next leg's steady VMG = 
 def rounding_stats(race: Race, df, legs, leg_rows, man_rows, shifts) -> list[dict]:
     """Each mark rounding (the boundary between two legs): approach, speed through, and metres
     lost against sailing the steady VMG of the leg before and after."""
-    marks = [c for c in race.course if c["type"] in ("Mark", "Gate")]
+    course = race.course
+    marks = [c for c in course if c["type"] in ("Mark", "Gate")]
+    # An offset mark straight after a mark: the rounding runs on to the offset
+    offsets = [
+        course[i + 1] if i + 1 < len(course) and course[i + 1]["type"] == "Offset" else None
+        for i, c in enumerate(course)
+        if c["type"] in ("Mark", "Gate")
+    ]
     calls = {c["time_s"]: c for c in (shifts or {}).get("tacks", [])}
     out = []
     for k, (before, after) in enumerate(pairwise(legs)):
         t_r = before["end"]
         tg_r = (t_r - race.gun).total_seconds()
+        off_s = 0.0  # seconds from the mark to the offset
+        off = offsets[k] if k < len(offsets) else None
+        if off is not None:
+            g = df[(df.t > t_r) & (df.t <= t_r + pd.Timedelta(seconds=120)) & df.Lat.notna()]
+            if len(g):
+                lat, lon = off["coord1"]["lat"], off["coord1"]["lon"]
+                d = np.hypot(*local_xy(g.Lat.to_numpy(), g.Lon.to_numpy(), lat, lon))
+                off_s = float((g.t.iloc[int(np.argmin(d))] - t_r).total_seconds())
         rb = next(r for r in leg_rows if r["leg"] == before["leg"])
         ra = next(r for r in leg_rows if r["leg"] == after["leg"])
         kind = "windward" if before["type"] == "upwind" else "leeward"
@@ -632,14 +747,14 @@ def rounding_stats(race: Race, df, legs, leg_rows, man_rows, shifts) -> list[dic
         def w(a, b, rel=rel):
             return df[(rel >= a) & (rel <= b)]
 
-        win = w(*ROUNDING_WINDOW_S)
+        win = w(ROUNDING_WINDOW_S[0], ROUNDING_WINDOW_S[1] + off_s)
         base = np.where(rel[win.index] < 0, rb["vmg_steady"] or np.nan, ra["vmg_steady"] or np.nan)
         gap = (base - win.vmg_wind) * KT_TO_MS
         ok_vmg = win.vmg_wind.notna().sum() > 30
         lost = float(np.nansum(gap)) if ok_vmg else None
         pre = (rel[win.index] < 0).values
         # 10 s trailing VMG, only over time after the rounding (before it VMG was the other leg's)
-        after_r = df[(rel >= 0) & (rel <= 180)]
+        after_r = df[(rel >= off_s) & (rel <= 180 + off_s)]
         vmg10 = after_r.vmg_wind.rolling(10, min_periods=10).mean()
         settle = after_r[vmg10 >= SETTLED_VMG * (ra["vmg_steady"] or np.inf)]
         # Approach: the last tack (windward) or gybe (leeward) of the leg before
@@ -662,9 +777,9 @@ def rounding_stats(race: Race, df, legs, leg_rows, man_rows, shifts) -> list[dic
             else None,
             "sog_entry": _r(w(-15, -5).SOG.mean(), 2),
             "sog_min": _r(w(-10, 20).SOG.min(), 2),
-            "sog_exit": _r(w(20, 30).SOG.mean(), 2),
+            "sog_exit": _r(w(20 + off_s, 30 + off_s).SOG.mean(), 2),
             "sog_steady_after": ra["sog_steady"],
-            "settle_s": round(float((settle.t.iloc[0] - t_r).total_seconds()))
+            "settle_s": round(float((settle.t.iloc[0] - t_r).total_seconds()) - off_s)
             if len(settle)
             else None,
             "vmg_before": rb["vmg_steady"],
@@ -672,9 +787,10 @@ def rounding_stats(race: Race, df, legs, leg_rows, man_rows, shifts) -> list[dic
             "metres_lost": _r(lost, 1),
             "lost_before_m": _r(float(np.nansum(gap[pre])), 1) if ok_vmg else None,
             "lost_after_m": _r(float(np.nansum(gap[~pre])), 1) if ok_vmg else None,
-            # Angle to the wind coming in (−20..−5 s) and going out (+15..+40 s)
+            # Angle to the wind coming in (−20..−5 s) and going out (+15..+40 s, after any offset)
             "entry_twa": _r(w(-20, -5).twa_gps.mean(), 0),
-            "exit_twa": _r(w(15, 40).twa_gps.mean(), 0),
+            "exit_twa": _r(w(15 + off_s, 40 + off_s).twa_gps.mean(), 0),
+            "offset_s": round(off_s) if off is not None else None,
             "mark_dist_m": None,
             "gate_side": None,
         }
@@ -1024,12 +1140,19 @@ def start_stats(race, df, axis):
         below = out["below_line_+0s_m"]
         post = df[(df.tg >= 0) & (df.tg <= 120) & df.BelowLineCalc.notna()]
         crossed = post[post.BelowLineCalc <= 0]
-        if below is not None and below < -OCS_TOLERANCE_M:
-            out["ocs_at_gun_m"] = round(-below, 1)
         on_line = below is not None and below <= OCS_TOLERANCE_M
         out["late_s"] = (
             0.0 if on_line else round(float(crossed.tg.iloc[0]), 1) if len(crossed) else None
         )
+        if below is not None and below < -OCS_TOLERANCE_M:
+            out["ocs_at_gun_m"] = round(-below, 1)
+            # Over at the gun: did the boat get back behind the line and start again?
+            back = post[post.BelowLineCalc > 0]
+            if len(back):
+                t_back = float(back.tg.iloc[0])
+                again = post[(post.tg > t_back) & (post.BelowLineCalc <= 0)]
+                out["ocs_returned_s"] = round(t_back, 1)
+                out["late_s"] = round(float(again.tg.iloc[0]), 1) if len(again) else None
         if below and below > OCS_TOLERANCE_M and out["sog_+0s"]:
             out["late_tod_estimate_s"] = round(below / (out["sog_+0s"] * KT_TO_MS), 1)
     back = [
@@ -1936,6 +2059,13 @@ def roundings_md(rs: list | None) -> list[str]:
             (
                 "Metres lost: VMG from 30 s before to 60 s after the rounding against the steady VMG "
                 "of the leg before and after. Settled: 10 s VMG back to 90% of the next leg's."
+                + (
+                    " With an offset mark the window runs to 60 s after the offset, and the exit "
+                    "angle, exit speed and settle time are measured from the offset (the offset "
+                    "reach is the same for every boat)."
+                    if any(r.get("offset_s") is not None for r in rs)
+                    else ""
+                )
             ),
             "",
             md_table(
@@ -2015,7 +2145,10 @@ def write_report(res: dict, out: Path):
                 f"{s.get('below_line_-30s_m')} m at -30 s, {s.get('below_line_-10s_m')} m at -10 s, "
                 f"{s.get('below_line_+0s_m')} m at the gun."
             ),
-            f"- OCS at gun by {s['ocs_at_gun_m']} m (check the GPS antenna-to-bow offset)."
+            f"- Over the line at the gun by {s['ocs_at_gun_m']} m; back behind it at "
+            f"+{s['ocs_returned_s']:.0f} s and restarted at +{s['late_s']:.0f} s."
+            if s.get("ocs_returned_s") is not None and s.get("late_s") is not None
+            else f"- OCS at gun by {s['ocs_at_gun_m']} m (check the GPS antenna-to-bow offset)."
             if s.get("ocs_at_gun_m")
             else f"- On the line at the gun (within {OCS_TOLERANCE_M:g} m)."
             if late == 0
@@ -2215,11 +2348,18 @@ def _rng(xs, fmt="{:.0f}", unit=""):
     )
 
 
+def ocs_label(s: dict) -> str:
+    """Over the line at the gun: 'restarted +9 s' if the boat went back, else 'OCS 2.5 m'."""
+    if s.get("ocs_returned_s") is not None and s.get("late_s") is not None:
+        return f"over {s['ocs_at_gun_m']} m, restarted +{s['late_s']:.0f} s"
+    return f"OCS {s['ocs_at_gun_m']} m"
+
+
 def _start_phrase(s: dict) -> str:
     if not s:
         return "start not measured"
     if s.get("ocs_at_gun_m"):
-        when = f"OCS by {s['ocs_at_gun_m']} m"
+        when = ocs_label(s)
     elif s.get("late_s") == 0:
         when = "on the line at the gun"
     elif s.get("late_s") is not None:
@@ -2298,7 +2438,7 @@ def _flags(r: dict) -> list[str]:
     out = []
     s = r["start"] or {}
     if s.get("ocs_at_gun_m"):
-        out.append("OCS at the gun")
+        out.append(ocs_label(s))
     elif (s.get("late_s") or 0) >= 8:
         out.append(f"late start ({s['late_s']:.0f} s)")
     tgt = _mid_target(r["targets"])
@@ -2324,7 +2464,14 @@ def _flags(r: dict) -> list[str]:
 
 def _group_line(rs: list[dict]) -> str:
     starts = [r["start"] for r in rs if r["start"]]
-    late = [0 if s.get("ocs_at_gun_m") else s.get("late_s") for s in starts]
+    late = [
+        s.get("late_s")
+        if s.get("ocs_returned_s") is not None
+        else 0
+        if s.get("ocs_at_gun_m")
+        else s.get("late_s")
+        for s in starts
+    ]
     tg = [_mid_target(r["targets"]) for r in rs]
     pct = [t["tgt_speed_pct"] for t in tg if t]
     heel = [_mean([lg["heel_abs_avg"] for lg in _up(r)]) for r in rs]
@@ -2399,9 +2546,7 @@ def write_event(results: list[dict], out: Path):
                 "race": r["race"],
                 "gun": (r["gun_local"] or "")[11:16],
                 "min": r["duration_min"],
-                "late": s.get("late_s")
-                if not s.get("ocs_at_gun_m")
-                else f"OCS {s['ocs_at_gun_m']} m",
+                "late": s.get("late_s") if not s.get("ocs_at_gun_m") else ocs_label(s),
                 "pos": s.get("line_pos_pct_from_pin"),
                 "sog0": s.get("sog_+0s"),
                 "accel": s.get("accel_pm5s_kt"),

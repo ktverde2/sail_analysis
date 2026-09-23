@@ -37,7 +37,7 @@
   "legs_source": "Njord course",
   "wind": {
     "trusted": false,
-    "reason": "upwind SOG 5.9 kt is far above TWS 2.5 kt",
+    "reason": "TWS changes by under 0.02 kt a second 100% of the time (a smoothed model feed, not measured on board); upwind SOG 5.9 kt is far above TWS 2.5 kt",
     "tws_median": 2.5,
     "twd_estimated": 281.7
   },
@@ -762,6 +762,7 @@
       "lost_after_m": 9.0,
       "entry_twa": 56.0,
       "exit_twa": 167.0,
+      "offset_s": null,
       "mark_dist_m": 7.3,
       "gate_side": null,
       "vs_best_m": 4.3,
@@ -792,6 +793,7 @@
       "lost_after_m": 75.1,
       "entry_twa": 171.0,
       "exit_twa": 43.0,
+      "offset_s": null,
       "mark_dist_m": 7.5,
       "gate_side": "left-hand mark (looking downwind)",
       "vs_best_m": 62.7,

@@ -35,7 +35,7 @@
   "legs_source": "detected from heel (course has no marks)",
   "wind": {
     "trusted": false,
-    "reason": "upwind SOG 5.8 kt is far above TWS 2.7 kt",
+    "reason": "TWS changes by under 0.02 kt a second 100% of the time (a smoothed model feed, not measured on board); upwind SOG 5.8 kt is far above TWS 2.7 kt",
     "tws_median": 3.5,
     "twd_estimated": 265.5
   },
@@ -644,6 +644,7 @@
       "lost_after_m": 24.3,
       "entry_twa": 54.0,
       "exit_twa": 170.0,
+      "offset_s": null,
       "mark_dist_m": null,
       "gate_side": null,
       "vs_best_m": 20.2,
@@ -675,6 +676,7 @@
       "lost_after_m": 19.1,
       "entry_twa": 145.0,
       "exit_twa": 33.0,
+      "offset_s": null,
       "mark_dist_m": null,
       "gate_side": null,
       "vs_best_m": 30.3,
@@ -706,6 +708,7 @@
       "lost_after_m": 6.6,
       "entry_twa": 51.0,
       "exit_twa": 159.0,
+      "offset_s": null,
       "mark_dist_m": null,
       "gate_side": null,
       "vs_best_m": 0.0,

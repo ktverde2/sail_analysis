@@ -35,7 +35,7 @@
   "legs_source": "detected from heel (course has no marks)",
   "wind": {
     "trusted": false,
-    "reason": "100% of samples are exactly 6 kt",
+    "reason": "TWS changes by under 0.02 kt a second 100% of the time (a smoothed model feed, not measured on board); 100% of samples are exactly 6 kt",
     "tws_median": 6.0,
     "twd_estimated": 267.8
   },
@@ -404,6 +404,7 @@
       "lost_after_m": 79.4,
       "entry_twa": 43.0,
       "exit_twa": 130.0,
+      "offset_s": null,
       "mark_dist_m": null,
       "gate_side": null,
       "vs_best_m": 63.1,

@@ -382,12 +382,19 @@ def card(inner: str, cls: str = "") -> str:
     return f'<section class="card {cls}">{inner}</section>'
 
 
+def ocs_label(s: dict) -> str:
+    """Same wording as analyze.ocs_label (kept separate: this script has no pandas)."""
+    if s.get("ocs_returned_s") is not None and s.get("late_s") is not None:
+        return f"over {s['ocs_at_gun_m']} m, restarted +{s['late_s']:.0f} s"
+    return f"OCS {s['ocs_at_gun_m']} m"
+
+
 def starts_page(runs) -> str:
     rows = []
     for d, s in runs:
         st = s.get("start") or {}
         late = (
-            f"OCS {st['ocs_at_gun_m']} m"
+            ocs_label(st)
             if st.get("ocs_at_gun_m")
             else "on the line"
             if st.get("late_s") == 0

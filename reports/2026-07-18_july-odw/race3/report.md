@@ -3,7 +3,7 @@
 Gun 2026-07-18 14:05:00 (America/Los_Angeles), race 24.9 min. Speed source: SOG.
 
 ## Data quality
-- Wind: NOT trusted (100% of samples are exactly 6 kt).
+- Wind: NOT trusted (TWS changes by under 0.02 kt a second 100% of the time (a smoothed model feed, not measured on board); 100% of samples are exactly 6 kt).
 - Wind direction estimated from tacking headings: 267.8°.
 - Speeds are over ground; current moves them. Compare tacks before coaching small differences.
 

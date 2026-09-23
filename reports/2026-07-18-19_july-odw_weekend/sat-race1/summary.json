@@ -35,7 +35,7 @@
   "legs_source": "detected from heel (course has no marks)",
   "wind": {
     "trusted": false,
-    "reason": "45% of samples are exactly 6 kt",
+    "reason": "TWS changes by under 0.02 kt a second 100% of the time (a smoothed model feed, not measured on board); 45% of samples are exactly 6 kt",
     "tws_median": 5.8,
     "twd_estimated": 263.1
   },
@@ -568,6 +568,7 @@
       "lost_after_m": 44.2,
       "entry_twa": 45.0,
       "exit_twa": 148.0,
+      "offset_s": null,
       "mark_dist_m": null,
       "gate_side": null,
       "vs_best_m": 29.4,
@@ -600,6 +601,7 @@
       "lost_after_m": 16.7,
       "entry_twa": 164.0,
       "exit_twa": 26.0,
+      "offset_s": null,
       "mark_dist_m": null,
       "gate_side": null,
       "vs_best_m": 0.0,
@@ -630,6 +632,7 @@
       "lost_after_m": 22.9,
       "entry_twa": 37.0,
       "exit_twa": 166.0,
+      "offset_s": null,
       "mark_dist_m": null,
       "gate_side": null,
       "vs_best_m": 7.2,

@@ -37,7 +37,7 @@
   "legs_source": "Njord course",
   "wind": {
     "trusted": false,
-    "reason": "74% of samples are exactly 10 kt",
+    "reason": "TWS changes by under 0.02 kt a second 100% of the time (a smoothed model feed, not measured on board); 74% of samples are exactly 10 kt",
     "tws_median": 10.0,
     "twd_estimated": 276.7
   },
@@ -617,6 +617,7 @@
       "lost_after_m": 34.4,
       "entry_twa": 37.0,
       "exit_twa": 160.0,
+      "offset_s": null,
       "mark_dist_m": 4.2,
       "gate_side": null,
       "vs_best_m": 26.5,
@@ -648,6 +649,7 @@
       "lost_after_m": 41.4,
       "entry_twa": 168.0,
       "exit_twa": 26.0,
+      "offset_s": null,
       "mark_dist_m": 5.0,
       "gate_side": "right-hand mark (looking downwind)",
       "vs_best_m": 31.5,
@@ -679,6 +681,7 @@
       "lost_after_m": 17.4,
       "entry_twa": 47.0,
       "exit_twa": 165.0,
+      "offset_s": null,
       "mark_dist_m": 5.2,
       "gate_side": null,
       "vs_best_m": 8.2,
