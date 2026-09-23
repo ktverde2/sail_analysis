@@ -1,0 +1,34 @@
+{
+  "event": "July ODW",
+  "eventKey": "Event_2026-07-19T07:00:00.000Z_affe65bd-281e-42a1-b70d-39b5e2b52330",
+  "boat": "Mojo",
+  "timezone": "America/Los_Angeles",
+  "race": "Race 1",
+  "raceKey": "Race_2026-07-18T18:45:00.000Z_467c52f5-6052-4283-bbf7-acd30ad1a488",
+  "startTime": "2026-07-18T18:45:00.000Z",
+  "endTime": "2026-07-18T19:44:00.000Z",
+  "course": [
+    {
+      "type": "StartLine",
+      "coord1": {
+        "lat": 32.65290451049805,
+        "lon": -117.19625854492188
+      },
+      "coord2": {
+        "lat": 32.654212951660156,
+        "lon": -117.19654846191406
+      }
+    },
+    {
+      "type": "FinishLine",
+      "coord1": {
+        "lat": 32.654212951660156,
+        "lon": -117.19654846191406
+      },
+      "coord2": {
+        "lat": 32.65290451049805,
+        "lon": -117.19625854492188
+      }
+    }
+  ]
+}

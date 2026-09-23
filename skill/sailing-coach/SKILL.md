@@ -58,6 +58,8 @@ python scripts/analyze.py <dir>/race1.csv <dir>/race2.csv --out <dir>/report
 
 Read `report/event.md` first, then each `report/<race>/report.md`, and look at its plots (`track.png`, `timeline.png`, `start.png`, `maneuvers.png`). Everything is also in `summary.json`, `legs.csv` and `maneuvers.csv` if you need to dig.
 
+Courses without marks (start/finish line only) are fine: the script splits the race into upwind and downwind legs by heel (Etchells heel ~15–25° upwind, ~2–6° down), takes the finish from the line crossing rather than Njord's often-late race end, and hides Njord's VMC (it points at the finish, not up the course). The report says "Legs: detected from heel" when this happens.
+
 What's in it:
 
 - **Wind check.** Etchells usually have no wind sensor, so Njord's TWS/TWA may be a default or manual value. The script flags it (e.g. "74% of samples are exactly 10 kt") and estimates wind direction from the tacking headings instead. If the wind isn't trusted, don't coach off Njord's TWA, targets or % of target.
@@ -82,6 +84,16 @@ For "seconds late" framing beyond the report, `python scripts/coach_calcs.py tod
 ### 6. Write the debrief
 
 Use the template below. Ground every claim in a number from the data, and keep the whole thing readable on a phone.
+
+### 7. Export the HTML report (when asked, or for a weekend debrief)
+
+Save the debrief as `<dir>/report/debrief.md`, then build one self-contained page (plots embedded, works offline and on a phone):
+
+```bash
+python scripts/html_report.py <dir>/report --debrief <dir>/report/debrief.md
+```
+
+It writes `<dir>/report/report.html` with the debrief on top, then the event summary, then each race's numbers and plots. (`analyze.py ... --html --debrief <file>` does steps 4 and 7 in one go when the debrief already exists.) Share the HTML file itself; nothing else is needed to open it.
 
 ## Debrief template
 

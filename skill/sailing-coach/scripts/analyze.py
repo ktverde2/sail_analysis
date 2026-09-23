@@ -17,7 +17,9 @@ Writes, per race, <out>/<stem>/:
   maneuvers.csv   one row per tack/gybe
   targets.csv     upwind vs. Etchells card by wind band (only when wind is trustworthy)
   track.png, timeline.png, start.png, maneuvers.png
-and <out>/event.md comparing all races.
+and <out>/event.md comparing all races. With --html, also <out>/report.html: one self-contained
+page (plots embedded) with an optional --debrief Markdown file at the top. html_report.py can
+re-render it later without recomputing.
 
 Numbers only. No coaching judgments here; that's the debrief's job.
 """
@@ -207,11 +209,18 @@ def analyze_race(race: Race, tws_override: float | None) -> dict:
     df = race.df
     gun = race.gun
     df["tg"] = (df.t - gun).dt.total_seconds() if gun is not None else np.nan
-    has_leg = "Leg" in df and df.Leg.notna().any()
+    has_leg = "Leg" in df and df.Leg.nunique() > 1
     axis = upwind_axis(race)
 
-    # --- legs
+    # --- legs: from Njord's course when it has marks, else detected from heel
     legs = []
+    legs_source = "Njord course"
+    if not has_leg and gun is not None:
+        legs = detect_legs(race)
+        legs_source = "detected from heel (course has no marks)"
+        if axis is None:
+            up = df[df.leg_type_detected == "upwind"]
+            axis = circ_mean(up[up.SOG > 2].Heading if "Heading" in up else up[up.SOG > 2].COG)
     if has_leg:
         for leg, g in df[df.Leg.notna()].groupby("Leg"):
             leg_axis = float(bearing(g.Lat.iloc[0], g.Lon.iloc[0], g.Lat.iloc[-1], g.Lon.iloc[-1]))
@@ -274,6 +283,8 @@ def analyze_race(race: Race, tws_override: float | None) -> dict:
     for a, b in pairwise(man_rows):
         if b["time_s"] - a["time_s"] < 30:
             a["note"] = b["note"] = "double (<30 s apart; loss numbers overlap)"
+    if legs_source.startswith("detected") and twd_est is not None:
+        axis = twd_est  # better than the mean upwind heading used to find the tacks
     start = start_stats(race, df, axis) if gun is not None else None
     targets = target_bands(df, wind, tws_override)
 
@@ -291,6 +302,7 @@ def analyze_race(race: Race, tws_override: float | None) -> dict:
         "channels": [c for c in df.columns if c[0].isupper() and df[c].notna().any()],
         "speed_source": "BoatSpeed" if "BoatSpeed" in df else "SOG",
         "upwind_axis": round(axis, 1) if axis is not None else None,
+        "legs_source": legs_source if legs else None,
         "wind": wind,
         "start": start,
         "legs": leg_rows,
@@ -298,6 +310,51 @@ def analyze_race(race: Race, tws_override: float | None) -> dict:
         "maneuver_summary": maneuver_summary(man_rows),
         "targets": targets,
     }
+
+
+UPWIND_HEEL_DEG = 9  # Etchells: ~15-25 deg upwind, ~2-6 deg downwind
+MIN_LEG_S = 120
+
+
+def finish_from_line(df, gun, end):
+    """Njord's race end can run past the finish. With the finish on the start line, the finish
+    is the last crossing from the course side (BelowLineCalc < 0) back behind the line."""
+    if "BelowLineCalc" not in df:
+        return end
+    b = df.BelowLineCalc
+    crossed = (b.shift() < 0) & (b >= 0) & (df.t > gun + pd.Timedelta(minutes=5)) & (df.t <= end)
+    return df.t[crossed].iloc[-1] if crossed.any() else end
+
+
+def detect_legs(race: Race) -> list[dict]:
+    """Split gun-to-finish into upwind/downwind legs by heel when the course has no marks."""
+    df = race.df
+    end = pd.Timestamp(race.meta["endTime"]) if race.meta.get("endTime") else df.t.iloc[-1]
+    end = finish_from_line(df, race.gun, end)
+    in_race = (df.t >= race.gun) & (df.t <= end)
+    heel = df.Heel.abs().rolling(61, center=True, min_periods=20).median()
+    mode = pd.Series(np.where(heel >= UPWIND_HEEL_DEG, "upwind", "downwind"), index=df.index)
+    mode[~in_race] = None
+    df["leg_type_detected"] = mode
+
+    # Runs of the same mode; fold runs shorter than MIN_LEG_S into the previous run
+    runs = []
+    for m, g in df[in_race].groupby((mode[in_race] != mode[in_race].shift()).cumsum()):
+        m = mode[g.index[0]]
+        if runs and (runs[-1]["type"] == m or len(g) < MIN_LEG_S):
+            runs[-1]["end"] = g.t.iloc[-1]
+        else:
+            runs.append({"type": m, "start": g.t.iloc[0], "end": g.t.iloc[-1]})
+    # A short first run (e.g. reaching off the line) merges forward instead
+    if len(runs) > 1 and (runs[0]["end"] - runs[0]["start"]).total_seconds() < MIN_LEG_S:
+        runs[1]["start"] = runs[0]["start"]
+        runs.pop(0)
+    legs = []
+    for i, r in enumerate(runs, 1):
+        g = df[(df.t >= r["start"]) & (df.t <= r["end"])]
+        axis = float(bearing(g.Lat.iloc[0], g.Lon.iloc[0], g.Lat.iloc[-1], g.Lon.iloc[-1]))
+        legs.append(dict(r, leg=i, axis=axis, detected=True))
+    return legs
 
 
 def estimate_twd(df, legs, hdg_col, axis):
@@ -336,7 +393,9 @@ def leg_stats(df, lg, hdg_col, mans):
         "distance_sailed_nm": round(dist_nm, 2),
         "sog_avg": round(float(g.SOG.mean()), 2),
         "sog_steady": round(float(s.SOG.mean()), 2) if len(s) else None,
-        "vmc_avg": round(float(g.VMC.mean()), 2) if "VMC" in g and g.VMC.notna().any() else None,
+        "vmc_avg": round(float(g.VMC.mean()), 2)
+        if "VMC" in g and g.VMC.notna().any() and not lg.get("detected")
+        else None,  # without marks Njord's VMC points at the finish, not up/down the course
         "maneuvers": sum(lg["start"] <= m["t"] <= lg["end"] for m in mans),
         "heel_abs_avg": round(float(heel.mean()), 1) if len(heel) else None,
         "heel_abs_std": round(float(heel.std()), 1) if len(heel) > 1 else None,
@@ -823,6 +882,8 @@ def write_report(res: dict, out: Path):
     lines += [
         "",
         "## Legs",
+        f"Legs: {res['legs_source']}." if res.get("legs_source") else "",
+        "",
         md_table(
             res["legs"],
             [
@@ -834,7 +895,7 @@ def write_report(res: dict, out: Path):
                 ("SOG steady", "sog_steady"),
                 ("VMC", "vmc_avg"),
                 ("Maneuvers", "maneuvers"),
-                ("|Heel|", "heel_abs_avg"),
+                ("Heel (abs)", "heel_abs_avg"),
                 ("Heel sd", "heel_abs_std"),
                 ("Tacking ∠", "tacking_angle"),
                 ("TWD est", "twd_est"),
@@ -901,7 +962,7 @@ def write_report(res: dict, out: Path):
                     ("% target", "speed_pct"),
                     ("TWA", "twa_avg"),
                     ("Δ TWA", "twa_delta"),
-                    ("|Heel|", "heel_avg"),
+                    ("Heel (abs)", "heel_avg"),
                     ("Δ heel", "heel_delta"),
                     ("Heel sd", "heel_std"),
                 ],
@@ -960,7 +1021,7 @@ def write_event(results: list[dict], out: Path):
             ("Tacks", "tacks"),
             ("Avg m lost/tack", "tack_loss"),
             ("Upwind SOG", "up_sog"),
-            ("Upwind |heel|", "up_heel"),
+            ("Upwind heel (abs)", "up_heel"),
             ("Tacking ∠", "tack_angle"),
         ],
     )
@@ -1004,9 +1065,15 @@ def main():
         "--tz", help="IANA timezone for displayed times (default: from <stem>-race.json, else UTC)"
     )
     ap.add_argument("--no-plots", action="store_true")
+    ap.add_argument("--html", action="store_true", help="also write <out>/report.html")
+    ap.add_argument("--debrief", type=Path, help="Markdown debrief to put at the top of the HTML")
     a = ap.parse_args()
     run(a.csv, a.out, a.tws, a.tz, plots=not a.no_plots)
     print((a.out / "event.md").read_text())
+    if a.html or a.debrief:
+        from html_report import write_html
+
+        print(f"HTML report: {write_html(a.out, a.debrief)}")
 
 
 if __name__ == "__main__":

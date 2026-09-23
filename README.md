@@ -17,6 +17,9 @@ python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
   --out /tmp/report
 ```
 
+Add `--html` for a single self-contained `report.html` (and `--debrief debrief.md` to put a written
+debrief at the top); `reports/2026-07-19_july-odw/report.html` is an example.
+
 Open `/tmp/report/event.md`, then `/tmp/report/race1/report.md` and its PNGs. Add `--tws 9` to compare
 upwind sailing to the Etchells target card when the logged wind isn't trustworthy (see the sample README).
 
@@ -35,6 +38,7 @@ Upload `sailing-coach.zip` in Claude's Skills settings, replacing the old versio
 ```
 skill/sailing-coach/      the Claude skill: SKILL.md, references, scripts/analyze.py
 samples/                  real Njord race exports used as test data
+reports/                  generated debriefs (HTML + the numbers behind them)
 src/sail_analysis/core/   parsing and metrics (plain Python, no web, no AI)
 src/sail_analysis/web/    FastAPI app: Google sign-in, upload page, results page
 tests/                    pytest

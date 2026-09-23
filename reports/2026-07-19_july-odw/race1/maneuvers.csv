@@ -1,0 +1,10 @@
+time_s,kind,onto,leg,entry_sog,min_sog,speed_loss_kt,speed_loss_pct,recovery_s,distance_lost_m,heading_change,note
+119,Tack,Port,1,5.49,4.42,1.07,19,12,13.5,69,
+506,Tack,Stbd,1,6.11,4.25,1.86,30,16,5.2,-79,
+685,Tack,Port,1,5.75,4.47,1.27,22,8,-0.4,64,
+984,Tack,Port,1,5.28,3.86,1.42,27,25,15.0,36,double (<30 s apart; loss numbers overlap)
+996,Tack,Stbd,1,4.23,3.73,0.51,12,6,-6.5,-46,double (<30 s apart; loss numbers overlap)
+1871,Tack,Port,3,5.51,4.35,1.16,21,10,-3.0,64,
+2295,Tack,Stbd,3,5.88,4.19,1.69,29,21,4.0,-66,
+2624,Tack,Port,3,5.99,4.02,1.98,33,16,7.2,59,
+2767,Tack,Stbd,3,5.95,4.42,1.54,26,16,2.8,-68,

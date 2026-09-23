@@ -85,3 +85,45 @@ def test_targets_with_user_wind(tmp_path):
     t = res[0]["targets"]
     assert t["available"] and t["bands"][0]["band"] == "7-9"
     assert 80 < t["bands"][0]["speed_pct"] < 130
+
+
+SATURDAY = ROOT / "samples/njord/2026-07-18_july-odw"
+
+
+def test_markless_course_legs_detected_from_heel(tmp_path):
+    """Saturday's courses have only a start/finish line, so Njord gives one leg per race."""
+    res = analyze.run(
+        [SATURDAY / "race1.csv", SATURDAY / "race3.csv"], tmp_path, tws=None, tz=None, plots=False
+    )
+    r1, r3 = res
+    assert r1["legs_source"].startswith("detected")
+    assert [lg["type"] for lg in r1["legs"]] == ["upwind", "downwind"] * 2
+    assert [lg["type"] for lg in r3["legs"]] == ["upwind", "downwind"]
+    # Njord's end time runs 10 min past the finish; the line crossing at 12:34 local wins
+    assert r1["finish_local"].startswith("2026-07-18 12:34")
+    assert all(lg["vmc_avg"] is None for lg in r1["legs"])  # VMC points at the finish here
+    assert r1["start"]["line_pos_pct_from_pin"] is not None
+
+
+def test_html_report(results, tmp_path):
+    sys.path.insert(0, str(ROOT / "skill/sailing-coach/scripts"))
+    from html_report import md_to_html, write_html
+
+    out, _ = results
+    debrief = tmp_path / "debrief.md"
+    debrief.write_text(
+        "## Debrief\n\n**Top 3**\n1. **Starts** — late.\n\n| A | B |\n|---|---|\n| 1 | 2 |\n"
+    )
+    page = write_html(out, debrief, tmp_path / "r.html").read_text()
+    assert "<title>Mojo · July ODW · Sun 19 Jul 2026</title>" in page
+    assert page.count("data:image/png;base64,") == 8
+    assert '<section class="card debrief" id="debrief"><h2>Debrief</h2>' in page
+    assert "<ol><li><strong>Starts</strong> — late.</li></ol>" in page
+    # Every table row has as many cells as its header (a stray "|" would break this)
+    import re
+
+    for table in re.findall(r"<table>(.*?)</table>", page):
+        rows = re.findall(r"<tr>(.*?)</tr>", table)
+        widths = {len(re.findall(r"<t[hd]>", r)) for r in rows}
+        assert len(widths) == 1, rows[0]
+    assert "&lt;script&gt;" in md_to_html("<script>x</script>")
