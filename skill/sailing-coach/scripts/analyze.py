@@ -2501,7 +2501,7 @@ def main():
     ap.add_argument("--html", action="store_true", help="also write <out>/report.html")
     ap.add_argument("--debrief", type=Path, help="Markdown debrief to put at the top of the HTML")
     ap.add_argument(
-        "--cdn", action="store_true", help="HTML loads Plotly online (email-safe, needs internet)"
+        "--cdn", action="store_true", help="HTML loads Plotly online (smaller file, needs internet)"
     )
     a = ap.parse_args()
     run(a.csv, a.out, a.tws, a.tz, plots=not a.no_plots)

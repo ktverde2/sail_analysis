@@ -7,12 +7,12 @@ Usage:
 Reads <report_dir>/event.md, each <race>/report.md and its PNGs, and an optional debrief
 (Markdown written by the coach). Charts are interactive (hover for time, speed, VMG and heading;
 drag to zoom) using the bundled Plotly library and each race's plotdata.json; --static uses the
-PNGs instead. Everything is inlined, so the HTML file works offline, emailed or uploaded on its
+PNGs instead. Everything is inlined, so the HTML file works offline, shared or uploaded on its
 own. No third-party Python packages.
 
---cdn loads Plotly from jsDelivr instead of inlining it. The file is then ~1 MB smaller and passes
-Gmail's attachment scan (the inlined library's download helpers look like "HTML smuggling" to
-it), but the charts need an internet connection when the file is opened.
+--cdn loads Plotly from jsDelivr instead of inlining it: the file is ~1 MB smaller, but the charts
+need an internet connection when it is opened. Gmail's virus scan still flags interactive HTML
+attachments either way, so share reports by a Google Drive link rather than as an attachment.
 """
 
 from __future__ import annotations
@@ -966,7 +966,7 @@ def main():
     ap.add_argument(
         "--cdn",
         action="store_true",
-        help="load Plotly from jsDelivr instead of inlining it (email-safe; needs internet)",
+        help="load Plotly from jsDelivr instead of inlining it (smaller; needs internet)",
     )
     a = ap.parse_args()
     print(write_html(a.report_dir, a.debrief, a.out, a.title, not a.static, a.cdn))
