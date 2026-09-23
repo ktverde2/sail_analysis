@@ -56,7 +56,7 @@ Then run all races together:
 python scripts/analyze.py <dir>/race1.csv <dir>/race2.csv --out <dir>/report
 ```
 
-Read `report/event.md` first, then each `report/<race>/report.md`, and look at its plots (`track.png`, `timeline.png`, `start.png`, `maneuvers.png`). Everything is also in `summary.json`, `legs.csv` and `maneuvers.csv` if you need to dig.
+Read `report/executive.md` first (one line for the event, each day and each race, with flags on the outliers), then `report/event.md`, then each `report/<race>/report.md`, and look at its plots (`track.png`, `timeline.png`, `start.png`, `maneuvers.png`). Everything is also in `summary.json`, `legs.csv` and `maneuvers.csv` if you need to dig.
 
 Courses without marks (start/finish line only) are fine: the script splits the race into upwind and downwind legs by heel (Etchells heel ~15–25° upwind, ~2–6° down), takes the finish from the line crossing rather than Njord's often-late race end, and hides Njord's VMC (it points at the finish, not up the course). The report says "Legs: detected from heel" when this happens.
 
@@ -94,7 +94,7 @@ Save the debrief as `<dir>/report/debrief.md`, then build one self-contained pag
 python scripts/html_report.py <dir>/report --debrief <dir>/report/debrief.md
 ```
 
-It writes `<dir>/report/report.html` with the debrief on top, then the event summary, then each race's numbers and plots. (`analyze.py ... --html --debrief <file>` does steps 4 and 7 in one go when the debrief already exists.) Share the HTML file itself; nothing else is needed to open it.
+It writes `<dir>/report/report.html` as tabbed pages: **Summary** (the executive summary and the all-races table), **Debrief**, **Starts**, **Maneuvers**, **Upwind**, **Downwind** (each comparing every race side by side, with its plots) and **Race by race**. Printing puts each page on its own sheet. (`analyze.py ... --html --debrief <file>` does steps 4 and 7 in one go when the debrief already exists.) Share the HTML file itself; nothing else is needed to open it.
 
 ## Debrief template
 

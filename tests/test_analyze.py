@@ -1,5 +1,6 @@
 """analyze.py against the real July ODW races in samples/."""
 
+import re
 import sys
 from pathlib import Path
 
@@ -33,6 +34,7 @@ def test_outputs_written(results):
             "start.png",
             "maneuvers.png",
             "shifts.png",
+            "downwind.png",
         ):
             assert (out / race / f).stat().st_size > 0, f"{race}/{f}"
 
@@ -138,12 +140,11 @@ def test_html_report(results, tmp_path):
     )
     page = write_html(out, debrief, tmp_path / "r.html").read_text()
     assert "<title>Mojo · July ODW · Sun 19 Jul 2026</title>" in page
-    assert page.count("data:image/png;base64,") == 10  # 5 plots x 2 races
-    assert '<section class="card debrief" id="debrief"><h2>Debrief</h2>' in page
+    assert page.count("data:image/png;base64,") == 12  # 6 plots x 2 races, each shown once
+    assert '<section class="page" id="debrief">' in page
+    assert '<section class="card debrief"><h2>Debrief</h2>' in page
     assert "<ol><li><strong>Starts</strong> — late.</li></ol>" in page
     # Every table row has as many cells as its header (a stray "|" would break this)
-    import re
-
     for table in re.findall(r"<table>(.*?)</table>", page):
         rows = re.findall(r"<tr>(.*?)</tr>", table)
         widths = {len(re.findall(r"<t[hd]>", r)) for r in rows}
@@ -176,3 +177,46 @@ def test_tack_right_after_rounding_is_not_a_shift_call(tmp_path):
     res = analyze.run([SATURDAY / "race2.csv"], tmp_path, tws=None, tz=None, plots=False)
     calls = {analyze._fmt_mmss(c["time_s"]): c for c in res[0]["shifts"]["tacks"]}
     assert calls["27:52"]["verdict"] == "tack right after the leeward mark"
+
+
+def test_executive_summary(results):
+    out, _ = results
+    ex = (out / "executive.md").read_text()
+    assert ex.startswith("# Executive summary")
+    assert "## Sun 19 Jul" in ex and "**Day:** 2 races" in ex
+    assert "**Overall:**" not in ex  # one day only
+    race2 = next(line for line in ex.splitlines() if line.startswith("- **Race 2**"))
+    assert "13 s late, boat end" in race2 and "**Flags:** late start (13 s)" in race2
+    race1 = next(line for line in ex.splitlines() if line.startswith("- **Race 1**"))
+    assert "on the line at the gun" in race1 and "late start" not in race1
+
+
+def test_executive_summary_spans_days(tmp_path):
+    res = analyze.run(
+        [SATURDAY / "race3.csv", SAMPLES / "race2.csv"], tmp_path, tws="8-10", tz=None, plots=False
+    )
+    ex = (tmp_path / "executive.md").read_text()
+    assert "**Overall:** 2 races" in ex and "## Sat 18 Jul" in ex and "## Sun 19 Jul" in ex
+    assert len(res) == 2
+
+
+def test_leg_and_start_extras(results):
+    _, r = results
+    run = next(lg for lg in r["race2"]["legs"] if lg["type"] == "downwind")
+    assert 150 < run["twa_steady"] < 180 and run["gybes"] == 2 and 5 < run["vmg_steady"] < 6.5
+    beat = r["race2"]["legs"][0]
+    assert 30 < beat["twa_steady"] < 45 and beat["tacks"] >= 8
+    assert r["race2"]["start"]["last_maneuver_before_gun_s"] == -203
+    assert r["race2"]["start"]["prestart_maneuvers_5min"] == 2
+
+
+def test_html_pages(results, tmp_path):
+    from html_report import write_html
+
+    out, _ = results
+    page = write_html(out, None, tmp_path / "p.html").read_text()
+    ids = re.findall(r'<section class="page" id="([^"]+)"', page)
+    assert ids == ["summary", "starts", "maneuvers", "upwind", "downwind", "races"]
+    assert "Executive summary" in page.split('id="starts"')[0]
+    assert page.count("downwind.png") == 0  # embedded, not linked
+    assert '<nav class="pages">' in page

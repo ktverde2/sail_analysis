@@ -16,8 +16,9 @@ Writes, per race, <out>/<stem>/:
   legs.csv        one row per leg
   maneuvers.csv   one row per tack/gybe
   targets.csv     upwind vs. Etchells card by wind band (only when wind is trustworthy)
-  track.png, timeline.png, start.png, maneuvers.png
-and <out>/event.md comparing all races. With --html, also <out>/report.html: one self-contained
+  track.png, timeline.png, start.png, maneuvers.png, shifts.png, downwind.png
+and, across all races, <out>/executive.md (one factual line overall, per day and per race,
+with flags for outliers) and <out>/event.md (the comparison table). With --html, also <out>/report.html: one self-contained
 page (plots embedded) with an optional --debrief Markdown file at the top. html_report.py can
 re-render it later without recomputing.
 
@@ -627,6 +628,15 @@ def leg_stats(df, lg, hdg_col, mans):
         "trim_avg": round(float(s.Trim.mean()), 1) if "Trim" in s and len(s) else None,
         "tacking_angle": lg.get("tacking_angle"),
         "twd_est": round(lg["twd"], 1) if lg.get("twd") is not None else None,
+        # VMG toward (upwind) or away from (downwind) the wind, and the angle sailed to it
+        "vmg_steady": round(float(s.vmg_wind.mean()), 2)
+        if len(s) and s.vmg_wind.notna().any()
+        else None,
+        "twa_steady": round(float(s.twa_gps.mean()), 1)
+        if len(s) and s.twa_gps.notna().any()
+        else None,
+        "gybes": sum(lg["start"] <= m["t"] <= lg["end"] and m["kind"] == "Gybe" for m in mans),
+        "tacks": sum(lg["start"] <= m["t"] <= lg["end"] and m["kind"] == "Tack" for m in mans),
     }
     for side in ("stbd", "port"):
         t = s[s.tack == side]
@@ -750,6 +760,14 @@ def start_stats(race, df, axis):
         and 0 <= (e["t"] - race.gun).total_seconds() <= 120
     ]
     out["recrossed_after_gun"] = bool(back)
+    pre_mans = sorted(
+        (e["t"] - race.gun).total_seconds()
+        for e in race.events
+        if e.get("eventType") in ("Tack", "Gybe")
+        and -300 <= (e["t"] - race.gun).total_seconds() < 0
+    )
+    out["prestart_maneuvers_5min"] = len(pre_mans)
+    out["last_maneuver_before_gun_s"] = round(pre_mans[-1]) if pre_mans else None
 
     # Line position: where the boat crossed, as % of the line from the pin end
     line = next((c for c in race.course if c["type"] == "StartLine"), None)
@@ -1123,6 +1141,48 @@ def shifts_plot(race: Race, res: dict, out: Path, plt):
     plt.close(fig)
 
 
+def downwind_plot(race: Race, res: dict, out: Path, plt):
+    """Speed down each run, coloured by gybe, with each gybe and the metres it cost."""
+    runs = [lg for lg in res["legs"] if lg["type"] == "downwind"]
+    if not runs:
+        return
+    df = race.df
+    fig, axes = plt.subplots(len(runs), 1, figsize=(10, 2.6 * len(runs) + 0.6), squeeze=False)
+    for ax, lg in zip(axes[:, 0], runs, strict=True):
+        t0 = race.gun + pd.Timedelta(seconds=lg["start_s"])
+        g = df[(df.t >= t0) & (df.t <= t0 + pd.Timedelta(seconds=lg["duration_s"]))]
+        m = g.tg / 60
+        sog = g.SOG.rolling(5, center=True, min_periods=1).mean()
+        for side, color, label in (("stbd", BLUE, "on starboard"), ("port", ORANGE, "on port")):
+            ax.plot(m, sog.where(g.tack == side), color=color, lw=1.8, label=label)
+        for mm in res["maneuvers"]:
+            if mm["leg"] == lg["leg"] and mm["kind"] == "Gybe":
+                x = mm["time_s"] / 60
+                ax.axvline(x, color=INK2, lw=0.8, ls=":")
+                lost = mm["distance_lost_m"]
+                ax.annotate(
+                    f"gybe {lost:+.0f} m" if lost is not None else "gybe",
+                    (x, 1.0),
+                    xycoords=("data", "axes fraction"),
+                    xytext=(3, -12),
+                    textcoords="offset points",
+                    fontsize=8,
+                    color=INK,
+                )
+        vmg = f", VMG {lg['vmg_steady']} kt" if lg.get("vmg_steady") is not None else ""
+        ax.set_title(
+            f"Leg {lg['leg']}: {lg['sog_steady']} kt steady{vmg}, "
+            f"{lg['pct_time_stbd']}% on starboard"
+        )
+        ax.set_ylabel("SOG (kt, 5 s avg)")
+        ax.legend(loc="lower left", fontsize=8, ncol=2)
+    axes[-1, 0].set_xlabel("minutes from gun (dotted = gybes, labelled with metres lost)")
+    fig.suptitle(f"{res['race']}: downwind", x=0.01, ha="left", fontweight="bold", fontsize=13)
+    fig.tight_layout()
+    fig.savefig(out / "downwind.png", dpi=130)
+    plt.close(fig)
+
+
 def plt_colorbar(ax, mappable):
     cb = ax.figure.colorbar(mappable, ax=ax, shrink=0.8, pad=0.015, fraction=0.03)
     cb.ax.tick_params(labelsize=8)
@@ -1256,6 +1316,7 @@ def make_plots(race: Race, res: dict, out: Path):
         plt.close(fig)
 
     shifts_plot(race, res, out, plt)
+    downwind_plot(race, res, out, plt)
 
     # Maneuvers: distance lost per tack/gybe, in race order
     rs = [r for r in mans if r["distance_lost_m"] is not None and not r["note"]]
@@ -1550,6 +1611,204 @@ def _mid_target(tg: dict) -> dict:
     return {"tgt_speed_pct": b["speed_pct"], "tgt_heel_delta": f"{b['heel_delta']:+}"}
 
 
+def _day(r: dict) -> str:
+    return (r.get("gun_local") or "")[:10]
+
+
+def _day_label(day: str) -> str:
+    from datetime import date
+
+    return date.fromisoformat(day).strftime("%a %-d %b") if day else "Undated"
+
+
+def _up(r):
+    return [lg for lg in r["legs"] if lg["type"] == "upwind"]
+
+
+def _down(r):
+    return [lg for lg in r["legs"] if lg["type"] == "downwind"]
+
+
+def _mean(xs):
+    xs = [x for x in xs if x is not None]
+    return float(np.mean(xs)) if xs else None
+
+
+def _rng(xs, fmt="{:.0f}", unit=""):
+    xs = [x for x in xs if x is not None]
+    if not xs:
+        return "–"
+    lo, hi = min(xs), max(xs)
+    return (
+        f"{fmt.format(lo)}{unit}"
+        if fmt.format(lo) == fmt.format(hi)
+        else f"{fmt.format(lo)}–{fmt.format(hi)}{unit}"
+    )
+
+
+def _start_phrase(s: dict) -> str:
+    if not s:
+        return "start not measured"
+    if s.get("ocs_at_gun_m"):
+        when = f"OCS by {s['ocs_at_gun_m']} m"
+    elif s.get("late_s") == 0:
+        when = "on the line at the gun"
+    elif s.get("late_s") is not None:
+        when = f"{s['late_s']:.0f} s late"
+    else:
+        when = "late (not measured)"
+    where = s.get("line_pos_label")
+    acc = s.get("accel_pm5s_kt")
+    acc_txt = (
+        f", {'accelerating' if acc >= 0.5 else 'flat' if acc > -0.3 else 'slowing'} ({acc:+.1f} kt)"
+        if acc is not None
+        else ""
+    )
+    return f"start {when}{', ' + where if where else ''}{acc_txt}"
+
+
+def _calls(rs):
+    n = {}
+    for r in rs:
+        for c in (r.get("shifts") or {}).get("tacks", []):
+            n[c["verdict_kind"]] = n.get(c["verdict_kind"], 0) + 1
+    over = sum(
+        1
+        for r in rs
+        for c in (r.get("shifts") or {}).get("tacks", [])
+        if (c.get("overstand_deg") or 0) > 5
+    )
+    return n, over
+
+
+def _race_line(r: dict) -> str:
+    up, down = _up(r), _down(r)
+    parts = [_start_phrase(r["start"] or {}).capitalize()]
+    tgt = _mid_target(r["targets"])
+    up_sog = _mean([lg["sog_steady"] for lg in up])
+    if up_sog is not None:
+        heel = _mean([lg["heel_abs_avg"] for lg in up])
+        pct = f" ({tgt['tgt_speed_pct']:.0f}% of target)" if tgt else ""
+        parts.append(f"upwind {up_sog:.2f} kt{pct}, heel {heel:.0f}°")
+    dn = _mean([lg["sog_steady"] for lg in down])
+    if dn is not None:
+        parts.append(f"downwind {dn:.2f} kt")
+    ms = r["maneuver_summary"].get("Tack")
+    if ms:
+        n, _ = _calls([r])
+        parts.append(
+            f"{_n(ms['count'] + ms.get('doubles_excluded', 0), 'tack')} "
+            f"({ms['speed_loss_avg_pct']}% speed loss), "
+            f"{_n(n.get('header', 0), 'tack')} on a header vs {n.get('lift', 0)} on a lift"
+        )
+    beats = (r.get("shifts") or {}).get("beats", [])
+    if beats:
+        parts.append("beats: " + ", ".join(f"{_pattern(b)} (we went {_side(b)})" for b in beats))
+    flags = _flags(r)
+    return "; ".join(parts) + "." + (f" **Flags:** {'; '.join(flags)}." if flags else "")
+
+
+def _n(k: int, word: str) -> str:
+    return f"{k} {word}{'' if k == 1 else 's'}"
+
+
+def _pattern(b: dict) -> str:
+    p = b["pattern"]
+    return (
+        f"trending {p.split()[1]} {abs(b['trend_deg']):.0f}°" if p.startswith("persistent") else p
+    )
+
+
+def _side(b: dict) -> str:
+    right = b.get("pct_time_right")
+    return "?" if right is None else "right" if right > 60 else "left" if right < 40 else "middle"
+
+
+def _flags(r: dict) -> list[str]:
+    """Stand-outs worth a look, by fixed thresholds (no judgment about why)."""
+    out = []
+    s = r["start"] or {}
+    if s.get("ocs_at_gun_m"):
+        out.append("OCS at the gun")
+    elif (s.get("late_s") or 0) >= 8:
+        out.append(f"late start ({s['late_s']:.0f} s)")
+    tgt = _mid_target(r["targets"])
+    if tgt and tgt["tgt_speed_pct"] < 97:
+        out.append(f"upwind speed {tgt['tgt_speed_pct']:.0f}% of target")
+    n, over = _calls([r])
+    if over:
+        out.append(f"{_n(over, 'layline')} overstood")
+    if n.get("lift", 0) >= 3 and n.get("lift", 0) > n.get("header", 0):
+        out.append(f"{n['lift']} tacks on lifts")
+    ms = r["maneuver_summary"].get("Tack")
+    if ms and ms["speed_loss_avg_pct"] >= 35:
+        out.append(f"deep tacks ({ms['speed_loss_avg_pct']}% loss)")
+    for b in (r.get("shifts") or {}).get("beats", []):
+        wind = b["pattern"].split()[1] if b["pattern"].startswith("persistent") else None
+        if wind and _side(b) not in ("middle", wind):
+            out.append(f"leg {b['leg']}: wind went {wind}, we went {_side(b)}")
+    return out
+
+
+def _group_line(rs: list[dict]) -> str:
+    starts = [r["start"] for r in rs if r["start"]]
+    late = [0 if s.get("ocs_at_gun_m") else s.get("late_s") for s in starts]
+    tg = [_mid_target(r["targets"]) for r in rs]
+    pct = [t["tgt_speed_pct"] for t in tg if t]
+    heel = [_mean([lg["heel_abs_avg"] for lg in _up(r)]) for r in rs]
+    twd = [b["twd_median"] for r in rs for b in (r.get("shifts") or {}).get("beats", [])]
+    beats = [b for r in rs for b in (r.get("shifts") or {}).get("beats", [])]
+    right = sum(1 for b in beats if (b.get("pct_time_right") or 0) > 60)
+    trend_left = [b for b in beats if b["pattern"] == "persistent left shift"]
+    trend_right = [b for b in beats if b["pattern"] == "persistent right shift"]
+    n, over = _calls(rs)
+    layl = n.get("layline", 0)
+    bits = [_n(len(rs), "race")]
+    if twd:
+        bits.append(f"wind {_rng(twd, unit='°')}")
+    if late:
+        bits.append(f"starts {_rng(late)} s late")
+    if pct:
+        bits.append(f"upwind {_rng(pct)}% of target")
+    if any(h is not None for h in heel):
+        bits.append(f"heel {_rng(heel, unit='°')}")
+    wind_calls = n.get("header", 0) + n.get("lift", 0) + n.get("no_shift", 0)
+    if wind_calls:
+        bits.append(
+            f"{wind_calls} tacks away from the marks: {n.get('header', 0)} on headers, "
+            f"{n.get('lift', 0)} on lifts"
+        )
+    if beats:
+        side = f"worked the right on {right} of {len(beats)} beats"
+        if trend_left or trend_right:
+            side += f" ({_n(len(trend_left), 'beat')} trended left, {len(trend_right)} right)"
+        bits.append(side)
+    if layl:
+        bits.append(f"laylines {layl - over} good / {over} overstood")
+    return "; ".join(bits) + "."
+
+
+def write_executive(results: list[dict], out: Path):
+    """A broad, factual overview: one line for everything, each day, and each race."""
+    days = {}
+    for r in results:
+        days.setdefault(_day(r), []).append(r)
+    lines = ["# Executive summary", ""]
+    if len(days) > 1:
+        lines += [f"**Overall:** {_group_line(results)}", ""]
+    for day, rs in days.items():
+        lines += [f"## {_day_label(day)}", "", f"**Day:** {_group_line(rs)}", ""]
+        for r in rs:
+            gun = (r.get("gun_local") or "")[11:16]
+            lines.append(f"- **{r['race']}** ({gun}, {r['duration_min']:.0f} min): {_race_line(r)}")
+        lines.append("")
+    lines.append(
+        "*Facts only; the debrief decides what matters. Targets use the wind given with --tws "
+        "(or trusted logged wind). Shift calls come from headings.*"
+    )
+    (out / "executive.md").write_text("\n".join(lines) + "\n")
+
+
 def write_event(results: list[dict], out: Path):
     rows = []
     for r in results:
@@ -1638,6 +1897,7 @@ def run(
             make_plots(race, res, d)
         results.append(res)
     write_event(results, out)
+    write_executive(results, out)
     return results
 
 
