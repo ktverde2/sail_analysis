@@ -47,6 +47,38 @@ Legs: Njord course.
 | 46:50 | Tack | Port | 3 | 5.84 | 3.83 | 34 | 9 | 7.4 | – |
 | 48:36 | Tack | Stbd | 3 | 5.68 | 4.0 | 30 | 9 | 10.8 | – |
 
+## Wind shifts and tack calls
+Wind direction from headings: heading ± half the tacking angle. Shifts are relative to each beat's median; + is a right shift (veer), − a left shift (back). A puff that lets the boat point higher also reads as a lift, so treat single 3–4° calls as soft.
+
+| Leg | Median wind | Trend over beat | Oscillation | Pattern | % right of rhumb | Max left/right m | Headed > 5° without tacking |
+|---|---|---|---|---|---|---|---|
+| 1 | 283° | +4° | ±4° | oscillating | 53 | 257/300 | 0 s |
+| 3 | 280° | -5° | ±3° | persistent left shift | 77 | 134/350 | 0 s |
+
+- Leg 1: Oscillating (±4°): tacking on the headers is what pays. We worked the middle.
+- Leg 3: Wind went left 5° over the beat, which pays the left; we worked the right (77% of the time right of the rhumb line) - the other side should have paid.
+
+Tacks: 1 off the start, 3 on a lift, 6 no clear shift (< 3°), 2 on a header, 2 layline.
+
+| Time | Leg | Onto | Headed before | New tack after | Call |
+|---|---|---|---|---|---|
+| 0:34 | 1 | Port | – | +4° | clearing tack off the start |
+| 1:11 | 1 | Stbd | -7° | -0° | tacked on a lift, new tack neutral |
+| 2:52 | 1 | Port | -2° | +3° | tacked no clear shift |
+| 5:42 | 1 | Stbd | -1° | +2° | tacked no clear shift |
+| 9:43 | 1 | Port | -8° | -4° | tacked on a lift, new tack headed |
+| 12:28 | 1 | Stbd | +5° | +3° | tacked on a header, new tack neutral |
+| 13:58 | 1 | Port | -1° | -1° | tacked no clear shift |
+| 16:35 | 1 | Stbd | -0° | – | layline tack, overstood by ~7° |
+| 34:20 | 3 | Port | -2° | -0° | tacked no clear shift |
+| 38:18 | 3 | Stbd | +4° | +5° | tacked on a header, new tack lifted |
+| 42:21 | 3 | Port | +3° | +4° | tacked no clear shift |
+| 45:23 | 3 | Stbd | -4° | -2° | tacked on a lift, new tack neutral |
+| 46:50 | 3 | Port | +2° | +2° | tacked no clear shift |
+| 48:36 | 3 | Stbd | -5° | – | layline tack, good fetch |
+
+Headed before: + means the old tack was headed (a good time to tack). New tack after: + means the new tack was lifted over the next minute.
+
 ## Upwind vs. targets
 TWS: user-supplied TWS 8–10 kt. TWA: estimated from GPS tacking headings. Speed: SOG.
 

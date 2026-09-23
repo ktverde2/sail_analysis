@@ -388,5 +388,174 @@
       }
     ],
     "by_beat_heel_target": 16.0
+  },
+  "shifts": {
+    "beats": [
+      {
+        "leg": 1,
+        "twd_median": 278.2,
+        "half_angle": 33.8,
+        "leeway_deg": 6.3,
+        "trend_deg": -6.8,
+        "oscillation_deg": 2.6,
+        "range_deg": [
+          -4.4,
+          4.4
+        ],
+        "pattern": "persistent left shift",
+        "pct_time_right": 79,
+        "max_left_m": 218,
+        "max_right_m": 505,
+        "missed_headers": [],
+        "missed_header_s": 0,
+        "side_note": "Wind went left 7\u00b0 over the beat, which pays the left; we worked the right (79% of the time right of the rhumb line) - the other side should have paid."
+      },
+      {
+        "leg": 3,
+        "twd_median": 275.1,
+        "half_angle": 33.0,
+        "leeway_deg": 5.9,
+        "trend_deg": 3.2,
+        "oscillation_deg": 2.5,
+        "range_deg": [
+          -2.8,
+          3.8
+        ],
+        "pattern": "steady",
+        "pct_time_right": 80,
+        "max_left_m": 86,
+        "max_right_m": 597,
+        "missed_headers": [],
+        "missed_header_s": 0,
+        "side_note": "Steady wind; no side was favored by shifts. We worked the right."
+      }
+    ],
+    "tacks": [
+      {
+        "time_s": 119,
+        "leg": 1,
+        "onto": "Port",
+        "headed_before_deg": -5.5,
+        "lifted_after_deg": -1.4,
+        "note": null,
+        "overstand_deg": null,
+        "dist_to_mark_m": null,
+        "shift_call": "on a lift",
+        "verdict": "tacked on a lift, new tack neutral",
+        "verdict_kind": "lift"
+      },
+      {
+        "time_s": 506,
+        "leg": 1,
+        "onto": "Stbd",
+        "headed_before_deg": 4.9,
+        "lifted_after_deg": -1.6,
+        "note": null,
+        "overstand_deg": null,
+        "dist_to_mark_m": null,
+        "shift_call": "on a header",
+        "verdict": "tacked on a header, new tack neutral",
+        "verdict_kind": "header"
+      },
+      {
+        "time_s": 685,
+        "leg": 1,
+        "onto": "Port",
+        "headed_before_deg": 0.8,
+        "lifted_after_deg": 1.4,
+        "note": null,
+        "overstand_deg": null,
+        "dist_to_mark_m": null,
+        "shift_call": "no clear shift",
+        "verdict": "tacked no clear shift",
+        "verdict_kind": "no_shift"
+      },
+      {
+        "time_s": 984,
+        "leg": 1,
+        "onto": "Port",
+        "headed_before_deg": -4.1,
+        "lifted_after_deg": null,
+        "note": "double (<30 s apart; loss numbers overlap)",
+        "overstand_deg": null,
+        "dist_to_mark_m": null,
+        "shift_call": "on a lift",
+        "verdict": "double tack (on a lift)",
+        "verdict_kind": "double"
+      },
+      {
+        "time_s": 996,
+        "leg": 1,
+        "onto": "Stbd",
+        "headed_before_deg": 4.6,
+        "lifted_after_deg": null,
+        "note": "double (<30 s apart; loss numbers overlap)",
+        "overstand_deg": 2.7,
+        "dist_to_mark_m": 257,
+        "shift_call": "on a header",
+        "verdict": "layline tack, good fetch",
+        "verdict_kind": "layline"
+      },
+      {
+        "time_s": 1871,
+        "leg": 3,
+        "onto": "Port",
+        "headed_before_deg": 0.9,
+        "lifted_after_deg": 0.4,
+        "note": null,
+        "overstand_deg": null,
+        "dist_to_mark_m": null,
+        "shift_call": "no clear shift",
+        "verdict": "tack right after the leeward mark",
+        "verdict_kind": "mark"
+      },
+      {
+        "time_s": 2295,
+        "leg": 3,
+        "onto": "Stbd",
+        "headed_before_deg": -2.8,
+        "lifted_after_deg": 0.7,
+        "note": null,
+        "overstand_deg": null,
+        "dist_to_mark_m": null,
+        "shift_call": "no clear shift",
+        "verdict": "tacked no clear shift",
+        "verdict_kind": "no_shift"
+      },
+      {
+        "time_s": 2624,
+        "leg": 3,
+        "onto": "Port",
+        "headed_before_deg": -3.9,
+        "lifted_after_deg": -1.4,
+        "note": null,
+        "overstand_deg": null,
+        "dist_to_mark_m": null,
+        "shift_call": "on a lift",
+        "verdict": "tacked on a lift, new tack neutral",
+        "verdict_kind": "lift"
+      },
+      {
+        "time_s": 2767,
+        "leg": 3,
+        "onto": "Stbd",
+        "headed_before_deg": 3.4,
+        "lifted_after_deg": null,
+        "note": null,
+        "overstand_deg": 10.8,
+        "dist_to_mark_m": 179,
+        "shift_call": "on a header",
+        "verdict": "layline tack, overstood by ~11\u00b0",
+        "verdict_kind": "layline"
+      }
+    ],
+    "summary": {
+      "lift": 2,
+      "header": 1,
+      "no_shift": 2,
+      "double": 1,
+      "layline": 2,
+      "mark": 1
+    }
   }
 }

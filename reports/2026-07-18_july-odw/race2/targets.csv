@@ -1,0 +1,4 @@
+wind,seconds,thin,speed_avg,speed_tgt,speed_pct,heel_avg,heel_tgt,heel_delta,heel_std,twa_avg,twa_tgt,twa_delta
+8 kt,1490,False,5.74,5.5,104.4,19.2,14.0,5.2,4.4,34.8,41.0,-6.2
+9 kt,1490,False,5.74,5.7,100.8,19.2,16.0,3.2,4.4,34.8,39.0,-4.2
+10 kt,1490,False,5.74,5.8,99.0,19.2,17.0,2.2,4.4,34.8,38.0,-3.2

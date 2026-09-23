@@ -32,6 +32,7 @@ def test_outputs_written(results):
             "timeline.png",
             "start.png",
             "maneuvers.png",
+            "shifts.png",
         ):
             assert (out / race / f).stat().st_size > 0, f"{race}/{f}"
 
@@ -137,7 +138,7 @@ def test_html_report(results, tmp_path):
     )
     page = write_html(out, debrief, tmp_path / "r.html").read_text()
     assert "<title>Mojo · July ODW · Sun 19 Jul 2026</title>" in page
-    assert page.count("data:image/png;base64,") == 8
+    assert page.count("data:image/png;base64,") == 10  # 5 plots x 2 races
     assert '<section class="card debrief" id="debrief"><h2>Debrief</h2>' in page
     assert "<ol><li><strong>Starts</strong> — late.</li></ol>" in page
     # Every table row has as many cells as its header (a stray "|" would break this)
@@ -148,3 +149,30 @@ def test_html_report(results, tmp_path):
         widths = {len(re.findall(r"<t[hd]>", r)) for r in rows}
         assert len(widths) == 1, rows[0]
     assert "&lt;script&gt;" in md_to_html("<script>x</script>")
+
+
+def test_tack_calls_from_heading_wind(results):
+    _, r = results
+    sh = r["race2"]["shifts"]
+    beats = {b["leg"]: b for b in sh["beats"]}
+    assert set(beats) == {1, 3}
+    assert 275 < beats[1]["twd_median"] < 290
+    assert beats[3]["pattern"] == "persistent left shift" and beats[3]["trend_deg"] < -3
+    assert 4 < beats[1]["leeway_deg"] < 8
+    calls = {analyze._fmt_mmss(c["time_s"]): c for c in sh["tacks"]}
+    # 9:43: left a starboard tack that was lifted ~8 deg; 12:28: left a headed port tack
+    assert calls["9:43"]["verdict_kind"] == "lift" and calls["9:43"]["headed_before_deg"] < -5
+    assert calls["12:28"]["verdict_kind"] == "header"
+    assert calls["0:34"]["verdict_kind"] == "start"
+    # Final tack of each beat is judged as a layline, with leeway included
+    assert calls["16:35"]["verdict_kind"] == "layline" and 4 < calls["16:35"]["overstand_deg"] < 10
+    assert sum(sh["summary"].values()) == 14
+    assert (results[0] / "race2" / "shifts.png").exists()
+    # Race 1's double tack stays a double, not a shift call
+    assert any(c["verdict_kind"] == "double" for c in r["race1"]["shifts"]["tacks"])
+
+
+def test_tack_right_after_rounding_is_not_a_shift_call(tmp_path):
+    res = analyze.run([SATURDAY / "race2.csv"], tmp_path, tws=None, tz=None, plots=False)
+    calls = {analyze._fmt_mmss(c["time_s"]): c for c in res[0]["shifts"]["tacks"]}
+    assert calls["27:52"]["verdict"] == "tack right after the leeward mark"

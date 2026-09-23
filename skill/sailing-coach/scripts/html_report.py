@@ -22,6 +22,7 @@ from pathlib import Path
 PLOTS = [
     ("start.png", "Start: approach from 5 minutes, then the last 2 minutes"),
     ("track.png", "Track"),
+    ("shifts.png", "Wind shifts upwind and the call on each tack"),
     ("timeline.png", "Speed and heel"),
     ("maneuvers.png", "Distance lost per maneuver"),
 ]

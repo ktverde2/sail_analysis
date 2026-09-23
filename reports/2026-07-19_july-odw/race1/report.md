@@ -40,6 +40,33 @@ Legs: Njord course.
 | 43:44 | Tack | Port | 3 | 5.99 | 4.02 | 33 | 16 | 7.2 | – |
 | 46:07 | Tack | Stbd | 3 | 5.95 | 4.42 | 26 | 16 | 2.8 | – |
 
+## Wind shifts and tack calls
+Wind direction from headings: heading ± half the tacking angle. Shifts are relative to each beat's median; + is a right shift (veer), − a left shift (back). A puff that lets the boat point higher also reads as a lift, so treat single 3–4° calls as soft.
+
+| Leg | Median wind | Trend over beat | Oscillation | Pattern | % right of rhumb | Max left/right m | Headed > 5° without tacking |
+|---|---|---|---|---|---|---|---|
+| 1 | 278° | -7° | ±3° | persistent left shift | 79 | 218/505 | 0 s |
+| 3 | 275° | +3° | ±2° | steady | 80 | 86/597 | 0 s |
+
+- Leg 1: Wind went left 7° over the beat, which pays the left; we worked the right (79% of the time right of the rhumb line) - the other side should have paid.
+- Leg 3: Steady wind; no side was favored by shifts. We worked the right.
+
+Tacks: 2 on a lift, 1 on a header, 2 no clear shift (< 3°), 1 double tack, 2 layline, 1 at a mark.
+
+| Time | Leg | Onto | Headed before | New tack after | Call |
+|---|---|---|---|---|---|
+| 1:59 | 1 | Port | -6° | -1° | tacked on a lift, new tack neutral |
+| 8:26 | 1 | Stbd | +5° | -2° | tacked on a header, new tack neutral |
+| 11:25 | 1 | Port | +1° | +1° | tacked no clear shift |
+| 16:24 | 1 | Port | -4° | – | double tack (on a lift) |
+| 16:36 | 1 | Stbd | +5° | – | layline tack, good fetch |
+| 31:11 | 3 | Port | +1° | +0° | tack right after the leeward mark |
+| 38:15 | 3 | Stbd | -3° | +1° | tacked no clear shift |
+| 43:44 | 3 | Port | -4° | -1° | tacked on a lift, new tack neutral |
+| 46:07 | 3 | Stbd | +3° | – | layline tack, overstood by ~11° |
+
+Headed before: + means the old tack was headed (a good time to tack). New tack after: + means the new tack was lifted over the next minute.
+
 ## Upwind vs. targets
 TWS: user-supplied TWS 8–10 kt. TWA: estimated from GPS tacking headings. Speed: SOG.
 

@@ -283,6 +283,11 @@ def analyze_race(race: Race, tws_override: float | None) -> dict:
     for a, b in pairwise(man_rows):
         if b["time_s"] - a["time_s"] < 30:
             a["note"] = b["note"] = "double (<30 s apart; loss numbers overlap)"
+    for m, row in zip(mans, man_rows, strict=True):  # detected legs aren't in Njord's Leg column
+        row["leg"] = next(
+            (lg["leg"] for lg in legs if lg["start"] <= m["t"] <= lg["end"]), row["leg"]
+        )
+    shifts = wind_shifts(df, legs, man_rows, gun, hdg_col) if gun is not None else None
     if legs_source.startswith("detected") and twd_est is not None:
         axis = twd_est  # better than the mean upwind heading used to find the tacks
     start = start_stats(race, df, axis) if gun is not None else None
@@ -309,7 +314,227 @@ def analyze_race(race: Race, tws_override: float | None) -> dict:
         "maneuvers": man_rows,
         "maneuver_summary": maneuver_summary(man_rows),
         "targets": targets,
+        "shifts": shifts,
     }
+
+
+# ---------------------------------------------------------------- wind shifts and tack calls
+
+SHIFT_CALL_DEG = 3  # smaller than this isn't a shift worth tacking on (GPS heading noise)
+MISSED_HEADER_DEG = 5
+MISSED_HEADER_S = 45
+MARK_ZONE_S = 90  # tacks this close to the end of a beat are about the mark, not the wind
+
+
+def wind_shifts(df, legs, man_rows, gun, hdg_col) -> dict:
+    """Wind direction through each beat from headings, and whether each tack was a good call.
+
+    Upwind, the boat sails at a roughly constant angle to the wind (half the tacking angle), so
+    wind ~= heading + half on starboard and heading - half on port. Shifts are relative to the
+    beat's median wind; + is a right shift (veer), - a left shift (back).
+    """
+    df["twd_inst"] = np.nan
+    df["shift"] = np.nan
+    df["shift_s"] = np.nan
+    beats, calls = [], []
+    for lg in legs:
+        if lg["type"] != "upwind" or lg.get("twd") is None:
+            continue
+        half = lg["tacking_angle"] / 2
+        sel = (df.t >= lg["start"]) & (df.t <= lg["end"])
+        ok = sel & df.steady & (df.SOG > 3) & df.tack.notna()
+        # After the layline tack the boat sails to the mark (bearing away if it overstood):
+        # that heading says nothing about the wind, so the trace stops there.
+        tacks = [r for r in man_rows if r["kind"] == "Tack" and r["leg"] == lg["leg"]]
+        if tacks:
+            last = gun + pd.Timedelta(seconds=tacks[-1]["time_s"])
+            if (lg["end"] - last).total_seconds() < 600:
+                ok &= df.t < last
+        raw = np.where(df.tack == "stbd", df[hdg_col] + half, df[hdg_col] - half) % 360
+        df.loc[ok, "twd_inst"] = raw[ok]
+        med = lg["twd"]
+        df.loc[ok, "shift"] = adiff(med, df.loc[ok, "twd_inst"])
+        df.loc[sel, "shift_s"] = (
+            df.loc[sel, "shift"].rolling(30, center=True, min_periods=15).median()
+        )
+        g = df[sel]
+        mins = (g.t - lg["start"]).dt.total_seconds() / 60
+        m = g.shift_s.notna()
+        if m.sum() < 120:
+            continue
+        slope, icpt = np.polyfit(mins[m], g.shift_s[m], 1)
+        trend = float(slope * mins.iloc[-1])
+        osc = float(np.std(g.shift_s[m] - (slope * mins[m] + icpt)))
+        if abs(trend) >= 5 and abs(trend) > 1.5 * osc:
+            pattern = f"persistent {'right' if trend > 0 else 'left'} shift"
+        elif osc >= 3:
+            pattern = "oscillating"
+        else:
+            pattern = "steady"
+        # Leeway: the track over ground sits this far to leeward of the heading. Averaging both
+        # tacks' |COG - heading| mostly cancels current.
+        st = g[g.steady & (g.SOG > 3)]
+        leeway = float(np.nanmean(np.abs(adiff(st[hdg_col], st.COG)))) if "COG" in g else 0.0
+        beat = {
+            "leg": lg["leg"],
+            "twd_median": round(med, 1),
+            "half_angle": round(half, 1),
+            "leeway_deg": round(leeway, 1),
+            "trend_deg": round(trend, 1),
+            "oscillation_deg": round(osc, 1),
+            "range_deg": [
+                round(float(g.shift_s.quantile(0.1)), 1),
+                round(float(g.shift_s.quantile(0.9)), 1),
+            ],
+            "pattern": pattern,
+            **side_of_course(g, med),
+        }
+        beat["missed_headers"] = missed_headers(g, lg, gun)
+        beat["missed_header_s"] = sum(x["duration_s"] for x in beat["missed_headers"])
+        beat["side_note"] = side_note(beat)
+        beats.append(beat)
+
+        for i, r in enumerate(tacks):
+            calls.append(tack_call(df, r, lg, gun, med, half, leeway, i, len(tacks)))
+
+    summary = {}
+    for c in calls:
+        summary[c["verdict_kind"]] = summary.get(c["verdict_kind"], 0) + 1
+    return {"beats": beats, "tacks": calls, "summary": summary}
+
+
+def side_of_course(g, med) -> dict:
+    """How far left/right of the rhumb line the boat worked, looking upwind."""
+    rot = math.radians(med)
+    x, y = local_xy(g.Lat.values, g.Lon.values, g.Lat.iloc[0], g.Lon.iloc[0])
+    lat_x = x * math.cos(rot) - y * math.sin(rot)  # + = right, looking upwind
+    up_y = x * math.sin(rot) + y * math.cos(rot)
+    if up_y[-1] - up_y[0] < 50:
+        return {}
+    rhumb = lat_x[0] + (lat_x[-1] - lat_x[0]) * (up_y - up_y[0]) / (up_y[-1] - up_y[0])
+    off = lat_x - rhumb
+    return {
+        "pct_time_right": round(100 * float((off > 0).mean())),
+        "max_left_m": round(float(-off.min())),
+        "max_right_m": round(float(off.max())),
+    }
+
+
+def side_note(beat) -> str:
+    p = beat["pattern"]
+    right = beat.get("pct_time_right")
+    if right is None:
+        return ""
+    worked = "right" if right > 60 else "left" if right < 40 else "middle"
+    if p.startswith("persistent"):
+        favored = p.split()[1]
+        ok = worked == favored
+        return (
+            f"Wind went {favored} {abs(beat['trend_deg']):.0f}° over the beat, which pays the {favored}; "
+            f"we worked the {worked} ({right}% of the time right of the rhumb line)"
+            + (" - right call." if ok else " - the other side should have paid.")
+        )
+    if p == "oscillating":
+        return f"Oscillating (±{beat['oscillation_deg']:.0f}°): tacking on the headers is what pays. We worked the {worked}."
+    return f"Steady wind; no side was favored by shifts. We worked the {worked}."
+
+
+def missed_headers(g, lg, gun) -> list[dict]:
+    """Stretches sailed headed by >= MISSED_HEADER_DEG for >= MISSED_HEADER_S without tacking."""
+    headed = np.where(g.tack == "stbd", -g.shift_s, g.shift_s)
+    open_water = (g.t >= lg["start"] + pd.Timedelta(seconds=STEADY_TRIM_S)) & (
+        g.t <= lg["end"] - pd.Timedelta(seconds=MARK_ZONE_S)
+    )
+    flag = pd.Series((headed >= MISSED_HEADER_DEG) & open_water.values, index=g.index)
+    out = []
+    for _, run in g[flag].groupby((flag != flag.shift()).cumsum()[flag]):
+        dur = (run.t.iloc[-1] - run.t.iloc[0]).total_seconds() + 1
+        if dur >= MISSED_HEADER_S:
+            h = np.where(run.tack == "stbd", -run.shift_s, run.shift_s)
+            out.append(
+                {
+                    "start_s": round((run.t.iloc[0] - gun).total_seconds()),
+                    "duration_s": round(dur),
+                    "tack": run.tack.iloc[0],
+                    "avg_header_deg": round(float(np.mean(h)), 1),
+                }
+            )
+    return out
+
+
+def tack_call(df, r, lg, gun, med, half, leeway, i, n) -> dict:
+    t = gun + pd.Timedelta(seconds=r["time_s"])
+    win = lambda a, b: df[
+        (df.t >= t + pd.Timedelta(seconds=a)) & (df.t <= t + pd.Timedelta(seconds=b))
+    ]
+    before = win(-45, -8)["shift"].mean()
+    after = win(20, 75)["shift"].mean()
+    onto = r["onto"]
+    # Before the tack we were on the other tack: starboard is headed by a left shift, port by a right one
+    headed_before = (-before if onto == "Port" else before) if pd.notna(before) else None
+    lifted_after = (-after if onto == "Port" else after) if pd.notna(after) else None
+    to_end = (lg["end"] - t).total_seconds()
+    call = {
+        "time_s": r["time_s"],
+        "leg": r["leg"],
+        "onto": onto,
+        "headed_before_deg": _r(headed_before, 1),
+        "lifted_after_deg": _r(lifted_after, 1),
+        "note": r.get("note"),
+        "overstand_deg": None,
+        "dist_to_mark_m": None,
+    }
+    if headed_before is None:
+        shift_call = "unknown"
+    elif headed_before >= SHIFT_CALL_DEG:
+        shift_call = "on a header"
+    elif headed_before <= -SHIFT_CALL_DEG:
+        shift_call = "on a lift"
+    else:
+        shift_call = "no clear shift"
+    call["shift_call"] = shift_call
+
+    if i == n - 1 and to_end < 600:
+        # Final tack of the beat: judge the layline, not the wind
+        end = df[df.t <= lg["end"]].iloc[-1]
+        k = (df.t - t).abs().idxmin()
+        p = df.loc[k]
+        b = float(bearing(p.Lat, p.Lon, end.Lat, end.Lon))
+        local = med + (df.shift_s[k] if pd.notna(df.shift_s[k]) else 0)
+        # Close-hauled track over ground on the new tack: half the tacking angle plus leeway
+        track = half + leeway
+        course = (local - track) % 360 if onto == "Stbd" else (local + track) % 360
+        over = float(adiff(b, course)) if onto == "Stbd" else float(adiff(course, b))
+        call["overstand_deg"] = round(over, 1)
+        call["dist_to_mark_m"] = round(float(dist_m(p.Lat, p.Lon, end.Lat, end.Lon)))
+        if over > 5:
+            kind, verdict = "layline", f"layline tack, overstood by ~{over:.0f}°"
+        elif over < -3:
+            kind, verdict = "layline", f"layline tack, short by ~{-over:.0f}° (needed more tacks)"
+        else:
+            kind, verdict = "layline", "layline tack, good fetch"
+    elif r["time_s"] < 60 and lg["leg"] == 1 and i == 0:
+        kind, verdict = "start", "clearing tack off the start"
+    elif lg["leg"] > 1 and (t - lg["start"]).total_seconds() < 60:
+        kind, verdict = "mark", "tack right after the leeward mark"
+    elif to_end < MARK_ZONE_S:
+        kind, verdict = "mark", "tack in the mark zone"
+    elif r.get("note"):
+        kind, verdict = "double", f"double tack ({shift_call})"
+    else:
+        kind = {"on a header": "header", "on a lift": "lift"}.get(shift_call, "no_shift")
+        verdict = f"tacked {shift_call}"
+        if lifted_after is not None and kind != "no_shift":
+            verdict += ", new tack " + (
+                "lifted"
+                if lifted_after >= SHIFT_CALL_DEG
+                else "headed"
+                if lifted_after <= -SHIFT_CALL_DEG
+                else "neutral"
+            )
+    call["verdict"] = verdict
+    call["verdict_kind"] = kind
+    return call
 
 
 UPWIND_HEEL_DEG = 9  # Etchells: ~15-25 deg upwind, ~2-6 deg downwind
@@ -822,6 +1047,82 @@ def start_track(ax, race: Race, res: dict, df: pd.DataFrame):
     ax.set_title("Approach from 5:00 (open circles = tacks/gybes, dashed = after the gun)")
 
 
+SHORT_CALL = {
+    "header": "header",
+    "lift": "lift",
+    "no_shift": "–",
+    "layline": "layline",
+    "start": "start",
+    "double": "double",
+    "mark": "mark",
+}
+
+
+def shifts_plot(race: Race, res: dict, out: Path, plt):
+    """Wind shift through each beat (from headings), coloured by tack, with each tack's call."""
+    sh = res.get("shifts")
+    if not sh or not sh["beats"]:
+        return
+    df = race.df
+    beats = sh["beats"]
+    fig, axes = plt.subplots(len(beats), 1, figsize=(10, 2.9 * len(beats) + 0.6), squeeze=False)
+    for ax, b in zip(axes[:, 0], beats, strict=True):
+        lg = next(x for x in res["legs"] if x["leg"] == b["leg"])
+        t0 = race.gun + pd.Timedelta(seconds=lg["start_s"])
+        g = df[(df.t >= t0) & (df.t <= t0 + pd.Timedelta(seconds=lg["duration_s"]))]
+        m = g.tg / 60
+        for side, color, label in (("stbd", BLUE, "on starboard"), ("port", ORANGE, "on port")):
+            ax.plot(m, g.shift_s.where(g.tack == side), color=color, lw=2, label=label)
+        ax.axhline(0, color=INK2, lw=0.8)
+        ax.plot(
+            [m.iloc[0], m.iloc[-1]],
+            [0, b["trend_deg"]],
+            color=INK2,
+            lw=1,
+            ls="--",
+            label=f"trend {b['trend_deg']:+.0f}°",
+        )
+        for mh in b["missed_headers"]:
+            ax.axvspan(
+                mh["start_s"] / 60, (mh["start_s"] + mh["duration_s"]) / 60, color=GRID, zorder=0
+            )
+        lo, hi = ax.get_ylim()
+        span = max(abs(lo), abs(hi), 8)
+        ax.set_ylim(-span, span * 1.25)
+        last_x, row = None, 0
+        for c in sh["tacks"]:
+            if c["leg"] != b["leg"]:
+                continue
+            x = c["time_s"] / 60
+            row = 1 - row if last_x is not None and x - last_x < 0.9 else 0  # stagger close tacks
+            last_x = x
+            ax.axvline(x, color=INK2, lw=0.8, ls=":")
+            ax.annotate(
+                SHORT_CALL.get(c["verdict_kind"], ""),
+                (x, span * (1.12 - 0.14 * row)),
+                ha="center",
+                fontsize=8,
+                color=INK,
+                fontweight="bold" if c["verdict_kind"] in ("header", "lift") else None,
+            )
+        ax.set_ylabel("shift (°)\n+ right: stbd lifted")
+        ax.set_title(f"Leg {b['leg']}: median {b['twd_median']:.0f}°, {b['pattern']}")
+        ax.legend(loc="lower left", fontsize=8, ncol=3)
+    axes[-1, 0].set_xlabel(
+        "minutes from gun (dotted = tacks, labelled with the call; grey = headed > 5° without tacking)"
+    )
+    fig.suptitle(
+        f"{res['race']}: wind shifts upwind (from headings)",
+        x=0.01,
+        ha="left",
+        fontweight="bold",
+        fontsize=13,
+    )
+    fig.tight_layout()
+    fig.savefig(out / "shifts.png", dpi=130)
+    plt.close(fig)
+
+
 def plt_colorbar(ax, mappable):
     cb = ax.figure.colorbar(mappable, ax=ax, shrink=0.8, pad=0.015, fraction=0.03)
     cb.ax.tick_params(labelsize=8)
@@ -954,6 +1255,8 @@ def make_plots(race: Race, res: dict, out: Path):
         fig.savefig(out / "start.png", dpi=130)
         plt.close(fig)
 
+    shifts_plot(race, res, out, plt)
+
     # Maneuvers: distance lost per tack/gybe, in race order
     rs = [r for r in mans if r["distance_lost_m"] is not None and not r["note"]]
     if rs:
@@ -986,6 +1289,78 @@ def md_table(rows, cols):
             cells.append("–" if v is None else str(v))
         body += "| " + " | ".join(cells) + " |\n"
     return head + body
+
+
+CALL_LABEL = {
+    "header": "on a header",
+    "lift": "on a lift",
+    "no_shift": "no clear shift (< 3°)",
+    "layline": "layline",
+    "mark": "at a mark",
+    "start": "off the start",
+    "double": "double tack",
+}
+
+
+def shifts_md(sh: dict | None) -> list[str]:
+    if not sh or not sh["beats"]:
+        return []
+    out = [
+        "## Wind shifts and tack calls",
+        (
+            "Wind direction from headings: heading ± half the tacking angle. Shifts are relative "
+            "to each beat's median; + is a right shift (veer), − a left shift (back). A puff that "
+            "lets the boat point higher also reads as a lift, so treat single 3–4° calls as soft."
+        ),
+        "",
+        md_table(
+            sh["beats"],
+            [
+                ("Leg", "leg"),
+                ("Median wind", lambda r: f"{r['twd_median']:.0f}°"),
+                ("Trend over beat", lambda r: f"{r['trend_deg']:+.0f}°"),
+                ("Oscillation", lambda r: f"±{r['oscillation_deg']:.0f}°"),
+                ("Pattern", "pattern"),
+                ("% right of rhumb", "pct_time_right"),
+                ("Max left/right m", lambda r: f"{r.get('max_left_m')}/{r.get('max_right_m')}"),
+                ("Headed > 5° without tacking", lambda r: f"{r['missed_header_s']} s"),
+            ],
+        ),
+    ]
+    out += [f"- Leg {b['leg']}: {b['side_note']}" for b in sh["beats"] if b["side_note"]]
+    for b in sh["beats"]:
+        for m in b["missed_headers"]:
+            out.append(
+                f"- Leg {b['leg']}: sailed {m['duration_s']} s on {m['tack']} headed ~{m['avg_header_deg']:.0f}° "
+                f"from {_fmt_mmss(m['start_s'])} without tacking."
+            )
+    counts = ", ".join(f"{n} {CALL_LABEL.get(k, k)}" for k, n in sh["summary"].items())
+    out += [
+        "",
+        f"Tacks: {counts}.",
+        "",
+        md_table(
+            sh["tacks"],
+            [
+                ("Time", lambda r: _fmt_mmss(r["time_s"])),
+                ("Leg", "leg"),
+                ("Onto", "onto"),
+                ("Headed before", lambda r: _signed(r["headed_before_deg"])),
+                ("New tack after", lambda r: _signed(r["lifted_after_deg"])),
+                ("Call", "verdict"),
+            ],
+        ),
+        (
+            "Headed before: + means the old tack was headed (a good time to tack). "
+            "New tack after: + means the new tack was lifted over the next minute."
+        ),
+        "",
+    ]
+    return out
+
+
+def _signed(v):
+    return None if v is None else f"{v:+.0f}°"
 
 
 def write_report(res: dict, out: Path):
@@ -1107,6 +1482,9 @@ def write_report(res: dict, out: Path):
                 ("Note", "note"),
             ],
         ),
+    ]
+    lines += shifts_md(res.get("shifts"))
+    lines += [
         "## Upwind vs. targets",
     ]
     tg = res["targets"]
@@ -1158,6 +1536,13 @@ def write_report(res: dict, out: Path):
     (out / "report.md").write_text("\n".join(x for x in lines if x is not None) + "\n")
 
 
+def _call_counts(sh: dict | None) -> str | None:
+    if not sh or not sh["tacks"]:
+        return None
+    n = sh["summary"]
+    return f"{n.get('header', 0)}/{n.get('lift', 0)}/{n.get('no_shift', 0)}"
+
+
 def _mid_target(tg: dict) -> dict:
     if not tg["available"] or not tg["bands"]:
         return {}
@@ -1193,6 +1578,7 @@ def write_event(results: list[dict], out: Path):
                 if up
                 else None,
                 **_mid_target(r["targets"]),
+                "calls": _call_counts(r.get("shifts")),
                 "tack_angle": round(
                     np.mean([lg["tacking_angle"] for lg in up if lg["tacking_angle"]]), 1
                 )
@@ -1215,6 +1601,7 @@ def write_event(results: list[dict], out: Path):
             ("Upwind SOG", "up_sog"),
             ("Upwind heel (abs)", "up_heel"),
             ("Tacking ∠", "tack_angle"),
+            ("Tacks on header/lift/no shift", "calls"),
         ]
         + (
             [("Speed % target", "tgt_speed_pct"), ("Δ heel", "tgt_heel_delta")]
