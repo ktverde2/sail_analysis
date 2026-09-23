@@ -372,5 +372,26 @@
       "lift": 3,
       "layline": 1
     }
-  }
+  },
+  "roundings": [
+    {
+      "n": 1,
+      "type": "windward",
+      "time_s": 1111,
+      "from_leg": 1,
+      "to_leg": 2,
+      "last_tack_before_s": 61,
+      "overstand_deg": 4.8,
+      "sog_entry": 5.44,
+      "sog_min": 4.6,
+      "sog_exit": 5.48,
+      "sog_steady_after": 4.79,
+      "settle_s": 32,
+      "vmg_before": 3.99,
+      "vmg_after": 4.4,
+      "metres_lost": 87.1,
+      "mark_dist_m": null,
+      "gate_side": null
+    }
+  ]
 }

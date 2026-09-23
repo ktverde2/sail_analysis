@@ -288,6 +288,142 @@
     },
   };
 
+  function relClock(t) {
+    const a = Math.abs(Math.round(t));
+    return (t < 0 ? '−' : '+') + Math.floor(a / 60) + ':' + String(a % 60).padStart(2, '0');
+  }
+  function fit(xs, ys, pad) {
+    xs = xs.filter(v => v !== null); ys = ys.filter(v => v !== null);
+    return [[Math.min(...xs) - pad, Math.max(...xs) + pad], [Math.min(...ys) - pad, Math.max(...ys) + pad]];
+  }
+
+  Object.assign(CHARTS, {
+    // One leg's track, coloured by speed, with its tacks or gybes
+    legTrack(el, d, c) {
+      const s = d.series, leg = +el.dataset.leg;
+      const { idx, g } = pick(d, i => s.leg[i] === leg);
+      const sogs = g(s.sog).filter(v => v !== null).sort((a, b) => a - b);
+      const q = p => sogs[Math.floor(p * (sogs.length - 1))];
+      const man = d.maneuvers.filter(m => m.leg === leg).map(m => ({ m, i: d.idxAt(m.time_s) }));
+      const [xr, yr] = fit(g(s.x), g(s.y), 40);
+      Plotly.newPlot(el, [
+        { x: g(s.x), y: g(s.y), mode: 'lines', line: { color: c.line, width: 1 }, hoverinfo: 'skip' },
+        { x: g(s.x), y: g(s.y), mode: 'markers', text: idx.map(i => s.hover[i]), hovertemplate: '%{text}<extra></extra>',
+          marker: { size: 5, color: g(s.sog), colorscale: c.seq, cmin: q(0.05), cmax: q(0.95), showscale: !narrow(),
+            colorbar: { title: { text: 'SOG kt', side: 'right' }, thickness: 10, len: 0.7, outlinewidth: 0 } } },
+        ...courseTraces(d, c),
+        { x: man.map(o => s.x[o.i]), y: man.map(o => s.y[o.i]), mode: 'markers',
+          marker: { size: 10, color: 'rgba(0,0,0,0)', line: { width: 1.5, color: man.map(o => (o.m.kind === 'Gybe' ? c.orange : c.ink2)) } },
+          text: man.map(o => maneuverText(o.m)), hovertemplate: '%{text}<extra></extra>' },
+      ], layout(c, {
+        title: title(c, 'Leg ' + leg + ' ' + (d.legType[leg] || '') + ' track (circles = ' +
+          (d.legType[leg] === 'upwind' ? 'tacks' : 'gybes') + ')', 'Leg ' + leg + ' track'),
+        xaxis: axis(c, { title: 'metres (upwind is up)', zeroline: false, range: xr }),
+        yaxis: axis(c, { scaleanchor: 'x', zeroline: false, range: yr }),
+        hovermode: 'closest', height: mapHeight(el, xr, yr, 320, 560),
+      }), CONFIG);
+    },
+
+    // Speed vs. wind angle on one beat: starboard right, port left; height = upwind VMG
+    polar(el, d, c) {
+      const s = d.series, leg = +el.dataset.leg;
+      const keep = i => s.leg[i] === leg && s.steady[i] && s.sog[i] > 2 && s.twa[i] !== null && s.twa[i] <= 60;
+      const traces = [];
+      let top = 6;
+      // grid: speed rings and wind-angle spokes
+      for (let r = 3; r <= 8; r++) {
+        const th = [...Array(71).keys()].map(k => ((k - 35) * 2 * Math.PI) / 180);
+        traces.push({ x: th.map(a => r * Math.sin(a)), y: th.map(a => r * Math.cos(a)), mode: 'lines',
+          line: { color: c.line, width: 1 }, hoverinfo: 'skip' });
+      }
+      [30, 40, 50, 60].forEach(deg => [1, -1].forEach(sg => {
+        const a = (deg * Math.PI) / 180;
+        traces.push({ x: [0, sg * 8 * Math.sin(a)], y: [0, 8 * Math.cos(a)], mode: 'lines+text', text: ['', deg + '°'],
+          textposition: 'top center', textfont: { size: 10, color: c.ink2 }, line: { color: c.line, width: 1 }, hoverinfo: 'skip' });
+      }));
+      const deep = dark() ? { s: '#9ec5f4', p: '#f4a582' } : { s: '#0d366b', p: '#8a2e0b' };
+      [['s', 1, c.blue, 'starboard'], ['p', -1, c.orange, 'port']].forEach(([k, sg, col, name]) => {
+        const idx = s.t.map((_, i) => i).filter(i => keep(i) && s.tack[i] === k);
+        const rad = i => (s.twa[i] * Math.PI) / 180;
+        idx.forEach(i => (top = Math.max(top, s.sog[i])));
+        traces.push({ x: idx.map(i => sg * s.sog[i] * Math.sin(rad(i))), y: idx.map(i => s.sog[i] * Math.cos(rad(i))),
+          mode: 'markers', name: name, marker: { size: 4, color: col, opacity: 0.35 },
+          text: idx.map(i => s.hover[i] + '<br>Wind angle ' + f(s.twa[i], 0, '°')), hovertemplate: '%{text}<extra>' + name + '</extra>' });
+        const bins = {};
+        idx.forEach(i => { const b = Math.floor(s.twa[i] / 2) * 2; (bins[b] = bins[b] || []).push(s.sog[i]); });
+        const keys = Object.keys(bins).map(Number).filter(b => bins[b].length >= 10).sort((a, b) => a - b);
+        const avg = b => bins[b].reduce((x, y) => x + y, 0) / bins[b].length;
+        traces.push({ x: keys.map(b => sg * avg(b) * Math.sin(((b + 1) * Math.PI) / 180)),
+          y: keys.map(b => avg(b) * Math.cos(((b + 1) * Math.PI) / 180)), mode: 'lines+markers', name: name + ' average',
+          line: { color: deep[k], width: 3 }, marker: { size: 5, color: deep[k] },
+          text: keys.map(b => name + ' ' + b + '–' + (b + 2) + '°: ' + avg(b).toFixed(2) + ' kt avg (' + bins[b].length + ' s)'),
+          hovertemplate: '%{text}<extra></extra>' });
+      });
+      d.targets.forEach(tg => [1, -1].forEach(sg => {
+        const a = (tg.twa_tgt * Math.PI) / 180;
+        traces.push({ x: [sg * tg.speed_tgt * Math.sin(a)], y: [tg.speed_tgt * Math.cos(a)], mode: 'markers',
+          marker: { symbol: 'diamond', size: 9, color: c.ink },
+          hovertemplate: 'Card at ' + tg.wind + ': ' + tg.speed_tgt + ' kt at ' + tg.twa_tgt + '°, heel ' + tg.heel_tgt + '°<extra></extra>' });
+      }));
+      // Fit to the data (and the card's diamonds), keeping a little room for the angle labels
+      const pts = traces.filter(t => t.mode === 'markers' || t.mode === 'lines+markers').flatMap(t => t.x.map((x, k) => [x, t.y[k]]));
+      const R = Math.ceil(top + 0.3);
+      const mx = Math.max(1.5, ...pts.map(p => Math.abs(p[0]))) + 0.9;
+      const xr = [-mx, mx], yr = [Math.max(0, Math.min(...pts.map(p => p[1])) - 0.8), Math.max(...pts.map(p => p[1])) + 1.0];
+      Plotly.newPlot(el, traces, layout(c, {
+        title: title(c, 'Leg ' + leg + ' polar: port ← wind angle → starboard (◆ = card)', 'Leg ' + leg + ' polar'),
+        xaxis: axis(c, { range: xr, showgrid: false, zeroline: false, showticklabels: false }),
+        yaxis: axis(c, { range: yr, scaleanchor: 'x', title: 'upwind VMG (kt)', showgrid: false, zeroline: false }),
+        hovermode: 'closest', height: mapHeight(el, xr, yr, 300, 460),
+      }), CONFIG);
+    },
+
+    // The minute either side of a rounding, coloured by time from it
+    roundTrack(el, d, c) {
+      const s = d.series, r = d.roundings.find(x => x.n === +el.dataset.n);
+      const { idx, g } = pick(d, (i, t) => t >= r.time_s - 60 && t <= r.time_s + 60);
+      const rel = i => s.t[i] - r.time_s;
+      const [xr, yr] = fit(g(s.x), g(s.y), 25);
+      const at = d.idxAt(r.time_s);
+      Plotly.newPlot(el, [
+        { x: g(s.x), y: g(s.y), mode: 'lines', line: { color: c.line, width: 1 }, hoverinfo: 'skip' },
+        { x: g(s.x), y: g(s.y), mode: 'markers', text: idx.map(i => s.hover[i] + '<br>Rounding ' + relClock(rel(i))),
+          hovertemplate: '%{text}<extra></extra>',
+          marker: { size: 6, color: idx.map(rel), colorscale: c.seq, cmin: -60, cmax: 60, showscale: !narrow(),
+            colorbar: { title: { text: 's from rounding', side: 'right' }, thickness: 10, len: 0.7, outlinewidth: 0 } } },
+        ...courseTraces(d, c),
+        { x: [s.x[at]], y: [s.y[at]], mode: 'markers', marker: { size: 12, color: c.orange, line: { color: c.card, width: 2 } },
+          text: [s.hover[at]], hovertemplate: 'Rounding<br>%{text}<extra></extra>' },
+      ], layout(c, {
+        title: title(c, 'Track, a minute either side (orange = rounding)', 'Track ±60 s'),
+        xaxis: axis(c, { title: 'metres (upwind is up)', zeroline: false, range: xr }),
+        yaxis: axis(c, { scaleanchor: 'x', zeroline: false, range: yr }),
+        hovermode: 'closest', height: mapHeight(el, xr, yr, 300, 460),
+      }), CONFIG);
+    },
+
+    // Speed and VMG through a rounding, against the steady VMG of the legs either side
+    roundSpeed(el, d, c) {
+      const s = d.series, r = d.roundings.find(x => x.n === +el.dataset.n);
+      const { idx, g } = pick(d, (i, t) => t >= r.time_s - 60 && t <= r.time_s + 90);
+      const x = idx.map(i => s.t[i] - r.time_s);
+      const smooth3 = arr => smooth(arr, 3);
+      const shapes = [vline(0, c, 'dash')];
+      if (r.vmg_before !== null) shapes.push({ type: 'line', x0: -60, x1: 0, y0: r.vmg_before, y1: r.vmg_before, line: { color: c.orange, width: 1, dash: 'dot' } });
+      if (r.vmg_after !== null) shapes.push({ type: 'line', x0: 0, x1: 90, y0: r.vmg_after, y1: r.vmg_after, line: { color: c.orange, width: 1, dash: 'dot' } });
+      Plotly.newPlot(el, [
+        { x, y: smooth3(g(s.sog)), mode: 'lines', name: 'SOG', line: { color: c.blue, width: 2 },
+          text: idx.map(i => s.hover[i] + '<br>Rounding ' + relClock(s.t[i] - r.time_s)), hovertemplate: '%{text}<extra>SOG</extra>' },
+        { x, y: smooth3(g(s.vmg)), mode: 'lines', name: 'VMG', line: { color: c.orange, width: 2 },
+          hovertemplate: 'VMG %{y:.2f} kt<extra></extra>' },
+      ], layout(c, {
+        title: title(c, 'SOG and VMG (dotted = steady VMG of the legs either side)', 'SOG and VMG'),
+        xaxis: axis(c, { title: 'seconds from rounding', ...SPIKE }), yaxis: axis(c, { title: 'kt', rangemode: 'tozero' }),
+        shapes, showlegend: true, legend: { orientation: 'h', y: -0.3 }, hovermode: 'x', height: 340,
+      }), CONFIG);
+    },
+  });
+
   function maneuverText(m) {
     return '<b>' + m.kind + ' onto ' + (m.onto || '?') + '</b> ' + clock(m.time_s) + '<br>Entry ' + f(m.entry_sog, 2, ' kt') +
       ', min ' + f(m.min_sog, 2, ' kt') + ' (' + (m.speed_loss_pct === null ? '–' : m.speed_loss_pct + '%') + ' loss)' +

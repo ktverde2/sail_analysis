@@ -575,5 +575,64 @@
       "layline": 2,
       "mark": 1
     }
-  }
+  },
+  "roundings": [
+    {
+      "n": 1,
+      "type": "windward",
+      "time_s": 1097,
+      "from_leg": 1,
+      "to_leg": 2,
+      "last_tack_before_s": 101,
+      "overstand_deg": 2.7,
+      "sog_entry": 5.7,
+      "sog_min": 5.16,
+      "sog_exit": 5.34,
+      "sog_steady_after": 6.38,
+      "settle_s": 49,
+      "vmg_before": 4.4,
+      "vmg_after": 6.24,
+      "metres_lost": 50.5,
+      "mark_dist_m": 4.2,
+      "gate_side": null
+    },
+    {
+      "n": 2,
+      "type": "leeward",
+      "time_s": 1825,
+      "from_leg": 2,
+      "to_leg": 3,
+      "last_gybe_before_s": null,
+      "overstand_deg": null,
+      "sog_entry": 5.47,
+      "sog_min": 3.99,
+      "sog_exit": 4.64,
+      "sog_steady_after": 5.96,
+      "settle_s": 44,
+      "vmg_before": 6.24,
+      "vmg_after": 4.6,
+      "metres_lost": 53.3,
+      "mark_dist_m": 5.0,
+      "gate_side": "right-hand mark (looking downwind)"
+    },
+    {
+      "n": 3,
+      "type": "windward",
+      "time_s": 2826,
+      "from_leg": 3,
+      "to_leg": 4,
+      "last_tack_before_s": 59,
+      "overstand_deg": 10.8,
+      "sog_entry": 6.74,
+      "sog_min": 6.01,
+      "sog_exit": 6.87,
+      "sog_steady_after": 6.51,
+      "settle_s": 15,
+      "vmg_before": 4.6,
+      "vmg_after": 6.39,
+      "metres_lost": 32.2,
+      "mark_dist_m": 5.2,
+      "gate_side": null
+    }
+  ]
 }

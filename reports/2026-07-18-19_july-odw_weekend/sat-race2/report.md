@@ -71,6 +71,15 @@ Tacks: 3 on a lift, 3 no clear shift (< 3°), 2 layline, 1 at a mark.
 
 Headed before: + means the old tack was headed (a good time to tack). New tack after: + means the new tack was lifted over the next minute.
 
+## Mark roundings
+Metres lost: VMG from 30 s before to 60 s after the rounding against the steady VMG of the leg before and after. Settled: 10 s VMG back to 90% of the next leg's.
+
+| # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | m lost | Closest to mark m | Gate |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | windward | 15:34 | layline tack 70 s out, overstood 10° | 6.35 | 4.85 | 4.92 | 18 | 44.2 | – | – |
+| 2 | leeward | 27:15 | no gybe on the run | 4.9 | 4.33 | 4.75 | 23 | 52.1 | – | – |
+| 3 | windward | 42:14 | layline tack 185 s out | 6.04 | 4.93 | 5.93 | 12 | 24.0 | – | – |
+
 ## Upwind vs. targets
 TWS: user-supplied TWS 8–10 kt. TWA: estimated from GPS tacking headings. Speed: SOG.
 

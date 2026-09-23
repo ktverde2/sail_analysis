@@ -35,6 +35,8 @@ def test_outputs_written(results):
             "maneuvers.png",
             "shifts.png",
             "downwind.png",
+            "polar.png",
+            "roundings.png",
         ):
             assert (out / race / f).stat().st_size > 0, f"{race}/{f}"
 
@@ -140,7 +142,7 @@ def test_html_report(results, tmp_path):
     )
     page = write_html(out, debrief, tmp_path / "r.html", interactive=False).read_text()
     assert "<title>Mojo · July ODW · Sun 19 Jul 2026</title>" in page
-    assert page.count("data:image/png;base64,") == 12  # 6 plots x 2 races, each shown once
+    assert page.count("data:image/png;base64,") == 16  # 8 plots x 2 races, each shown once
     assert '<section class="page" id="debrief">' in page
     assert '<section class="card debrief"><h2>Debrief</h2>' in page
     assert "<ol><li><strong>Starts</strong> — late.</li></ol>" in page
@@ -216,7 +218,7 @@ def test_html_pages(results, tmp_path):
     out, _ = results
     page = write_html(out, None, tmp_path / "p.html").read_text()
     ids = re.findall(r'<section class="page" id="([^"]+)"', page)
-    assert ids == ["summary", "starts", "maneuvers", "upwind", "downwind", "races"]
+    assert ids == ["summary", "starts", "maneuvers", "upwind", "downwind", "roundings", "races"]
     assert "Executive summary" in page.split('id="starts"')[0]
     assert page.count("downwind.png") == 0  # embedded, not linked
     assert '<nav class="pages">' in page
@@ -238,6 +240,10 @@ def test_interactive_charts(results, tmp_path):
         "downwind",
         "track",
         "timeline",
+        "legTrack",
+        "polar",
+        "roundTrack",
+        "roundSpeed",
     }
     assert (
         page.count('<script type="application/json" id="race-race') == 2
@@ -250,3 +256,34 @@ def test_interactive_charts(results, tmp_path):
     i = s["t"].index(-30)
     assert (s["sog"][i], s["below"][i], s["hdg"][i]) == (2.13, 42.0, 246)
     assert len({len(v) for v in s.values() if v is not None}) == 1  # all series aligned
+
+
+def test_roundings(results):
+    _, r = results
+    r1 = r["race1"]["roundings"]
+    assert [x["type"] for x in r1] == ["windward", "leeward", "windward"]
+    assert [x["type"] for x in r["race2"]["roundings"]] == ["windward", "leeward"]
+    lw = r["race2"]["roundings"][1]
+    # Sunday race 2's leeward gate: slow, costly, left-hand mark looking downwind
+    assert lw["metres_lost"] > 60 and lw["sog_min"] < 3.6 and lw["settle_s"] > 40
+    assert lw["gate_side"].startswith("left-hand") and lw["mark_dist_m"] < 10
+    ww = r1[0]
+    assert ww["last_tack_before_s"] > 0 and ww["mark_dist_m"] < 10 and ww["gate_side"] is None
+    for x in r1 + r["race2"]["roundings"]:
+        assert x["settle_s"] is None or x["settle_s"] >= 10  # measured after the mark only
+
+
+def test_polar_data(results):
+    import json
+
+    out, _ = results
+    d = json.loads((out / "race1" / "plotdata.json").read_text())
+    s = d["series"]
+    assert len(s["steady"]) == len(s["t"]) and {0, 1} == set(s["steady"])
+    assert [t["wind"] for t in d["targets"]] == []  # results fixture has no --tws
+    up = [
+        i
+        for i in range(len(s["t"]))
+        if s["leg"][i] == 1 and s["steady"][i] and s["twa"][i] is not None
+    ]
+    assert 30 < sum(s["twa"][i] for i in up) / len(up) < 40

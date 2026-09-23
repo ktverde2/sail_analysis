@@ -290,6 +290,9 @@ def analyze_race(race: Race, tws_override: float | None) -> dict:
             (lg["leg"] for lg in legs if lg["start"] <= m["t"] <= lg["end"]), row["leg"]
         )
     shifts = wind_shifts(df, legs, man_rows, gun, hdg_col) if gun is not None else None
+    roundings = (
+        rounding_stats(race, df, legs, leg_rows, man_rows, shifts) if gun is not None else []
+    )
     if legs_source.startswith("detected") and twd_est is not None:
         axis = twd_est  # better than the mean upwind heading used to find the tacks
     start = start_stats(race, df, axis) if gun is not None else None
@@ -317,6 +320,7 @@ def analyze_race(race: Race, tws_override: float | None) -> dict:
         "maneuver_summary": maneuver_summary(man_rows),
         "targets": targets,
         "shifts": shifts,
+        "roundings": roundings,
     }
 
 
@@ -604,6 +608,101 @@ def estimate_twd(df, legs, hdg_col, axis):
         lg["hdg_stbd"], lg["hdg_port"] = round(hs, 1), round(hp, 1)
         ests.append(lg["twd"])
     return round(circ_mean(ests), 1) if ests else None
+
+
+ROUNDING_WINDOW_S = (-30, 60)  # VMG compared with the steady legs either side over this window
+ROUNDING_FLAG_M = 60  # a rounding this costly gets a flag in the executive summary
+SETTLED_VMG = 0.9  # 10 s VMG back to this share of the next leg's steady VMG = settled
+
+
+def rounding_stats(race: Race, df, legs, leg_rows, man_rows, shifts) -> list[dict]:
+    """Each mark rounding (the boundary between two legs): approach, speed through, and metres
+    lost against sailing the steady VMG of the leg before and after."""
+    marks = [c for c in race.course if c["type"] in ("Mark", "Gate")]
+    calls = {c["time_s"]: c for c in (shifts or {}).get("tacks", [])}
+    out = []
+    for k, (before, after) in enumerate(pairwise(legs)):
+        t_r = before["end"]
+        tg_r = (t_r - race.gun).total_seconds()
+        rb = next(r for r in leg_rows if r["leg"] == before["leg"])
+        ra = next(r for r in leg_rows if r["leg"] == after["leg"])
+        kind = "windward" if before["type"] == "upwind" else "leeward"
+        rel = (df.t - t_r).dt.total_seconds()
+
+        def w(a, b, rel=rel):
+            return df[(rel >= a) & (rel <= b)]
+
+        win = w(*ROUNDING_WINDOW_S)
+        base = np.where(rel[win.index] < 0, rb["vmg_steady"] or np.nan, ra["vmg_steady"] or np.nan)
+        lost = (
+            float(np.nansum((base - win.vmg_wind) * KT_TO_MS))
+            if win.vmg_wind.notna().sum() > 30
+            else None
+        )
+        # 10 s trailing VMG, only over time after the rounding (before it VMG was the other leg's)
+        after_r = df[(rel >= 0) & (rel <= 180)]
+        vmg10 = after_r.vmg_wind.rolling(10, min_periods=10).mean()
+        settle = after_r[vmg10 >= SETTLED_VMG * (ra["vmg_steady"] or np.inf)]
+        # Approach: the last tack (windward) or gybe (leeward) of the leg before
+        want = "Tack" if kind == "windward" else "Gybe"
+        prev = [
+            m
+            for m in man_rows
+            if m["kind"] == want and m["leg"] == before["leg"] and m["time_s"] < tg_r
+        ]
+        last = prev[-1] if prev else None
+        row = {
+            "n": k + 1,
+            "type": kind,
+            "time_s": round(tg_r),
+            "from_leg": before["leg"],
+            "to_leg": after["leg"],
+            "last_" + want.lower() + "_before_s": round(tg_r - last["time_s"]) if last else None,
+            "overstand_deg": (calls.get(last["time_s"]) or {}).get("overstand_deg")
+            if last
+            else None,
+            "sog_entry": _r(w(-15, -5).SOG.mean(), 2),
+            "sog_min": _r(w(-10, 20).SOG.min(), 2),
+            "sog_exit": _r(w(20, 30).SOG.mean(), 2),
+            "sog_steady_after": ra["sog_steady"],
+            "settle_s": round(float((settle.t.iloc[0] - t_r).total_seconds()))
+            if len(settle)
+            else None,
+            "vmg_before": rb["vmg_steady"],
+            "vmg_after": ra["vmg_steady"],
+            "metres_lost": _r(lost, 1),
+            "mark_dist_m": None,
+            "gate_side": None,
+        }
+        if k < len(marks):
+            row.update(mark_approach(df, rel, marks[k], race))
+        out.append(row)
+    return out
+
+
+def mark_approach(df, rel, mark, race) -> dict:
+    """Closest approach to the mark within a minute of the rounding; for a gate, which side."""
+    near = df[(rel >= -60) & (rel <= 60)]
+    pts = [mark["coord1"]] + ([mark["coord2"]] if mark.get("coord2") else [])
+    d = [dist_m(near.Lat.values, near.Lon.values, p["lat"], p["lon"]) for p in pts]
+    best = int(np.argmin([x.min() for x in d]))
+    out = {"mark_dist_m": round(float(d[best].min()), 1)}
+    if len(pts) == 2:
+        # Looking downwind (as you approach a leeward gate), which mark did we round?
+        axis = upwind_axis(race)
+        if axis is not None:
+            b = float(
+                bearing(
+                    pts[1 - best]["lat"], pts[1 - best]["lon"], pts[best]["lat"], pts[best]["lon"]
+                )
+            )
+            downwind = (axis + 180) % 360
+            out["gate_side"] = (
+                "right-hand mark (looking downwind)"
+                if adiff(downwind, b) > 0
+                else "left-hand mark (looking downwind)"
+            )
+    return out
 
 
 def leg_stats(df, lg, hdg_col, mans):
@@ -1184,6 +1283,136 @@ def downwind_plot(race: Race, res: dict, out: Path, plt):
     plt.close(fig)
 
 
+def polar_plot(race: Race, res: dict, out: Path, plt):
+    """Speed vs. wind angle (from headings) on each beat: starboard right, port left, with the
+    card's targets. Height on the chart is upwind VMG."""
+    beats = [lg for lg in res["legs"] if lg["type"] == "upwind"]
+    if not beats:
+        return
+    df = race.df
+    targets = res["targets"].get("bands", []) if res["targets"].get("available") else []
+    fig, axes = plt.subplots(1, len(beats), figsize=(5.5 * len(beats), 3.3), squeeze=False)
+    for ax, lg in zip(axes[0], beats, strict=True):
+        t0 = race.gun + pd.Timedelta(seconds=lg["start_s"])
+        g = df[
+            (df.t >= t0)
+            & (df.t <= t0 + pd.Timedelta(seconds=lg["duration_s"]))
+            & df.steady
+            & (df.SOG > 2)
+            & (df.twa_gps <= 60)
+        ]
+        for side, sign, color in (("stbd", 1, BLUE), ("port", -1, ORANGE)):
+            t = g[g.tack == side]
+            a = np.radians(t.twa_gps)
+            ax.scatter(
+                sign * t.SOG * np.sin(a), t.SOG * np.cos(a), s=4, alpha=0.25, color=color, lw=0
+            )
+            bins = t.groupby((t.twa_gps // 2) * 2).SOG.agg(["mean", "count"])
+            bins = bins[bins["count"] >= 10]
+            if len(bins):
+                ang = np.radians(bins.index + 1)
+                ax.plot(
+                    sign * bins["mean"] * np.sin(ang),
+                    bins["mean"] * np.cos(ang),
+                    color=color,
+                    lw=2,
+                    label=f"{side} (avg)",
+                )
+        for tg in targets:
+            ang = math.radians(tg["twa_tgt"])
+            for sign in (1, -1):
+                ax.plot(
+                    sign * tg["speed_tgt"] * math.sin(ang),
+                    tg["speed_tgt"] * math.cos(ang),
+                    "D",
+                    color=INK,
+                    ms=5,
+                )
+            ax.annotate(
+                tg["wind"],
+                (tg["speed_tgt"] * math.sin(ang), tg["speed_tgt"] * math.cos(ang)),
+                xytext=(5, -3),
+                textcoords="offset points",
+                fontsize=8,
+                color=INK2,
+            )
+        for r in (4, 5, 6, 7):
+            th = np.radians(np.linspace(-70, 70, 100))
+            ax.plot(r * np.sin(th), r * np.cos(th), color=GRID, lw=0.8, zorder=0)
+            ax.annotate(f"{r} kt", (0, r), fontsize=7, color=INK2, ha="center", va="bottom")
+        for deg in (30, 40, 50, 60):
+            for sign in (1, -1):
+                a = math.radians(deg)
+                ax.plot(
+                    [0, sign * 7.2 * math.sin(a)],
+                    [0, 7.2 * math.cos(a)],
+                    color=GRID,
+                    lw=0.8,
+                    zorder=0,
+                )
+            ax.annotate(
+                f"{deg}°",
+                (7.3 * math.sin(math.radians(deg)), 7.3 * math.cos(math.radians(deg))),
+                fontsize=7,
+                color=INK2,
+            )
+        ax.set_aspect("equal")
+        ax.set_xlim(-7.2, 7.2)
+        ax.set_ylim(2.5, 7.6)
+        ax.grid(False)
+        ax.set_xticks([])
+        ax.set_ylabel("upwind VMG (kt)")
+        ax.set_title(f"Leg {lg['leg']}: port ← wind angle → starboard")
+        ax.legend(loc="lower center", fontsize=8, ncol=2)
+    fig.suptitle(
+        f"{res['race']}: upwind polars (◆ = card targets)",
+        x=0.01,
+        ha="left",
+        fontweight="bold",
+        fontsize=13,
+    )
+    fig.tight_layout()
+    fig.savefig(out / "polar.png", dpi=130)
+    plt.close(fig)
+
+
+def roundings_plot(race: Race, res: dict, out: Path, plt):
+    """Speed through every rounding, aligned on the rounding: windward left, leeward right."""
+    rs = res.get("roundings") or []
+    if not rs:
+        return
+    df = race.df
+    fig, axes = plt.subplots(1, 2, figsize=(11, 3.8), sharey=True)
+    for ax, kind in zip(axes, ("windward", "leeward"), strict=True):
+        mine = [r for r in rs if r["type"] == kind]
+        for k, r in enumerate(mine):
+            rel = df.tg - r["time_s"]
+            g = df[(rel >= -60) & (rel <= 90)]
+            ax.plot(
+                rel[g.index],
+                g.SOG.rolling(3, center=True, min_periods=1).mean(),
+                color=(BLUE, ORANGE, AQUA)[k % 3],
+                lw=1.8,
+                label=f"#{r['n']} at {_fmt_mmss(r['time_s'])}: {r['metres_lost']} m lost",
+            )
+        ax.axvline(0, color=INK, lw=1, ls="--")
+        ax.set_title(f"{kind.capitalize()} roundings")
+        ax.set_xlabel("seconds from rounding")
+        if mine:
+            ax.legend(fontsize=8, loc="lower right")
+    axes[0].set_ylabel("SOG (kt)")
+    fig.suptitle(
+        f"{res['race']}: speed through the roundings",
+        x=0.01,
+        ha="left",
+        fontweight="bold",
+        fontsize=13,
+    )
+    fig.tight_layout()
+    fig.savefig(out / "roundings.png", dpi=130)
+    plt.close(fig)
+
+
 def plt_colorbar(ax, mappable):
     cb = ax.figure.colorbar(mappable, ax=ax, shrink=0.8, pad=0.015, fraction=0.03)
     cb.ax.tick_params(labelsize=8)
@@ -1234,6 +1463,7 @@ def plot_data(race: Race, res: dict) -> dict:
         "below": col(df.BelowLineCalc, 1) if "BelowLineCalc" in df else None,
         "leg": [None if math.isnan(v) else int(v) for v in leg_of],
         "tack": [{"stbd": "s", "port": "p"}.get(v) for v in df.tack],
+        "steady": [1 if v else 0 for v in df.steady],
     }
     course = []
     for c in race.course:
@@ -1274,6 +1504,13 @@ def plot_data(race: Race, res: dict) -> dict:
             {k: b[k] for k in ("leg", "twd_median", "trend_deg", "pattern")}
             for b in (res.get("shifts") or {}).get("beats", [])
         ],
+        "roundings": res.get("roundings") or [],
+        "targets": [
+            {k: b[k] for k in ("wind", "speed_tgt", "twa_tgt", "heel_tgt")}
+            for b in res["targets"].get("bands", [])
+        ]
+        if res["targets"].get("available")
+        else [],
     }
 
 
@@ -1405,6 +1642,8 @@ def make_plots(race: Race, res: dict, out: Path):
 
     shifts_plot(race, res, out, plt)
     downwind_plot(race, res, out, plt)
+    polar_plot(race, res, out, plt)
+    roundings_plot(race, res, out, plt)
 
     # Maneuvers: distance lost per tack/gybe, in race order
     rs = [r for r in mans if r["distance_lost_m"] is not None and not r["note"]]
@@ -1506,6 +1745,47 @@ def shifts_md(sh: dict | None) -> list[str]:
         "",
     ]
     return out
+
+
+def roundings_md(rs: list | None) -> list[str]:
+    if not rs:
+        return []
+    return [
+        "## Mark roundings",
+        (
+            "Metres lost: VMG from 30 s before to 60 s after the rounding against the steady VMG "
+            "of the leg before and after. Settled: 10 s VMG back to 90% of the next leg's."
+        ),
+        "",
+        md_table(
+            rs,
+            [
+                ("#", "n"),
+                ("Type", "type"),
+                ("From gun", lambda r: _fmt_mmss(r["time_s"])),
+                ("Approach", _approach),
+                ("SOG in", "sog_entry"),
+                ("SOG min", "sog_min"),
+                ("SOG out", "sog_exit"),
+                ("Settled s", "settle_s"),
+                ("m lost", "metres_lost"),
+                ("Closest to mark m", "mark_dist_m"),
+                ("Gate", "gate_side"),
+            ],
+        ),
+    ]
+
+
+def _approach(r: dict) -> str | None:
+    if r["type"] == "windward":
+        s = r.get("last_tack_before_s")
+        if s is None:
+            return None
+        over = r.get("overstand_deg")
+        tail = f", overstood {over:.0f}°" if over is not None and over > 5 else ""
+        return f"layline tack {s} s out{tail}"
+    s = r.get("last_gybe_before_s")
+    return f"last gybe {s} s out" if s is not None else "no gybe on the run"
 
 
 def _signed(v):
@@ -1633,6 +1913,7 @@ def write_report(res: dict, out: Path):
         ),
     ]
     lines += shifts_md(res.get("shifts"))
+    lines += roundings_md(res.get("roundings"))
     lines += [
         "## Upwind vs. targets",
     ]
@@ -1831,6 +2112,9 @@ def _flags(r: dict) -> list[str]:
     ms = r["maneuver_summary"].get("Tack")
     if ms and ms["speed_loss_avg_pct"] >= 35:
         out.append(f"deep tacks ({ms['speed_loss_avg_pct']}% loss)")
+    for x in r.get("roundings") or []:
+        if (x.get("metres_lost") or 0) >= ROUNDING_FLAG_M:
+            out.append(f"{x['type']} rounding #{x['n']} lost {x['metres_lost']:.0f} m")
     for b in (r.get("shifts") or {}).get("beats", []):
         wind = b["pattern"].split()[1] if b["pattern"].startswith("persistent") else None
         if wind and _side(b) not in ("middle", wind):
@@ -1873,6 +2157,13 @@ def _group_line(rs: list[dict]) -> str:
         bits.append(side)
     if layl:
         bits.append(f"laylines {layl - over} good / {over} overstood")
+    rr = [x for r in rs for x in (r.get("roundings") or []) if x.get("metres_lost") is not None]
+    for kind in ("windward", "leeward"):
+        k = [x["metres_lost"] for x in rr if x["type"] == kind]
+        if k:
+            bits.append(
+                f"{kind} roundings {np.mean(k):.0f} m lost on average ({_n(len(k), 'rounding')})"
+            )
     return "; ".join(bits) + "."
 
 

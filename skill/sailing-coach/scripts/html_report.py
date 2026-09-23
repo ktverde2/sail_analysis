@@ -79,7 +79,11 @@ figcaption { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
 .plots { display: grid; grid-template-columns: 1fr; gap: 8px; }
 figure.narrow img { max-width: 560px; display: block; margin: 0 auto; }
 figure.narrow figcaption { text-align: center; }
-.chart { width: 100%; min-height: 320px; margin: 8px 0 16px; }
+.chart { width: 100%; min-height: 300px; margin: 8px 0 16px; }
+.pair { display: grid; grid-template-columns: 1fr; gap: 8px; }
+@media (min-width: 900px) { .pair { grid-template-columns: 1fr 1fr; } }
+h3.leg { margin: 18px 0 2px; }
+p.facts { color: var(--ink2); margin: 2px 0 6px; font-size: 0.92rem; }
 .chart-hint { color: var(--muted); font-size: 0.85rem; margin: 0 0 4px; }
 footer { color: var(--muted); font-size: 0.85rem; margin-top: 32px; }
 nav.pages a[aria-current="page"] { background: var(--accent); color: #fff; }
@@ -265,13 +269,25 @@ HINT = (
 )
 
 
+def interactive(race_dir: Path) -> bool:
+    return INTERACTIVE and (race_dir / "plotdata.json").exists()
+
+
+def chart_div(race_dir: Path, kind: str, **attrs) -> str:
+    extra = "".join(f' data-{k}="{html.escape(str(v))}"' for k, v in attrs.items())
+    return f'<div class="chart" data-chart="{kind}" data-race="{race_dir.name}"{extra}></div>'
+
+
 def plot(race_dir: Path, kinds: list[str], png: str, caption: str) -> str:
     """Interactive chart(s) when the race has plotdata.json, else the static PNG."""
-    if INTERACTIVE and (race_dir / "plotdata.json").exists():
-        return HINT + "".join(
-            f'<div class="chart" data-chart="{k}" data-race="{race_dir.name}"></div>' for k in kinds
-        )
+    if interactive(race_dir):
+        return HINT + "".join(chart_div(race_dir, k) for k in kinds)
     return figures([(race_dir / png, caption)])
+
+
+def pair(race_dir: Path, specs: list[tuple[str, dict]]) -> str:
+    """Two interactive charts side by side on a wide screen, stacked on a phone."""
+    return '<div class="pair">' + "".join(chart_div(race_dir, k, **a) for k, a in specs) + "</div>"
 
 
 def figures(entries) -> str:
@@ -516,17 +532,33 @@ def upwind_page(runs) -> str:
                 ],
             )
         )
-    body += "".join(
-        card(
-            f"<h2>{html.escape(s['race'])}</h2>"
-            + plot(d, ["shifts"], "shifts.png", "Wind shifts upwind and the call on each tack")
-        )
-        for d, s in runs
-    )
+    for d, s in runs:
+        beats_ = [lg for lg in s["legs"] if lg["type"] == "upwind"]
+        if interactive(d):
+            inner = (
+                HINT
+                + "".join(
+                    f'<h3 class="leg">Leg {lg["leg"]}</h3>'
+                    f'<p class="facts">{lg["sog_steady"]} kt steady, VMG {lg["vmg_steady"]} kt, '
+                    f"heel {lg['heel_abs_avg']}°, {lg['tacks']} tacks, tacking angle {lg['tacking_angle']}°</p>"
+                    + pair(d, [("legTrack", {"leg": lg["leg"]}), ("polar", {"leg": lg["leg"]})])
+                    for lg in beats_
+                )
+                + '<h3 class="leg">Wind shifts, all beats</h3>'
+                + chart_div(d, "shifts")
+            )
+        else:
+            inner = figures(
+                [
+                    (d / "polar.png", "Upwind polars"),
+                    (d / "shifts.png", "Wind shifts upwind and the call on each tack"),
+                ]
+            )
+        body += card(f"<h2>{html.escape(s['race'])}</h2>" + inner)
     return page(
         "upwind",
         "Upwind",
-        "Beats only: speed and heel, the card, the wind pattern and which side we sailed.",
+        "Beats only: each beat's track and polar, speed and heel against the card, the wind pattern and which side we sailed.",
         body,
     )
 
@@ -581,20 +613,117 @@ def downwind_page(runs) -> str:
         if gybes
         else "<p>No gybes.</p>"
     )
-    plots = "".join(
-        card(
-            f"<h2>{html.escape(s['race'])}</h2>"
-            + plot(d, ["downwind"], "downwind.png", "Speed down each run, by gybe")
-        )
-        for d, s in runs
-        if any(lg["type"] == "downwind" for lg in s["legs"])
-    )
+    plots = ""
+    for d, s in runs:
+        runs_ = [lg for lg in s["legs"] if lg["type"] == "downwind"]
+        if not runs_:
+            continue
+        if interactive(d):
+            inner = (
+                HINT
+                + "".join(
+                    f'<h3 class="leg">Leg {lg["leg"]}</h3>'
+                    f'<p class="facts">{lg["sog_steady"]} kt steady, VMG {lg["vmg_steady"]} kt, '
+                    f"{lg['twa_steady']}° to the wind, {lg['gybes']} gybes, {lg['pct_time_stbd']}% on starboard</p>"
+                    + chart_div(d, "legTrack", leg=lg["leg"])
+                    for lg in runs_
+                )
+                + '<h3 class="leg">Speed on every run</h3>'
+                + chart_div(d, "downwind")
+            )
+        else:
+            inner = figures([(d / "downwind.png", "Speed down each run, by gybe")])
+        plots += card(f"<h2>{html.escape(s['race'])}</h2>" + inner)
     return page(
         "downwind",
         "Downwind",
-        "Runs only: speed, VMG away from the wind, angle, and gybes.",
+        "Runs only: each run's track, speed, VMG away from the wind, angle, and gybes.",
         card("<h2>Every run</h2>" + t1) + card("<h2>Gybes</h2>" + t2) + plots,
     )
+
+
+def roundings_page(runs) -> str:
+    rows = []
+    for _, s in runs:
+        for r in s.get("roundings") or []:
+            rows.append({"race": s["race"], **r, "approach": _approach_text(r)})
+    table = html_table(
+        rows,
+        [
+            ("Race", "race"),
+            ("#", "n"),
+            ("Type", "type"),
+            ("From gun", lambda r: _mmss(r["time_s"])),
+            ("Approach", "approach"),
+            ("SOG in", "sog_entry"),
+            ("SOG min", "sog_min"),
+            ("SOG out", "sog_exit"),
+            ("Settled s", "settle_s"),
+            ("m lost", "metres_lost"),
+            ("Closest to mark m", "mark_dist_m"),
+            ("Gate", "gate_side"),
+        ],
+    )
+    summary = []
+    for kind in ("windward", "leeward"):
+        k = [r for r in rows if r["type"] == kind and r.get("metres_lost") is not None]
+        if k:
+            worst = max(k, key=lambda r: r["metres_lost"])
+            best = min(k, key=lambda r: r["metres_lost"])
+            summary.append(
+                f"<li><strong>{kind.capitalize()}:</strong> {len(k)} roundings, "
+                f"{sum(r['metres_lost'] for r in k) / len(k):.0f} m lost on average; best "
+                f"{html.escape(best['race'])} #{best['n']} ({best['metres_lost']:.0f} m), worst "
+                f"{html.escape(worst['race'])} #{worst['n']} ({worst['metres_lost']:.0f} m).</li>"
+            )
+    body = card(
+        "<h2>Every rounding</h2>"
+        + (f"<ul>{''.join(summary)}</ul>" if summary else "")
+        + '<p class="facts">Metres lost: VMG from 30 s before to 60 s after the rounding, against the steady '
+        "VMG of the leg before and after. Settled: 10 s VMG back to 90% of the next leg's.</p>"
+        + table
+    )
+    for d, s in runs:
+        rs = s.get("roundings") or []
+        if not rs:
+            continue
+        if interactive(d):
+            inner = HINT + "".join(
+                f'<h3 class="leg">{r["type"].capitalize()} rounding #{r["n"]} · +{_mmss(r["time_s"])} from gun · '
+                f'{r["metres_lost"]} m lost</h3><p class="facts">{html.escape(_approach_text(r) or "")}; '
+                f"{r['sog_entry']} → {r['sog_min']} → {r['sog_exit']} kt; settled in {r['settle_s']} s"
+                + (
+                    f"; closest {r['mark_dist_m']} m from the mark"
+                    if r.get("mark_dist_m") is not None
+                    else ""
+                )
+                + (f"; {r['gate_side']}" if r.get("gate_side") else "")
+                + "</p>"
+                + pair(d, [("roundTrack", {"n": r["n"]}), ("roundSpeed", {"n": r["n"]})])
+                for r in rs
+            )
+        else:
+            inner = figures([(d / "roundings.png", "Speed through the roundings")])
+        body += card(f"<h2>{html.escape(s['race'])}</h2>" + inner)
+    return page(
+        "roundings",
+        "Roundings",
+        "Windward and leeward marks: approach, speed through the turn, and what each one cost.",
+        body,
+    )
+
+
+def _approach_text(r: dict) -> str | None:
+    if r["type"] == "windward":
+        sec = r.get("last_tack_before_s")
+        if sec is None:
+            return None
+        over = r.get("overstand_deg")
+        return f"layline tack {sec} s out" + (
+            f", overstood ~{over:.0f}°" if over is not None and over > 5 else ""
+        )
+    sec = r.get("last_gybe_before_s")
+    return f"last gybe {sec} s out" if sec is not None else "no gybe on the run"
 
 
 def build(
@@ -633,7 +762,13 @@ def build(
             )
         )
     if runs:
-        pages += [starts_page(runs), maneuvers_page(runs), upwind_page(runs), downwind_page(runs)]
+        pages += [
+            starts_page(runs),
+            maneuvers_page(runs),
+            upwind_page(runs),
+            downwind_page(runs),
+            roundings_page(runs),
+        ]
     sub_nav = (
         '<nav class="sub">'
         + "".join(
@@ -658,6 +793,7 @@ def build(
         "maneuvers": "Maneuvers",
         "upwind": "Upwind",
         "downwind": "Downwind",
+        "roundings": "Roundings",
         "races": "Race by race",
     }
     ids = re.findall(r'<section class="page" id="([^"]+)"', "".join(pages))
