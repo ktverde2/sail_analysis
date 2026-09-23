@@ -89,6 +89,8 @@ For "seconds late" framing beyond the report, `python scripts/coach_calcs.py tod
 
 Use the template below. Ground every claim in a number from the data, and keep the whole thing readable on a phone.
 
+For each priority, check the matching file in `references/playbook/` (starts, upwind strategy, tactics, roundings, downwind, boat handling, Etchells technique) for the principle and the next-time fix. Use the playbook to pick the right fix, not to pad the debrief: one principle per priority, in your own words.
+
 ### 7. Export the HTML report (when asked, or for a weekend debrief)
 
 Save the debrief as `<dir>/report/debrief.md`, then build one self-contained page (plots embedded, works offline and on a phone):
@@ -136,8 +138,14 @@ End with one question about something the data can't see — rig settings, a cre
 - **Consistency matters as much as averages.** A heel average on target with a big spread means the boat was being overpowered and depowered in cycles. `coach_calcs.py` reports heel std for that reason.
 - **Say when the data is thin.** Under ~60 s in a wind band isn't a trend. Flag it rather than coach off it.
 
+## Learning from a link
+
+When Kevin shares a link or article to learn from: read it, distil the useful points in your own words into the matching `references/playbook/*.md` file (a sentence or two each, how it shows up in our data, and the source link), and log it under **Ingested** in `references/sources.md`. Don't copy text, and don't attribute coaching judgments to named people. If you can't reach the page, say so and add it to the **Inbox** there.
+
 ## References
 
 - `references/etchells-targets.md` — the target card and starting-ratio table, with interpolation rules and caveats. Read before step 5.
 - `references/coaching-framework.md` — the topic areas, what each looks like in data, and next-time cues. Read before step 6.
+- `references/playbook/*.md` — racing principles distilled from outside sources, by topic, each tied to what the data shows. Read the relevant file during step 6.
+- `references/sources.md` — the sources behind the playbook, plus an inbox of links still to read.
 - `references/njord-queries.md` — tested GraphQL queries and `get_data` patterns. Read during steps 1–4.
