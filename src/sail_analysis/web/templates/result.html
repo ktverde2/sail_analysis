@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block head %}<script src="/static/plotly.min.js"></script>{% endblock %}
+{% block content %}
+<p><a href="/">&larr; Analyze another file</a></p>
+<div class="card">
+  <h1>{{ filename }}</h1>
+  <p class="muted">{{ s.start.strftime("%Y-%m-%d %H:%M") }} – {{ s.end.strftime("%H:%M") }} UTC</p>
+  <div class="stats">
+    <div class="stat"><span class="muted">Duration</span><b>{{ (s.duration_s // 60) | int }} min</b></div>
+    <div class="stat"><span class="muted">Distance</span><b>{{ "%.2f" | format(s.distance_nm) }} nm</b></div>
+    <div class="stat"><span class="muted">Avg speed</span><b>{{ s.avg_sog }} kt</b></div>
+    <div class="stat"><span class="muted">Max speed</span><b>{{ s.max_sog }} kt</b></div>
+    <div class="stat"><span class="muted">Tacks + gybes</span><b>{{ s.maneuvers | length }}</b></div>
+  </div>
+</div>
+<div class="card"><h2>Speed over ground</h2><div id="sog" class="chart"></div></div>
+<div class="card"><h2>Track</h2><div id="track" class="chart" style="height:480px"></div></div>
+<script>
+  const sog = {{ s.sog_series | tojson }};
+  const track = {{ s.track | tojson }};
+  const dark = matchMedia("(prefers-color-scheme: dark)").matches;
+  const layout = (extra) => Object.assign({
+    margin: {t: 10, r: 10, b: 40, l: 50}, paper_bgcolor: "rgba(0,0,0,0)", plot_bgcolor: "rgba(0,0,0,0)",
+    font: {color: dark ? "#e6e8eb" : "#1b1f24"},
+  }, extra);
+  Plotly.newPlot("sog", [{x: sog.map(p => p[0] / 60), y: sog.map(p => p[1]), mode: "lines", line: {width: 1.5}}],
+    layout({xaxis: {title: "minutes"}, yaxis: {title: "knots"}}), {responsive: true, displayModeBar: false});
+  Plotly.newPlot("track", [{x: track.map(p => p[1]), y: track.map(p => p[0]), mode: "lines", line: {width: 1.5}}],
+    layout({xaxis: {visible: false}, yaxis: {visible: false, scaleanchor: "x",
+      scaleratio: 1 / Math.cos((track[0][0]) * Math.PI / 180)}}), {responsive: true, displayModeBar: false});
+</script>
+{% endblock %}

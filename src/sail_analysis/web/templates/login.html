@@ -1,0 +1,8 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <h1>Sign in</h1>
+  <p class="muted">This site is private.</p>
+  <a class="btn" href="/auth/google">{% if dev %}Sign in (dev mode){% else %}Sign in with Google{% endif %}</a>
+</div>
+{% endblock %}

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}Sail Analysis{% endblock %}</title>
+  <style>
+    :root { --bg:#f7f8fa; --fg:#1b1f24; --muted:#5b6470; --card:#fff; --line:#dde1e6; --accent:#1f6feb; }
+    @media (prefers-color-scheme: dark) {
+      :root { --bg:#0f1419; --fg:#e6e8eb; --muted:#9aa4af; --card:#171d24; --line:#2a323c; --accent:#58a6ff; }
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; font:16px/1.5 system-ui, sans-serif; background:var(--bg); color:var(--fg); }
+    header { display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid var(--line); }
+    header form { margin:0; }
+    main { max-width:960px; margin:0 auto; padding:24px 16px; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:20px; margin-bottom:16px; }
+    .muted { color:var(--muted); }
+    .error { color:#d1242f; }
+    button, .btn { background:var(--accent); color:#fff; border:0; border-radius:6px; padding:8px 14px; font:inherit; cursor:pointer; text-decoration:none; display:inline-block; }
+    button.link { background:none; color:var(--muted); padding:0; }
+    .stats { display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; }
+    .stat b { display:block; font-size:1.5rem; }
+    .chart { width:100%; height:320px; }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+  <header>
+    <strong>Sail Analysis</strong>
+    {% if user %}
+    <form method="post" action="/logout"><span class="muted">{{ user }}</span> · <button class="link">Sign out</button></form>
+    {% endif %}
+  </header>
+  <main>{% block content %}{% endblock %}</main>
+</body>
+</html>
