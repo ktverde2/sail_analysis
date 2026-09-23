@@ -1,14 +1,40 @@
 # sail_analysis
 
-A private, login-protected website for analyzing sailing data. Upload a GPX track or a CSV log
-(Vakaros, RaceSense, Njord export) and get distance, speeds, tack/gybe count, a speed chart and a
-track plot.
+Sailing race analysis for Mojo (Etchells). Two parts:
 
-Only Google accounts listed in `ALLOWED_EMAILS` can sign in. Everyone else gets a 403.
+1. **`skill/sailing-coach/`: the main tool.** The Claude skill that writes race debriefs. Its
+   `scripts/analyze.py` turns Njord race data into a report folder (tables, plots, start/leg/maneuver
+   numbers) that the skill coaches from. Everything runs inside Claude: no hosting, no login.
+2. **`src/sail_analysis/web/`: a private web app** (Google sign-in, upload a GPX/CSV, see a summary).
+   Parked for now; kept for when the tool goes to other sailors.
+
+## Run the report locally
+
+```bash
+python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
+.venv/bin/python skill/sailing-coach/scripts/analyze.py \
+  samples/njord/2026-07-19_july-odw/race1.csv samples/njord/2026-07-19_july-odw/race2.csv \
+  --out /tmp/report
+```
+
+Open `/tmp/report/event.md`, then `/tmp/report/race1/report.md` and its PNGs. Add `--tws 9` to compare
+upwind sailing to the Etchells target card when the logged wind isn't trustworthy (see the sample README).
+
+## Updating the skill in Claude
+
+The skill's source of truth is `skill/sailing-coach/` in this repo. After changing it:
+
+```bash
+cd skill && zip -r sailing-coach.zip sailing-coach -x '*/__pycache__/*'
+```
+
+Upload `sailing-coach.zip` in Claude's Skills settings, replacing the old version.
 
 ## Layout
 
 ```
+skill/sailing-coach/      the Claude skill: SKILL.md, references, scripts/analyze.py
+samples/                  real Njord race exports used as test data
 src/sail_analysis/core/   parsing and metrics (plain Python, no web, no AI)
 src/sail_analysis/web/    FastAPI app: Google sign-in, upload page, results page
 tests/                    pytest
@@ -16,7 +42,9 @@ Dockerfile, fly.toml      deployment to Fly.io
 .github/workflows/ci.yml  tests on every PR; deploy on merge to main
 ```
 
-## Run locally
+## Web app
+
+### Run locally
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'
@@ -30,7 +58,7 @@ Google. Dev mode can't be turned on in production: the deployed app sets `APP_EN
 
 Tests: `.venv/bin/pytest`
 
-## First deploy (one-time setup)
+### First deploy (one-time setup)
 
 1. **Google sign-in.** In [Google Cloud Console](https://console.cloud.google.com/apis/credentials),
    create an OAuth client ID (type: Web application). Add the authorized redirect URI
@@ -46,9 +74,10 @@ Tests: `.venv/bin/pytest`
    ```
 4. `fly deploy`
 5. **Automatic deploys.** Run `fly tokens create deploy` and add the result as a GitHub Actions
-   secret named `FLY_API_TOKEN`. After that, every merge to `main` deploys automatically.
+   secret named `FLY_API_TOKEN`. After that, every merge to `main` deploys automatically. Until the
+   secret exists, CI skips the deploy step.
 
-## Making changes
+### Making changes
 
 Work on a branch, open a PR, and CI runs the tests. Merge to `main` to deploy. To roll back, run
 `fly releases` and `fly deploy --image <previous image>`.

@@ -19,7 +19,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pytest>=8", "ruff>=0.6"]
+dev = ["pytest>=8", "ruff>=0.6", "pandas>=2", "numpy>=1.26", "matplotlib>=3.8"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/sail_analysis"]
@@ -31,3 +31,5 @@ pythonpath = ["src"]
 [tool.ruff]
 line-length = 100
 src = ["src", "tests"]
+# Kept byte-identical to the installed skill; lint only the new code in skill/.
+extend-exclude = ["skill/sailing-coach/scripts/coach_calcs.py"]
