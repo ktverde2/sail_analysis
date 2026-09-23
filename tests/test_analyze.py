@@ -329,3 +329,36 @@ def test_cdn_html_loads_plotly_online(results, tmp_path):
     for pattern in ("createObjectURL", "msSaveBlob", "atob(", "new Function", "fromCharCode"):
         assert pattern in inline
         assert pattern not in page
+
+
+def test_nested_lists_and_coach_summary(results, tmp_path):
+    from html_report import debrief_points, md_to_html, write_html
+
+    out, _ = results
+    md = """**What went well**
+- **Fast upwind**
+  - 101% of target
+
+**Top 3 to work on**
+1. **Roundings**
+   - lost 44 m
+   - **Next time:** bear away first.
+   - **Drill:** six in a row.
+2. **Starts** late by 5 s.
+
+*Also worth a look:*
+- **Tacks** deep
+"""
+    html = md_to_html(md)
+    assert "<ol><li><strong>Roundings</strong><ul><li>lost 44 m</li>" in html
+    assert "<li><strong>Fast upwind</strong><ul><li>101% of target</li></ul></li>" in html
+    pts = debrief_points(md)
+    assert pts["well"] == [("Fast upwind", "")]
+    assert pts["work"] == [("Roundings", "bear away first."), ("Starts", "")]
+    debrief = tmp_path / "debrief.md"
+    debrief.write_text(md)
+    page = write_html(out, debrief, tmp_path / "c.html").read_text()
+    summary = page[page.index('id="summary"') : page.index('id="debrief"')]
+    assert "Coach&#x27;s summary" in summary or "Coach's summary" in summary
+    assert "<strong>Next time:</strong> Bear away first." in summary
+    assert "<strong>Tacks</strong>" not in summary  # "also worth a look" stays on Debrief

@@ -99,32 +99,51 @@ Save the debrief as `<dir>/report/debrief.md`, then build one self-contained pag
 python scripts/html_report.py <dir>/report --debrief <dir>/report/debrief.md
 ```
 
-It writes `<dir>/report/report.html` as tabbed pages: **Summary** (the executive summary and the all-races table), **Debrief**, **Starts**, **Maneuvers**, **Upwind** (each beat's track and polar), **Downwind** (each run's track), **Roundings** (a close-up track and speed/VMG chart for every mark), each comparing every race side by side, and **Race by race** (the whole-race track). Charts are interactive: hover (or tap on a phone) shows time from the gun (time *to* the gun on the start charts), speed, VMG, heading and heel; drag to zoom, double-click to reset. They come from each race's `plotdata.json` and the Plotly library in `scripts/vendor/`, all inlined, so the file still works offline. Add `--static` to `html_report.py` for PNG charts instead. **To send the report**, upload the HTML to Google Drive (or similar) and email the link: Gmail's virus scan flags interactive HTML attachments (a false positive), and recipients download the file and open it in a browser. `--cdn` (on `html_report.py` or `analyze.py`) loads Plotly online instead of inlining it for a ~1 MB smaller file; the charts then need internet when the file is opened. Printing puts each page on its own sheet. (`analyze.py ... --html --debrief <file>` does steps 4 and 7 in one go when the debrief already exists.) Share the HTML file itself; nothing else is needed to open it.
+It writes `<dir>/report/report.html` as tabbed pages: **Summary** (the coach's summary lifted from the debrief, the executive summary and the all-races table), **Debrief**, **Starts**, **Maneuvers**, **Upwind** (each beat's track and polar), **Downwind** (each run's track), **Roundings** (a close-up track and speed/VMG chart for every mark), each comparing every race side by side, and **Race by race** (the whole-race track). Charts are interactive: hover (or tap on a phone) shows time from the gun (time *to* the gun on the start charts), speed, VMG, heading and heel; drag to zoom, double-click to reset. They come from each race's `plotdata.json` and the Plotly library in `scripts/vendor/`, all inlined, so the file still works offline. Add `--static` to `html_report.py` for PNG charts instead. **To send the report**, upload the HTML to Google Drive (or similar) and email the link: Gmail's virus scan flags interactive HTML attachments (a false positive), and recipients download the file and open it in a browser. `--cdn` (on `html_report.py` or `analyze.py`) loads Plotly online instead of inlining it for a ~1 MB smaller file; the charts then need internet when the file is opened. Printing puts each page on its own sheet. (`analyze.py ... --html --debrief <file>` does steps 4 and 7 in one go when the debrief already exists.) Share the HTML file itself; nothing else is needed to open it.
 
 ## Debrief template
 
+Write in bullets, not paragraphs: a bold headline per point, facts as sub-bullets underneath (two-space indent under `-`, three under `1.`), one fact per bullet. The HTML report lifts each **What went well** headline and each **Top 3** headline with its **Next time:** line into a "Coach's summary" at the top of the Summary page. So make headlines self-contained (area plus the key number), keep each Next time to one or two sentences, and put drills on a separate **Drill:** bullet.
+
 ```
 ## [Event name] — [dates]
-[One line: results, conditions range, overall verdict]
+- [Conditions range]
+- [Overall verdict in one line]
+- [Where most of the time went]
 
 **What went well**
-- [2–3 specifics with numbers]
+- **[Headline with the number, e.g. "Upwind speed on the card (100–101% on Saturday)"]**
+  - [Supporting fact]
+  - [Supporting fact]
 
 **Top 3 to work on**
-1. **[Area]** — [what the data shows]. [Why it cost places/time]. **Next time:** [one concrete cue or drill].
+1. **[Area: what the data shows, e.g. "Roundings: 563 m lost, mostly on the exit"]**
+   - [Fact with number]
+   - [Why it cost places/time]
+   - **Next time:** [one concrete cue, one or two sentences]
+   - **Drill:** [optional]
 2. ...
 3. ...
 
+*Also worth a look:*
+- **[Area]**
+  - [Fact]
+
 **Start scorecard**
-| Race | Late (s) | Line pos | SOG at gun | Accel (±5 s) | 1st-mark rank |
+| Race | Back at −60 s | Late (s) | Line pos | SOG at −30 s / gun | Accel (±5 s) | Last tack/gybe before gun |
 
 **Upwind vs. targets**
 [table from coach_calcs.py, trimmed to bands actually sailed]
 
 **Race notes**
-[One or two lines per race: the moment that decided it]
+- **[Race]:** [the moment that decided it]
+  - [Supporting fact]
 
-*Data notes: [speed source, missing channels, anything uncertain]*
+**Data notes**
+- [Speed source, missing channels, anything uncertain: one per bullet]
+
+**Question** (or **Two questions**)
+- [Something the data can't see]
 ```
 
 End with one question about something the data can't see — rig settings, a crew call, what it felt like in a specific moment — because that's often where the real answer is.

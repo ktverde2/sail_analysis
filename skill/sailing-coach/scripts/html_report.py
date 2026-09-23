@@ -89,6 +89,7 @@ figure.narrow figcaption { text-align: center; }
 h3.leg { margin: 18px 0 2px; }
 p.facts { color: var(--ink2); margin: 2px 0 6px; font-size: 0.92rem; }
 .chart-hint { color: var(--muted); font-size: 0.85rem; margin: 0 0 4px; }
+.next { color: var(--ink2); }
 footer { color: var(--muted); font-size: 0.85rem; margin-top: 32px; }
 nav.pages a[aria-current="page"] { background: var(--accent); color: #fff; }
 nav.sub { margin: 0 0 8px; }
@@ -155,24 +156,94 @@ def md_to_html(md: str) -> str:
             for r in body:
                 t += "<tr>" + "".join(f"<td>{inline(c.strip())}</td>" for c in r) + "</tr>"
             out.append(f'<div class="scroll"><table>{t}</table></div>')
-        elif re.match(r"^\s*([-*]|\d+\.)\s+", line):
+        elif LIST_ITEM.match(line):
             flush()
-            ordered = bool(re.match(r"^\s*\d+\.", line))
-            items = []
-            while i < len(lines) and re.match(r"^\s*([-*]|\d+\.)\s+", lines[i]):
-                item = re.sub(r"^\s*([-*]|\d+\.)\s+", "", lines[i].rstrip())
-                i += 1
-                while i < len(lines) and lines[i].startswith("   ") and lines[i].strip():
-                    item += " " + lines[i].strip()  # wrapped continuation line
-                    i += 1
-                items.append(f"<li>{inline(item)}</li>")
-            tag = "ol" if ordered else "ul"
-            out.append(f"<{tag}>{''.join(items)}</{tag}>")
+            block, i = _list(lines, i)
+            out.append(block)
         else:
             para.append(line.strip())
             i += 1
     flush()
     return "\n".join(out)
+
+
+LIST_ITEM = re.compile(r"^(\s*)([-*]|\d+\.)\s+(.*)")
+
+
+def _indent(line: str) -> int:
+    return len(line) - len(line.lstrip())
+
+
+def _list(lines: list[str], i: int) -> tuple[str, int]:
+    """A list starting at lines[i]; deeper-indented items nest under the item above."""
+    base = _indent(lines[i])
+    tag = "ol" if re.match(r"^\s*\d+\.", lines[i]) else "ul"
+    items: list[str] = []
+    while i < len(lines) and (m := LIST_ITEM.match(lines[i])) and _indent(lines[i]) == base:
+        text, sub = m.group(3).rstrip(), ""
+        i += 1
+        while i < len(lines) and lines[i].strip() and _indent(lines[i]) > base:
+            if LIST_ITEM.match(lines[i]):
+                block, i = _list(lines, i)
+                sub += block
+            else:
+                text += " " + lines[i].strip()  # wrapped continuation line
+                i += 1
+        items.append(f"<li>{inline(text)}{sub}</li>")
+    return f"<{tag}>{''.join(items)}</{tag}>", i
+
+
+def debrief_points(debrief: str) -> dict[str, list[tuple[str, str]]]:
+    """Headlines from the debrief's "What went well" and "Top 3" lists, with each Next time fix.
+
+    A headline is the bold text that opens a top-level item; the fix is the text after
+    "Next time:" anywhere in that item or its sub-bullets.
+    """
+    blocks: dict[str, list[str]] = {"well": [], "work": []}
+    section = None
+    for line in debrief.splitlines():
+        if not line.strip():
+            continue
+        if not line[0].isspace() and not LIST_ITEM.match(line):  # a header or paragraph
+            title = line.lower()
+            section = "well" if "went well" in title else "work" if "work on" in title else None
+        elif section and not _indent(line):  # a new top-level item
+            blocks[section].append(line)
+        elif section and blocks[section]:  # its sub-bullets and wrapped lines
+            blocks[section][-1] += " " + line.strip()
+    points: dict[str, list[tuple[str, str]]] = {"well": [], "work": []}
+    for key, items in blocks.items():
+        for text in items:
+            if lead := re.search(r"\*\*(.+?)\*\*", text):
+                fix = re.search(r"\*\*Next time:\*\*\s*(.+?)(?=\s+-\s+\*\*|$)", text)
+                points[key].append((lead.group(1).rstrip(" .:"), fix.group(1) if fix else ""))
+    return points
+
+
+def coach_card(debrief: str) -> str:
+    pts = debrief_points(debrief)
+    if not (pts["well"] or pts["work"]):
+        return ""
+    parts = ["<h2>Coach's summary</h2>"]
+    if pts["well"]:
+        parts.append("<h3>What went well</h3><ul>")
+        parts += [f"<li>{inline(t)}</li>" for t, _ in pts["well"]]
+        parts.append("</ul>")
+    if pts["work"]:
+        parts.append("<h3>Top priorities</h3><ol>")
+        for t, fix in pts["work"]:
+            fix = fix[:1].upper() + fix[1:]
+            nxt = (
+                f'<br><span class="next"><strong>Next time:</strong> {inline(fix)}</span>'
+                if fix
+                else ""
+            )
+            parts.append(f"<li><strong>{inline(t)}</strong>{nxt}</li>")
+        parts.append("</ol>")
+    parts.append(
+        '<p class="chart-hint">From the debrief; the full reasoning and numbers are on the Debrief page.</p>'
+    )
+    return card("".join(parts), "debrief")
 
 
 def inline(text: str) -> str:
@@ -847,7 +918,8 @@ def build(
     exec_md = report_dir / "executive.md"
     event = (report_dir / "event.md").read_text().split("\nPer-race detail")[0]
     event = event.replace("# Event summary", "## All races")
-    summary_body = card(md_to_html(exec_md.read_text()), "exec") if exec_md.exists() else ""
+    summary_body = coach_card(debrief) if debrief else ""
+    summary_body += card(md_to_html(exec_md.read_text()), "exec") if exec_md.exists() else ""
     summary_body += card(md_to_html(event))
     pages.append(
         page(
