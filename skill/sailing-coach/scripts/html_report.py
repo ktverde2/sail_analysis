@@ -9,6 +9,10 @@ Reads <report_dir>/event.md, each <race>/report.md and its PNGs, and an optional
 drag to zoom) using the bundled Plotly library and each race's plotdata.json; --static uses the
 PNGs instead. Everything is inlined, so the HTML file works offline, emailed or uploaded on its
 own. No third-party Python packages.
+
+--cdn loads Plotly from jsDelivr instead of inlining it. The file is then ~1 MB smaller and passes
+Gmail's attachment scan (the inlined library's download helpers look like "HTML smuggling" to
+it), but the charts need an internet connection when the file is opened.
 """
 
 from __future__ import annotations
@@ -262,6 +266,7 @@ def _sgn(v, unit=""):
 VENDOR = Path(__file__).parent / "vendor" / "plotly-basic.min.js"
 CHARTS_JS = Path(__file__).parent / "charts.js"
 INTERACTIVE = True  # build() turns this off for --static or when the library is missing
+PLOTLY_CDN = "https://cdn.jsdelivr.net/npm/plotly.js-basic-dist-min@2.35.3/plotly-basic.min.js"
 
 HINT = (
     '<p class="chart-hint">Hover for time, speed, VMG and heading. Drag to zoom, '
@@ -820,7 +825,11 @@ def _approach_text(r: dict) -> str | None:
 
 
 def build(
-    report_dir: Path, debrief: str | None, title: str | None, interactive: bool = True
+    report_dir: Path,
+    debrief: str | None,
+    title: str | None,
+    interactive: bool = True,
+    cdn: bool = False,
 ) -> str:
     global INTERACTIVE
     INTERACTIVE = interactive and VENDOR.exists() and CHARTS_JS.exists()
@@ -910,12 +919,12 @@ def build(
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>{html.escape(page_title)}</title><style>{CSS}</style>"
         f"<script>{PAGE_JS}</script></head>"
-        f"<body><main>{''.join(parts)}</main>{chart_scripts(races)}</body></html>"
+        f"<body><main>{''.join(parts)}</main>{chart_scripts(races, cdn)}</body></html>"
     )
 
 
-def chart_scripts(races: list[Path]) -> str:
-    """Race data (once each) plus the chart library and renderer, all inline for offline use."""
+def chart_scripts(races: list[Path], cdn: bool = False) -> str:
+    """Race data (once each) plus the chart library and renderer, inline unless cdn."""
     if not INTERACTIVE:
         return ""
     data = "".join(
@@ -925,7 +934,10 @@ def chart_scripts(races: list[Path]) -> str:
         for d in races
         if (d / "plotdata.json").exists()
     )
-    return data + f"<script>{VENDOR.read_text()}</script><script>{CHARTS_JS.read_text()}</script>"
+    lib = (
+        f'<script src="{PLOTLY_CDN}"></script>' if cdn else f"<script>{VENDOR.read_text()}</script>"
+    )
+    return data + lib + f"<script>{CHARTS_JS.read_text()}</script>"
 
 
 def write_html(
@@ -934,10 +946,11 @@ def write_html(
     out: Path | None = None,
     title: str | None = None,
     interactive: bool = True,
+    cdn: bool = False,
 ) -> Path:
     debrief = debrief_path.read_text() if debrief_path else None
     out = out or report_dir / "report.html"
-    out.write_text(build(report_dir, debrief, title, interactive))
+    out.write_text(build(report_dir, debrief, title, interactive, cdn))
     return out
 
 
@@ -950,8 +963,13 @@ def main():
     ap.add_argument("--out", type=Path, help="default: <report_dir>/report.html")
     ap.add_argument("--title")
     ap.add_argument("--static", action="store_true", help="PNG plots instead of interactive charts")
+    ap.add_argument(
+        "--cdn",
+        action="store_true",
+        help="load Plotly from jsDelivr instead of inlining it (email-safe; needs internet)",
+    )
     a = ap.parse_args()
-    print(write_html(a.report_dir, a.debrief, a.out, a.title, interactive=not a.static))
+    print(write_html(a.report_dir, a.debrief, a.out, a.title, not a.static, a.cdn))
 
 
 if __name__ == "__main__":

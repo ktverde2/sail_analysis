@@ -2500,13 +2500,16 @@ def main():
     ap.add_argument("--no-plots", action="store_true")
     ap.add_argument("--html", action="store_true", help="also write <out>/report.html")
     ap.add_argument("--debrief", type=Path, help="Markdown debrief to put at the top of the HTML")
+    ap.add_argument(
+        "--cdn", action="store_true", help="HTML loads Plotly online (email-safe, needs internet)"
+    )
     a = ap.parse_args()
     run(a.csv, a.out, a.tws, a.tz, plots=not a.no_plots)
     print((a.out / "event.md").read_text())
-    if a.html or a.debrief:
+    if a.html or a.debrief or a.cdn:
         from html_report import write_html
 
-        print(f"HTML report: {write_html(a.out, a.debrief)}")
+        print(f"HTML report: {write_html(a.out, a.debrief, cdn=a.cdn)}")
 
 
 if __name__ == "__main__":

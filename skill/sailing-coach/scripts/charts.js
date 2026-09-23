@@ -1,4 +1,4 @@
-// Interactive race charts for report.html (Plotly basic bundle, inlined by html_report.py).
+// Interactive race charts for report.html (Plotly basic bundle, inlined by html_report.py or loaded from jsDelivr with --cdn).
 // Each .chart element (data-chart = chart kind, data-race = race folder) is drawn the first time
 // its page is shown. Race data comes from <script type="application/json" id="race-<id>">, written by
 // analyze.py (plotdata.json): 1 Hz series in metres, upwind up, t = seconds from the gun.
@@ -432,7 +432,12 @@
   }
 
   function render(root) {
-    if (!window.Plotly) return;
+    if (!window.Plotly) {
+      root.querySelectorAll('.chart:not([data-done])').forEach(el => {
+        el.textContent = 'Interactive chart needs an internet connection (the chart library loads online).';
+      });
+      return;
+    }
     const c = colors();
     root.querySelectorAll('.chart:not([data-done])').forEach(el => {
       el.dataset.done = '1';

@@ -314,3 +314,18 @@ def test_leg_distance(results):
             assert lg["straight_nm"] < lg["ideal_nm"] < lg["distance_sailed_nm"] + 0.05
         else:
             assert 0 < lg["extra_pct"] < 10 and lg["track_angle"] < 25
+
+
+def test_cdn_html_is_email_safe(results, tmp_path):
+    from html_report import PLOTLY_CDN, write_html
+
+    out, _ = results
+    inline = write_html(out, None, tmp_path / "inline.html").read_text()
+    page = write_html(out, None, tmp_path / "cdn.html", cdn=True).read_text()
+    assert f'<script src="{PLOTLY_CDN}"></script>' in page
+    assert 'data-chart="roundTrack"' in page
+    assert len(page) < len(inline) - 1_000_000  # library not inlined
+    # patterns Gmail's scanner reads as HTML smuggling, all from the inlined library
+    for pattern in ("createObjectURL", "msSaveBlob", "atob(", "new Function", "fromCharCode"):
+        assert pattern in inline
+        assert pattern not in page
