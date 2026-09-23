@@ -74,6 +74,11 @@
       "start_s": 13,
       "duration_s": 1115,
       "distance_sailed_nm": 1.82,
+      "straight_nm": 1.34,
+      "extra_pct": 35.9,
+      "ideal_nm": 1.78,
+      "extra_vs_ideal_m": 65,
+      "track_angle": 41.4,
       "sog_avg": 5.86,
       "sog_steady": 6.0,
       "vmc_avg": 4.28,
@@ -100,6 +105,11 @@
       "start_s": 1129,
       "duration_s": 791,
       "distance_sailed_nm": 1.3,
+      "straight_nm": 1.25,
+      "extra_pct": 3.8,
+      "ideal_nm": 1.27,
+      "extra_vs_ideal_m": 47,
+      "track_angle": 10.7,
       "sog_avg": 5.89,
       "sog_steady": 5.88,
       "vmc_avg": 5.65,
@@ -126,6 +136,11 @@
       "start_s": 1921,
       "duration_s": 1082,
       "distance_sailed_nm": 1.7,
+      "straight_nm": 1.24,
+      "extra_pct": 36.7,
+      "ideal_nm": 1.66,
+      "extra_vs_ideal_m": 73,
+      "track_angle": 41.6,
       "sog_avg": 5.65,
       "sog_steady": 5.76,
       "vmc_avg": 4.13,
@@ -743,8 +758,19 @@
       "vmg_before": 4.45,
       "vmg_after": 5.75,
       "metres_lost": 28.3,
+      "lost_before_m": 19.3,
+      "lost_after_m": 9.0,
+      "entry_twa": 56.0,
+      "exit_twa": 167.0,
       "mark_dist_m": 7.3,
-      "gate_side": null
+      "gate_side": null,
+      "vs_best_m": 4.3,
+      "best_ref": "Sat Race 2 #3",
+      "best_m": 24.0,
+      "is_best": false,
+      "tips": [
+        "Overstood the layline by ~7\u00b0. Tack onto it a little sooner and sail the last 100 m at full upwind speed."
+      ]
     },
     {
       "n": 2,
@@ -762,8 +788,21 @@
       "vmg_before": 5.75,
       "vmg_after": 4.27,
       "metres_lost": 84.5,
+      "lost_before_m": 9.4,
+      "lost_after_m": 75.1,
+      "entry_twa": 171.0,
+      "exit_twa": 43.0,
       "mark_dist_m": 7.5,
-      "gate_side": "left-hand mark (looking downwind)"
+      "gate_side": "left-hand mark (looking downwind)",
+      "vs_best_m": 62.7,
+      "best_ref": "Sat Race 1 #2",
+      "best_m": 21.8,
+      "is_best": false,
+      "tips": [
+        "Came out at 43\u00b0 to the wind, low and wide (your best exited at 26\u00b0). Finish the turn close to close-hauled; the wide entry is what makes a tight exit possible.",
+        "Took 80 s to settle upwind (best 27 s). Trim main and jib on through the turn, then speed before height.",
+        "Speed dropped 35% through the turn (5.23 \u2192 3.4 kt; best 26%). A smoother, rounder turn with trim in step with the helm keeps more of it."
+      ]
     }
   ]
 }

@@ -634,11 +634,10 @@ def rounding_stats(race: Race, df, legs, leg_rows, man_rows, shifts) -> list[dic
 
         win = w(*ROUNDING_WINDOW_S)
         base = np.where(rel[win.index] < 0, rb["vmg_steady"] or np.nan, ra["vmg_steady"] or np.nan)
-        lost = (
-            float(np.nansum((base - win.vmg_wind) * KT_TO_MS))
-            if win.vmg_wind.notna().sum() > 30
-            else None
-        )
+        gap = (base - win.vmg_wind) * KT_TO_MS
+        ok_vmg = win.vmg_wind.notna().sum() > 30
+        lost = float(np.nansum(gap)) if ok_vmg else None
+        pre = (rel[win.index] < 0).values
         # 10 s trailing VMG, only over time after the rounding (before it VMG was the other leg's)
         after_r = df[(rel >= 0) & (rel <= 180)]
         vmg10 = after_r.vmg_wind.rolling(10, min_periods=10).mean()
@@ -671,12 +670,154 @@ def rounding_stats(race: Race, df, legs, leg_rows, man_rows, shifts) -> list[dic
             "vmg_before": rb["vmg_steady"],
             "vmg_after": ra["vmg_steady"],
             "metres_lost": _r(lost, 1),
+            "lost_before_m": _r(float(np.nansum(gap[pre])), 1) if ok_vmg else None,
+            "lost_after_m": _r(float(np.nansum(gap[~pre])), 1) if ok_vmg else None,
+            # Angle to the wind coming in (−20..−5 s) and going out (+15..+40 s)
+            "entry_twa": _r(w(-20, -5).twa_gps.mean(), 0),
+            "exit_twa": _r(w(15, 40).twa_gps.mean(), 0),
             "mark_dist_m": None,
             "gate_side": None,
         }
         if k < len(marks):
             row.update(mark_approach(df, rel, marks[k], race))
         out.append(row)
+    return out
+
+
+def compare_roundings(results: list[dict]) -> None:
+    """Add, to every rounding, the gap to the best rounding of its type across these races and
+    up to three suggestions for a tighter one. The goal is zero; the best so far is the milestone."""
+    all_r = [
+        (res, r)
+        for res in results
+        for r in res.get("roundings") or []
+        if r.get("metres_lost") is not None
+    ]
+    best = {}
+    for res, r in all_r:
+        if r["type"] not in best or r["metres_lost"] < best[r["type"]][1]["metres_lost"]:
+            best[r["type"]] = (res, r)
+    for res, r in all_r:
+        bres, b = best[r["type"]]
+        r["vs_best_m"] = round(r["metres_lost"] - b["metres_lost"], 1)
+        r["best_ref"] = f"{bres['race']} #{b['n']}"
+        r["best_m"] = b["metres_lost"]
+        r["is_best"] = b is r
+        r["tips"] = rounding_tips(r, b, res.get("maneuvers") or [])
+
+
+def _drop_pct(r: dict) -> float | None:
+    if r.get("sog_entry") and r.get("sog_min"):
+        return 100 * (1 - r["sog_min"] / r["sog_entry"])
+    return None
+
+
+def rounding_tips(r: dict, b: dict, maneuvers: list[dict]) -> list[str]:
+    """Plain suggestions from what this rounding did, compared with the best rounding of its
+    type, ordered by roughly how much each cost. Up to three."""
+    tips: list[tuple[float, str]] = []
+
+    def tip(weight: float, *parts: str) -> None:
+        tips.append((weight, "".join(parts)))
+
+    before, after = r.get("lost_before_m") or 0, r.get("lost_after_m") or 0
+    ex, bex = r.get("exit_twa"), b.get("exit_twa")
+    best_ex = f" (your best exited at {bex:.0f}°)" if bex is not None else ""
+    slow_settle = (r.get("settle_s") or 0) >= (b.get("settle_s") or 0) + 15
+    windward = r["type"] == "windward"
+
+    if windward and ex is not None and ex < 155:
+        tip(
+            after,
+            f"Reached off at {ex:.0f}° to the wind for the first 15–40 s after the mark",
+            best_ex,
+            ". Bear away all the way to the run angle first, then set.",
+        )
+    if windward and (r.get("overstand_deg") or 0) > 5:
+        tip(
+            before + 5,
+            f"Overstood the layline by ~{r['overstand_deg']:.0f}°. Tack onto it a ",
+            "little sooner and sail the last 100 m at full upwind speed.",
+        )
+    elif windward and before >= 15:
+        tip(
+            before,
+            f"Gave away {before:.0f} m in the 30 s before the mark. Keep target speed on ",
+            "the layline; don't pinch up to the mark.",
+        )
+    if windward and slow_settle:
+        tip(
+            after * 0.8,
+            f"Took {r['settle_s']} s to settle on the run (best {b.get('settle_s')} s). ",
+            "Pole and halyard ready on the layline, so the set happens as you bear away.",
+        )
+
+    if not windward and before >= 20:
+        tip(
+            before,
+            f"Lost {before:.0f} m on the way in. Drop earlier and set up wide so the turn ",
+            "starts before the mark, not at it.",
+        )
+    if not windward and (r.get("mark_dist_m") or 0) > 6:
+        tip(
+            after * 0.5,
+            f"Passed {r['mark_dist_m']:.0f} m from the mark. Wide in, tight out: leave ",
+            "it about a boat length (3 m) away on the exit.",
+        )
+    if not windward and ex is not None and bex is not None and ex >= max(bex + 5, 38):
+        tip(
+            after,
+            f"Came out at {ex:.0f}° to the wind, low and wide{best_ex}. Finish the turn ",
+            "close to close-hauled; the wide entry is what makes a tight exit possible.",
+        )
+    elif not windward and ex is not None and bex is not None and ex <= bex - 5:
+        tip(
+            after,
+            f"Came out pinching at {ex:.0f}° to the wind{best_ex}. Foot at your normal ",
+            "upwind angle until speed is back, then point.",
+        )
+    if not windward and slow_settle:
+        tip(
+            after * 0.8,
+            f"Took {r['settle_s']} s to settle upwind (best {b.get('settle_s')} s). ",
+            "Trim main and jib on through the turn, then speed before height.",
+        )
+
+    drop, bdrop = _drop_pct(r), _drop_pct(b)
+    if drop is not None and drop >= 20 and (bdrop is None or drop >= bdrop + 5):
+        tip(
+            after * 0.6,
+            f"Speed dropped {drop:.0f}% through the turn ({r['sog_entry']} → ",
+            f"{r['sog_min']} kt; best {bdrop:.0f}%). "
+            if bdrop is not None
+            else f"{r['sog_min']} kt). ",
+            "A smoother, rounder turn with trim in step with the helm keeps more of it.",
+        )
+
+    # A tack after a leeward mark (or gybe after a windward one) inside the minute is in the number
+    kind = "Tack" if not windward else "Gybe"
+    soon = [m for m in maneuvers if m["kind"] == kind and 0 < m["time_s"] - r["time_s"] <= 60]
+    if soon:
+        m = soon[0]
+        dt = m["time_s"] - r["time_s"]
+        tip(
+            (m.get("distance_lost_m") or 10) + 5,
+            f"{ {'Tack': 'Tacked', 'Gybe': 'Gybed'}[kind] } {dt} s after the mark, so its cost is in ",
+            "this number. Fine if it was for clear air or the favoured side; otherwise hold the lane ",
+            "until you're up to speed.",
+        )
+
+    tips.sort(key=lambda x: -x[0])
+    out = [t for _, t in tips[:3]]
+    if not out and r is not b:
+        out.append(
+            f"No single fault stands out: {before:.0f} m went before the mark and {after:.0f} m "
+            "after. Same routine, a little smoother, to close the gap to your best."
+        )
+    if r is b:
+        out.insert(
+            0, "Your best of this type so far: the benchmark to beat. The goal is still zero."
+        )
     return out
 
 
@@ -705,6 +846,44 @@ def mark_approach(df, rel, mark, race) -> dict:
     return out
 
 
+NM = 1852.0
+
+
+def leg_distance(g, s, lg, sailed_nm) -> dict:
+    """Distance sailed vs. the straight line mark to mark, and vs. the shortest path at our own
+    average angle to the wind (over the ground, so leeway included) in steady wind."""
+    a, b = g.iloc[0], g.iloc[-1]
+    straight = float(dist_m(a.Lat, a.Lon, b.Lat, b.Lon)) / NM
+    out = {
+        "straight_nm": round(straight, 2),
+        "extra_pct": None,
+        "ideal_nm": None,
+        "extra_vs_ideal_m": None,
+        "track_angle": None,
+    }
+    if straight < 0.05:
+        return out
+    out["extra_pct"] = round(100 * (sailed_nm / straight - 1), 1)
+    twd = circ_mean(g.twd_used)
+    st = s[s.SOG > 2]
+    if twd is None or not len(st) or "COG" not in st:
+        return out
+    toward = twd if lg["type"] == "upwind" else (twd + 180) % 360
+    ang = float(np.mean(np.abs(adiff(toward, st.COG))))  # track angle to the wind axis
+    off = math.radians(float(adiff(toward, bearing(a.Lat, a.Lon, b.Lat, b.Lon))))
+    along, cross = straight * math.cos(off), abs(straight * math.sin(off))
+    if along > 0 and ang < 89 and cross <= along * math.tan(math.radians(ang)):
+        ideal = along / math.cos(math.radians(ang))  # two boards at that angle, any split
+    else:
+        ideal = straight  # the mark can be laid directly
+    out.update(
+        ideal_nm=round(ideal, 2),
+        extra_vs_ideal_m=round((sailed_nm - ideal) * NM),
+        track_angle=round(ang, 1),
+    )
+    return out
+
+
 def leg_stats(df, lg, hdg_col, mans):
     g = df[(df.t >= lg["start"]) & (df.t <= lg["end"])]
     s = g[g.steady]
@@ -717,6 +896,7 @@ def leg_stats(df, lg, hdg_col, mans):
         "start_s": round((lg["start"] - df.t[df.tg.abs().idxmin()]).total_seconds()),
         "duration_s": round(dur),
         "distance_sailed_nm": round(dist_nm, 2),
+        **leg_distance(g, s, lg, dist_nm),
         "sog_avg": round(float(g.SOG.mean()), 2),
         "sog_steady": round(float(s.SOG.mean()), 2) if len(s) else None,
         "vmc_avg": round(float(g.VMC.mean()), 2)
@@ -1750,30 +1930,43 @@ def shifts_md(sh: dict | None) -> list[str]:
 def roundings_md(rs: list | None) -> list[str]:
     if not rs:
         return []
-    return [
-        "## Mark roundings",
-        (
-            "Metres lost: VMG from 30 s before to 60 s after the rounding against the steady VMG "
-            "of the leg before and after. Settled: 10 s VMG back to 90% of the next leg's."
-        ),
-        "",
-        md_table(
-            rs,
-            [
-                ("#", "n"),
-                ("Type", "type"),
-                ("From gun", lambda r: _fmt_mmss(r["time_s"])),
-                ("Approach", _approach),
-                ("SOG in", "sog_entry"),
-                ("SOG min", "sog_min"),
-                ("SOG out", "sog_exit"),
-                ("Settled s", "settle_s"),
-                ("m lost", "metres_lost"),
-                ("Closest to mark m", "mark_dist_m"),
-                ("Gate", "gate_side"),
-            ],
-        ),
-    ]
+    return (
+        [
+            "## Mark roundings",
+            (
+                "Metres lost: VMG from 30 s before to 60 s after the rounding against the steady VMG "
+                "of the leg before and after. Settled: 10 s VMG back to 90% of the next leg's."
+            ),
+            "",
+            md_table(
+                rs,
+                [
+                    ("#", "n"),
+                    ("Type", "type"),
+                    ("From gun", lambda r: _fmt_mmss(r["time_s"])),
+                    ("Approach", _approach),
+                    ("SOG in", "sog_entry"),
+                    ("SOG min", "sog_min"),
+                    ("SOG out", "sog_exit"),
+                    ("Settled s", "settle_s"),
+                    ("m lost", "metres_lost"),
+                    ("Closest to mark m", "mark_dist_m"),
+                    ("Gate", "gate_side"),
+                    ("vs best m", "vs_best_m"),
+                ],
+            ),
+            (
+                "vs best: metres more than the best rounding of the same type in this analysis. "
+                "The goal is zero lost; the best is the next milestone."
+            ),
+            "",
+        ]
+        + [
+            f"- #{r['n']} {r['type']}: " + " ".join(r.get("tips") or ["(no suggestions)"])
+            for r in rs
+        ]
+        + [""]
+    )
 
 
 def _approach(r: dict) -> str | None:
@@ -1848,6 +2041,10 @@ def write_report(res: dict, out: Path):
         "",
         "## Legs",
         f"Legs: {res['legs_source']}." if res.get("legs_source") else "",
+        (
+            "Straight: mark to mark. Ideal: shortest path at our average angle to the wind over "
+            "the ground (leeway included) in steady wind; m vs ideal is the extra we sailed."
+        ),
         "",
         md_table(
             res["legs"],
@@ -1855,7 +2052,10 @@ def write_report(res: dict, out: Path):
                 ("Leg", "leg"),
                 ("Type", "type"),
                 ("Time", lambda r: _fmt_mmss(r["duration_s"])),
-                ("Dist nm", "distance_sailed_nm"),
+                ("Sailed nm", "distance_sailed_nm"),
+                ("Straight nm", "straight_nm"),
+                ("+% vs straight", "extra_pct"),
+                ("m vs ideal", "extra_vs_ideal_m"),
                 ("SOG", "sog_avg"),
                 ("SOG steady", "sog_steady"),
                 ("VMC", "vmc_avg"),
@@ -2260,10 +2460,13 @@ def run(
     csvs: list[Path], out: Path, tws: float | None, tz: str | None, plots: bool = True
 ) -> list[dict]:
     out.mkdir(parents=True, exist_ok=True)
-    results = []
+    analysed = []
     for p in csvs:
         race = load_race(p, tz)
-        res = analyze_race(race, tws)
+        analysed.append((race, analyze_race(race, tws)))
+    compare_roundings([res for _, res in analysed])
+    results = []
+    for race, res in analysed:
         d = out / race.stem
         d.mkdir(exist_ok=True)
         (d / "summary.json").write_text(json.dumps(res, indent=2, default=str))

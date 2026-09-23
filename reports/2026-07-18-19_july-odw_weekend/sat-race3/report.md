@@ -17,11 +17,12 @@ Gun 2026-07-18 14:05:00 (America/Los_Angeles), race 24.9 min. Speed source: SOG.
 
 ## Legs
 Legs: detected from heel (course has no marks).
+Straight: mark to mark. Ideal: shortest path at our average angle to the wind over the ground (leeway included) in steady wind; m vs ideal is the extra we sailed.
 
-| Leg | Type | Time | Dist nm | SOG | SOG steady | VMC | Maneuvers | Heel (abs) | Heel sd | Tacking ∠ | TWD est | SOG stbd/port | Heel stbd/port | % stbd |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | upwind | 18:31 | 1.65 | 5.35 | 5.45 | – | 4 | 15.4 | 3.1 | 75.9 | 267.8 | 5.52/5.4 | 15.5/15.3 | 46 |
-| 2 | downwind | 6:23 | 0.51 | 4.79 | 4.79 | – | 1 | 2.5 | 1.7 | – | – | 4.95/4.59 | 2.6/2.3 | 56 |
+| Leg | Type | Time | Sailed nm | Straight nm | +% vs straight | m vs ideal | SOG | SOG steady | VMC | Maneuvers | Heel (abs) | Heel sd | Tacking ∠ | TWD est | SOG stbd/port | Heel stbd/port | % stbd |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | upwind | 18:31 | 1.65 | 1.2 | 37.8 | 40 | 5.35 | 5.45 | – | 4 | 15.4 | 3.1 | 75.9 | 267.8 | 5.52/5.4 | 15.5/15.3 | 46 |
+| 2 | downwind | 6:23 | 0.51 | 0.43 | 18.0 | 92 | 4.79 | 4.79 | – | 1 | 2.5 | 1.7 | – | – | 4.95/4.59 | 2.6/2.3 | 56 |
 
 ## Maneuvers
 - Gybes: 1, avg entry 4.63 kt, avg loss 1.31 kt (28%), avg recovery 20.0 s, avg 5.9 m lost (total 6 m).
@@ -58,9 +59,13 @@ Headed before: + means the old tack was headed (a good time to tack). New tack a
 ## Mark roundings
 Metres lost: VMG from 30 s before to 60 s after the rounding against the steady VMG of the leg before and after. Settled: 10 s VMG back to 90% of the next leg's.
 
-| # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | m lost | Closest to mark m | Gate |
-|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | windward | 18:31 | layline tack 61 s out | 5.44 | 4.6 | 5.48 | 32 | 87.1 | – | – |
+| # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | m lost | Closest to mark m | Gate | vs best m |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | windward | 18:31 | layline tack 61 s out | 5.44 | 4.6 | 5.48 | 32 | 87.1 | – | – | 63.1 |
+
+vs best: metres more than the best rounding of the same type in this analysis. The goal is zero lost; the best is the next milestone.
+
+- #1 windward: Reached off at 130° to the wind for the first 15–40 s after the mark (your best exited at 159°). Bear away all the way to the run angle first, then set. Took 32 s to settle on the run (best 12 s). Pole and halyard ready on the layline, so the set happens as you bear away.
 
 ## Upwind vs. targets
 TWS: user-supplied TWS 8–10 kt. TWA: estimated from GPS tacking headings. Speed: SOG.

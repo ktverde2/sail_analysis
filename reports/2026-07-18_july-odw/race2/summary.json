@@ -72,6 +72,11 @@
       "start_s": 0,
       "duration_s": 934,
       "distance_sailed_nm": 1.49,
+      "straight_nm": 1.12,
+      "extra_pct": 33.3,
+      "ideal_nm": 1.46,
+      "extra_vs_ideal_m": 49,
+      "track_angle": 40.2,
       "sog_avg": 5.73,
       "sog_steady": 5.82,
       "vmc_avg": null,
@@ -98,6 +103,11 @@
       "start_s": 935,
       "duration_s": 700,
       "distance_sailed_nm": 1.11,
+      "straight_nm": 1.05,
+      "extra_pct": 5.5,
+      "ideal_nm": 1.08,
+      "extra_vs_ideal_m": 58,
+      "track_angle": 12.8,
       "sog_avg": 5.7,
       "sog_steady": 5.72,
       "vmc_avg": null,
@@ -124,6 +134,11 @@
       "start_s": 1636,
       "duration_s": 898,
       "distance_sailed_nm": 1.39,
+      "straight_nm": 1.05,
+      "extra_pct": 32.3,
+      "ideal_nm": 1.37,
+      "extra_vs_ideal_m": 45,
+      "track_angle": 40.2,
       "sog_avg": 5.57,
       "sog_steady": 5.68,
       "vmc_avg": null,
@@ -150,6 +165,11 @@
       "start_s": 2535,
       "duration_s": 525,
       "distance_sailed_nm": 0.78,
+      "straight_nm": 0.75,
+      "extra_pct": 3.9,
+      "ideal_nm": 0.77,
+      "extra_vs_ideal_m": 21,
+      "track_angle": 12.3,
       "sog_avg": 5.33,
       "sog_steady": 5.31,
       "vmc_avg": null,
@@ -620,8 +640,20 @@
       "vmg_before": 4.39,
       "vmg_after": 5.47,
       "metres_lost": 44.2,
+      "lost_before_m": 19.9,
+      "lost_after_m": 24.3,
+      "entry_twa": 54.0,
+      "exit_twa": 170.0,
       "mark_dist_m": null,
-      "gate_side": null
+      "gate_side": null,
+      "vs_best_m": 20.2,
+      "best_ref": "Race 2 #3",
+      "best_m": 24.0,
+      "is_best": false,
+      "tips": [
+        "Overstood the layline by ~10\u00b0. Tack onto it a little sooner and sail the last 100 m at full upwind speed.",
+        "Speed dropped 24% through the turn (6.35 \u2192 4.85 kt; best 18%). A smoother, rounder turn with trim in step with the helm keeps more of it."
+      ]
     },
     {
       "n": 2,
@@ -639,8 +671,20 @@
       "vmg_before": 5.47,
       "vmg_after": 4.29,
       "metres_lost": 52.1,
+      "lost_before_m": 33.0,
+      "lost_after_m": 19.1,
+      "entry_twa": 145.0,
+      "exit_twa": 33.0,
       "mark_dist_m": null,
-      "gate_side": null
+      "gate_side": null,
+      "vs_best_m": 30.3,
+      "best_ref": "Race 1 #2",
+      "best_m": 21.8,
+      "is_best": false,
+      "tips": [
+        "Lost 33 m on the way in. Drop earlier and set up wide so the turn starts before the mark, not at it.",
+        "Tacked 37 s after the mark, so its cost is in this number. Fine if it was for clear air or the favoured side; otherwise hold the lane until you're up to speed."
+      ]
     },
     {
       "n": 3,
@@ -658,8 +702,21 @@
       "vmg_before": 4.29,
       "vmg_after": 5.17,
       "metres_lost": 24.0,
+      "lost_before_m": 17.3,
+      "lost_after_m": 6.6,
+      "entry_twa": 51.0,
+      "exit_twa": 159.0,
       "mark_dist_m": null,
-      "gate_side": null
+      "gate_side": null,
+      "vs_best_m": 0.0,
+      "best_ref": "Race 2 #3",
+      "best_m": 24.0,
+      "is_best": true,
+      "tips": [
+        "Your best of this type so far: the benchmark to beat. The goal is still zero.",
+        "Gave away 17 m in the 30 s before the mark. Keep target speed on the layline; don't pinch up to the mark.",
+        "Gybed 33 s after the mark, so its cost is in this number. Fine if it was for clear air or the favoured side; otherwise hold the lane until you're up to speed."
+      ]
     }
   ]
 }

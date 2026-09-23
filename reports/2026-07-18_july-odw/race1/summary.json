@@ -72,6 +72,11 @@
       "start_s": 0,
       "duration_s": 877,
       "distance_sailed_nm": 1.37,
+      "straight_nm": 1.02,
+      "extra_pct": 35.0,
+      "ideal_nm": 1.34,
+      "extra_vs_ideal_m": 53,
+      "track_angle": 40.9,
       "sog_avg": 5.63,
       "sog_steady": 5.7,
       "vmc_avg": null,
@@ -98,6 +103,11 @@
       "start_s": 878,
       "duration_s": 654,
       "distance_sailed_nm": 1.02,
+      "straight_nm": 0.96,
+      "extra_pct": 6.3,
+      "ideal_nm": 1.01,
+      "extra_vs_ideal_m": 33,
+      "track_angle": 16.7,
       "sog_avg": 5.63,
       "sog_steady": 5.69,
       "vmc_avg": null,
@@ -124,6 +134,11 @@
       "start_s": 1533,
       "duration_s": 778,
       "distance_sailed_nm": 1.23,
+      "straight_nm": 0.96,
+      "extra_pct": 27.7,
+      "ideal_nm": 1.2,
+      "extra_vs_ideal_m": 43,
+      "track_angle": 37.1,
       "sog_avg": 5.67,
       "sog_steady": 5.76,
       "vmc_avg": null,
@@ -150,6 +165,11 @@
       "start_s": 2312,
       "duration_s": 629,
       "distance_sailed_nm": 1.04,
+      "straight_nm": 1.0,
+      "extra_pct": 3.9,
+      "ideal_nm": 1.02,
+      "extra_vs_ideal_m": 35,
+      "track_angle": 11.7,
       "sog_avg": 5.96,
       "sog_steady": 5.97,
       "vmc_avg": null,
@@ -544,8 +564,21 @@
       "vmg_before": 4.28,
       "vmg_after": 5.41,
       "metres_lost": 53.4,
+      "lost_before_m": 9.2,
+      "lost_after_m": 44.2,
+      "entry_twa": 45.0,
+      "exit_twa": 148.0,
       "mark_dist_m": null,
-      "gate_side": null
+      "gate_side": null,
+      "vs_best_m": 29.4,
+      "best_ref": "Race 2 #3",
+      "best_m": 24.0,
+      "is_best": false,
+      "tips": [
+        "Reached off at 148\u00b0 to the wind for the first 15\u201340 s after the mark (your best exited at 159\u00b0). Bear away all the way to the run angle first, then set.",
+        "Took 58 s to settle on the run (best 12 s). Pole and halyard ready on the layline, so the set happens as you bear away.",
+        "Speed dropped 28% through the turn (6.05 \u2192 4.37 kt; best 18%). A smoother, rounder turn with trim in step with the helm keeps more of it."
+      ]
     },
     {
       "n": 2,
@@ -563,8 +596,19 @@
       "vmg_before": 5.41,
       "vmg_after": 4.56,
       "metres_lost": 21.8,
+      "lost_before_m": 5.1,
+      "lost_after_m": 16.7,
+      "entry_twa": 164.0,
+      "exit_twa": 26.0,
       "mark_dist_m": null,
-      "gate_side": null
+      "gate_side": null,
+      "vs_best_m": 0.0,
+      "best_ref": "Race 1 #2",
+      "best_m": 21.8,
+      "is_best": true,
+      "tips": [
+        "Your best of this type so far: the benchmark to beat. The goal is still zero."
+      ]
     },
     {
       "n": 3,
@@ -582,8 +626,19 @@
       "vmg_before": 4.56,
       "vmg_after": 5.81,
       "metres_lost": 31.2,
+      "lost_before_m": 8.3,
+      "lost_after_m": 22.9,
+      "entry_twa": 37.0,
+      "exit_twa": 166.0,
       "mark_dist_m": null,
-      "gate_side": null
+      "gate_side": null,
+      "vs_best_m": 7.2,
+      "best_ref": "Race 2 #3",
+      "best_m": 24.0,
+      "is_best": false,
+      "tips": [
+        "No single fault stands out: 8 m went before the mark and 23 m after. Same routine, a little smoother, to close the gap to your best."
+      ]
     }
   ]
 }

@@ -17,13 +17,14 @@ Gun 2026-07-18 12:49:00 (America/Los_Angeles), race 51.0 min. Speed source: SOG.
 
 ## Legs
 Legs: detected from heel (course has no marks).
+Straight: mark to mark. Ideal: shortest path at our average angle to the wind over the ground (leeway included) in steady wind; m vs ideal is the extra we sailed.
 
-| Leg | Type | Time | Dist nm | SOG | SOG steady | VMC | Maneuvers | Heel (abs) | Heel sd | Tacking ∠ | TWD est | SOG stbd/port | Heel stbd/port | % stbd |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | upwind | 15:34 | 1.49 | 5.73 | 5.82 | – | 4 | 20.8 | 4.0 | 69.2 | 266.7 | 5.82/5.82 | 19.7/21.7 | 44 |
-| 2 | downwind | 11:40 | 1.11 | 5.7 | 5.72 | – | 0 | 2.1 | 1.9 | – | – | 5.91/5.63 | 2.3/2.0 | 31 |
-| 3 | upwind | 14:58 | 1.39 | 5.57 | 5.68 | – | 5 | 17.3 | 4.2 | 70.4 | 264.2 | 5.65/5.71 | 15.6/18.5 | 41 |
-| 4 | downwind | 8:45 | 0.78 | 5.33 | 5.31 | – | 2 | 2.6 | 1.8 | – | – | 5.3/5.32 | 3.2/2.1 | 45 |
+| Leg | Type | Time | Sailed nm | Straight nm | +% vs straight | m vs ideal | SOG | SOG steady | VMC | Maneuvers | Heel (abs) | Heel sd | Tacking ∠ | TWD est | SOG stbd/port | Heel stbd/port | % stbd |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | upwind | 15:34 | 1.49 | 1.12 | 33.3 | 49 | 5.73 | 5.82 | – | 4 | 20.8 | 4.0 | 69.2 | 266.7 | 5.82/5.82 | 19.7/21.7 | 44 |
+| 2 | downwind | 11:40 | 1.11 | 1.05 | 5.5 | 58 | 5.7 | 5.72 | – | 0 | 2.1 | 1.9 | – | – | 5.91/5.63 | 2.3/2.0 | 31 |
+| 3 | upwind | 14:58 | 1.39 | 1.05 | 32.3 | 45 | 5.57 | 5.68 | – | 5 | 17.3 | 4.2 | 70.4 | 264.2 | 5.65/5.71 | 15.6/18.5 | 41 |
+| 4 | downwind | 8:45 | 0.78 | 0.75 | 3.9 | 21 | 5.33 | 5.31 | – | 2 | 2.6 | 1.8 | – | – | 5.3/5.32 | 3.2/2.1 | 45 |
 
 ## Maneuvers
 - Gybes: 2, avg entry 5.62 kt, avg loss 1.22 kt (22%), avg recovery 14.5 s, avg -2.0 m lost (total -4 m); onto port -5.4 m vs onto stbd 1.4 m.
@@ -74,11 +75,17 @@ Headed before: + means the old tack was headed (a good time to tack). New tack a
 ## Mark roundings
 Metres lost: VMG from 30 s before to 60 s after the rounding against the steady VMG of the leg before and after. Settled: 10 s VMG back to 90% of the next leg's.
 
-| # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | m lost | Closest to mark m | Gate |
-|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | windward | 15:34 | layline tack 70 s out, overstood 10° | 6.35 | 4.85 | 4.92 | 18 | 44.2 | – | – |
-| 2 | leeward | 27:15 | no gybe on the run | 4.9 | 4.33 | 4.75 | 23 | 52.1 | – | – |
-| 3 | windward | 42:14 | layline tack 185 s out | 6.04 | 4.93 | 5.93 | 12 | 24.0 | – | – |
+| # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | m lost | Closest to mark m | Gate | vs best m |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | windward | 15:34 | layline tack 70 s out, overstood 10° | 6.35 | 4.85 | 4.92 | 18 | 44.2 | – | – | 20.2 |
+| 2 | leeward | 27:15 | no gybe on the run | 4.9 | 4.33 | 4.75 | 23 | 52.1 | – | – | 30.3 |
+| 3 | windward | 42:14 | layline tack 185 s out | 6.04 | 4.93 | 5.93 | 12 | 24.0 | – | – | 0.0 |
+
+vs best: metres more than the best rounding of the same type in this analysis. The goal is zero lost; the best is the next milestone.
+
+- #1 windward: Overstood the layline by ~10°. Tack onto it a little sooner and sail the last 100 m at full upwind speed. Speed dropped 24% through the turn (6.35 → 4.85 kt; best 18%). A smoother, rounder turn with trim in step with the helm keeps more of it.
+- #2 leeward: Lost 33 m on the way in. Drop earlier and set up wide so the turn starts before the mark, not at it. Tacked 37 s after the mark, so its cost is in this number. Fine if it was for clear air or the favoured side; otherwise hold the lane until you're up to speed.
+- #3 windward: Your best of this type so far: the benchmark to beat. The goal is still zero. Gave away 17 m in the 30 s before the mark. Keep target speed on the layline; don't pinch up to the mark. Gybed 33 s after the mark, so its cost is in this number. Fine if it was for clear air or the favoured side; otherwise hold the lane until you're up to speed.
 
 ## Upwind vs. targets
 TWS: user-supplied TWS 8–10 kt. TWA: estimated from GPS tacking headings. Speed: SOG.

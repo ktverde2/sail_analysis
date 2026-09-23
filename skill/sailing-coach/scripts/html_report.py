@@ -510,7 +510,7 @@ def upwind_page(runs) -> str:
             ("Headed > 5° s", "missed"),
         ],
     )
-    body = card("<h2>Every beat</h2>" + t1)
+    body = card("<h2>Every beat</h2>" + t1) + distance_card(runs, "upwind")
     if tgts:
         body += card(
             "<h2>Vs. the Etchells card</h2>"
@@ -585,7 +585,6 @@ def downwind_page(runs) -> str:
             ("Race", "race"),
             ("Leg", "leg"),
             ("Duration", "time"),
-            ("Dist nm", "distance_sailed_nm"),
             ("SOG steady", "sog_steady"),
             ("VMG", "vmg_steady"),
             ("Angle to wind", "twa_steady"),
@@ -638,7 +637,10 @@ def downwind_page(runs) -> str:
         "downwind",
         "Downwind",
         "Runs only: each run's track, speed, VMG away from the wind, angle, and gybes.",
-        card("<h2>Every run</h2>" + t1) + card("<h2>Gybes</h2>" + t2) + plots,
+        card("<h2>Every run</h2>" + t1)
+        + distance_card(runs, "downwind")
+        + card("<h2>Gybes</h2>" + t2)
+        + plots,
     )
 
 
@@ -654,12 +656,13 @@ def roundings_page(runs) -> str:
             ("#", "n"),
             ("Type", "type"),
             ("From gun", lambda r: _mmss(r["time_s"])),
+            ("m lost", "metres_lost"),
+            ("vs your best", lambda r: _plus(r.get("vs_best_m"))),
             ("Approach", "approach"),
             ("SOG in", "sog_entry"),
             ("SOG min", "sog_min"),
             ("SOG out", "sog_exit"),
             ("Settled s", "settle_s"),
-            ("m lost", "metres_lost"),
             ("Closest to mark m", "mark_dist_m"),
             ("Gate", "gate_side"),
         ],
@@ -676,13 +679,15 @@ def roundings_page(runs) -> str:
                 f"{html.escape(best['race'])} #{best['n']} ({best['metres_lost']:.0f} m), worst "
                 f"{html.escape(worst['race'])} #{worst['n']} ({worst['metres_lost']:.0f} m).</li>"
             )
+    goal = _rounding_goal(rows)
     body = card(
         "<h2>Every rounding</h2>"
+        + goal
         + (f"<ul>{''.join(summary)}</ul>" if summary else "")
         + '<p class="facts">Metres lost: VMG from 30 s before to 60 s after the rounding, against the steady '
         "VMG of the leg before and after. Settled: 10 s VMG back to 90% of the next leg's.</p>"
         + table
-    )
+    ) + card(TIGHT_ROUNDINGS)
     for d, s in runs:
         rs = s.get("roundings") or []
         if not rs:
@@ -690,7 +695,15 @@ def roundings_page(runs) -> str:
         if interactive(d):
             inner = HINT + "".join(
                 f'<h3 class="leg">{r["type"].capitalize()} rounding #{r["n"]} · +{_mmss(r["time_s"])} from gun · '
-                f'{r["metres_lost"]} m lost</h3><p class="facts">{html.escape(_approach_text(r) or "")}; '
+                f"{r['metres_lost']} m lost"
+                + (
+                    " · your best"
+                    if r.get("is_best")
+                    else f" · +{r['vs_best_m']:.0f} m vs your best"
+                    if r.get("vs_best_m") is not None
+                    else ""
+                )
+                + f'</h3><p class="facts">{html.escape(_approach_text(r) or "")}; '
                 f"{r['sog_entry']} → {r['sog_min']} → {r['sog_exit']} kt; settled in {r['settle_s']} s"
                 + (
                     f"; closest {r['mark_dist_m']} m from the mark"
@@ -699,11 +712,16 @@ def roundings_page(runs) -> str:
                 )
                 + (f"; {r['gate_side']}" if r.get("gate_side") else "")
                 + "</p>"
+                + _tips_html(r)
                 + pair(d, [("roundTrack", {"n": r["n"]}), ("roundSpeed", {"n": r["n"]})])
                 for r in rs
             )
         else:
-            inner = figures([(d / "roundings.png", "Speed through the roundings")])
+            inner = "".join(
+                f'<h3 class="leg">{r["type"].capitalize()} rounding #{r["n"]}: {r["metres_lost"]} m lost</h3>'
+                + _tips_html(r)
+                for r in rs
+            ) + figures([(d / "roundings.png", "Speed through the roundings")])
         body += card(f"<h2>{html.escape(s['race'])}</h2>" + inner)
     return page(
         "roundings",
@@ -711,6 +729,81 @@ def roundings_page(runs) -> str:
         "Windward and leeward marks: approach, speed through the turn, and what each one cost.",
         body,
     )
+
+
+TIGHT_ROUNDINGS = """<h2>Keeping roundings tight</h2>
+<p class="facts">The goal is zero metres lost. These are the habits behind a tight rounding; the
+suggestions under each rounding below say which ones that rounding missed.</p>
+<ul>
+<li><strong>Windward, on the layline:</strong> tack onto it with room to sail the last 100 m at full
+speed, not pinching up to the mark and not overstood. Pole and halyard ready before the mark.</li>
+<li><strong>Windward, the bear-away:</strong> ease main and vang and turn steadily all the way to the
+run angle, then hoist. Reaching off high first and setting there is where our slowest exits went.</li>
+<li><strong>Leeward, the approach:</strong> drop early enough that the turn starts before the mark.
+Enter wide, a couple of boat lengths out, so the turn can finish right at the mark.</li>
+<li><strong>Leeward, the exit:</strong> tight out, about a boat length from the mark, with main and jib
+trimmed on through the turn. Foot at your normal upwind angle until the speed is back, then point.</li>
+<li><strong>Both:</strong> one smooth radius, helm and trim together. The bigger the speed dip, the
+longer it takes to get it back.</li>
+</ul>"""
+
+
+def _rounding_goal(rows: list[dict]) -> str:
+    """Goal line: zero, with the best of each type as the next milestone and what closing the gap
+    on every rounding would have saved."""
+    parts, saved = [], 0.0
+    for kind in ("windward", "leeward"):
+        k = [r for r in rows if r["type"] == kind and r.get("metres_lost") is not None]
+        if k:
+            best = min(r["metres_lost"] for r in k)
+            parts.append(f"every {kind} rounding at or under {best:.0f} m")
+            saved += sum(r.get("vs_best_m") or 0 for r in k)
+    if not parts:
+        return ""
+    return (
+        '<p class="note"><strong>Goal: zero metres lost at every mark.</strong> Next milestone: '
+        + " and ".join(parts)
+        + f" (your best so far). Matching your best everywhere would have saved about {saved:.0f} m.</p>"
+    )
+
+
+def _tips_html(r: dict) -> str:
+    tips = r.get("tips") or []
+    return f"<ul>{''.join(f'<li>{html.escape(t)}</li>' for t in tips)}</ul>" if tips else ""
+
+
+def distance_card(runs, kind: str) -> str:
+    rows = [
+        {"race": s["race"], **lg}
+        for _, s in runs
+        for lg in s["legs"]
+        if lg["type"] == kind and lg.get("straight_nm")
+    ]
+    if not rows:
+        return ""
+    table = html_table(
+        rows,
+        [
+            ("Race", "race"),
+            ("Leg", "leg"),
+            ("Sailed nm", "distance_sailed_nm"),
+            ("Straight line nm", "straight_nm"),
+            ("+% vs straight", "extra_pct"),
+            ("Ideal at our angle nm", "ideal_nm"),
+            ("Extra vs ideal m", "extra_vs_ideal_m"),
+            ("Track angle to wind", "track_angle"),
+        ],
+    )
+    return card(
+        '<h2>Distance sailed</h2><p class="facts">Straight line: mark to mark. Ideal: the shortest '
+        "path at our average angle to the wind over the ground (leeway included) in steady wind. "
+        "Extra vs ideal is distance sailed beyond what our angles needed: sailing below our angle, "
+        "overstanding, extra zig-zags. Shifts can make it negative.</p>" + table
+    )
+
+
+def _plus(v):
+    return None if v is None else ("best" if v == 0 else f"+{v:.0f}")
 
 
 def _approach_text(r: dict) -> str | None:

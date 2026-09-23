@@ -17,12 +17,13 @@ Gun 2026-07-19 12:54:00 (America/Los_Angeles), race 49.8 min. Speed source: SOG.
 
 ## Legs
 Legs: Njord course.
+Straight: mark to mark. Ideal: shortest path at our average angle to the wind over the ground (leeway included) in steady wind; m vs ideal is the extra we sailed.
 
-| Leg | Type | Time | Dist nm | SOG | SOG steady | VMC | Maneuvers | Heel (abs) | Heel sd | Tacking ∠ | TWD est | SOG stbd/port | Heel stbd/port | % stbd |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | upwind | 18:35 | 1.82 | 5.86 | 6.0 | 4.28 | 8 | 20.1 | 4.5 | 72.4 | 283.2 | 5.98/6.02 | 19.5/20.8 | 53 |
-| 2 | downwind | 13:11 | 1.3 | 5.89 | 5.88 | 5.65 | 2 | 2.8 | 2.3 | – | – | 5.72/5.98 | 3.2/2.6 | 40 |
-| 3 | upwind | 18:02 | 1.7 | 5.65 | 5.76 | 4.13 | 6 | 20.6 | 4.8 | 71.3 | 280.1 | 5.77/5.75 | 20.5/20.7 | 48 |
+| Leg | Type | Time | Sailed nm | Straight nm | +% vs straight | m vs ideal | SOG | SOG steady | VMC | Maneuvers | Heel (abs) | Heel sd | Tacking ∠ | TWD est | SOG stbd/port | Heel stbd/port | % stbd |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | upwind | 18:35 | 1.82 | 1.34 | 35.9 | 65 | 5.86 | 6.0 | 4.28 | 8 | 20.1 | 4.5 | 72.4 | 283.2 | 5.98/6.02 | 19.5/20.8 | 53 |
+| 2 | downwind | 13:11 | 1.3 | 1.25 | 3.8 | 47 | 5.89 | 5.88 | 5.65 | 2 | 2.8 | 2.3 | – | – | 5.72/5.98 | 3.2/2.6 | 40 |
+| 3 | upwind | 18:02 | 1.7 | 1.24 | 36.7 | 73 | 5.65 | 5.76 | 4.13 | 6 | 20.6 | 4.8 | 71.3 | 280.1 | 5.77/5.75 | 20.5/20.7 | 48 |
 
 ## Maneuvers
 - Gybes: 2, avg entry 5.86 kt, avg loss 1.32 kt (23%), avg recovery 13.0 s, avg 8.5 m lost (total 17 m); onto port 2.0 m vs onto stbd 15.0 m.
@@ -82,10 +83,15 @@ Headed before: + means the old tack was headed (a good time to tack). New tack a
 ## Mark roundings
 Metres lost: VMG from 30 s before to 60 s after the rounding against the steady VMG of the leg before and after. Settled: 10 s VMG back to 90% of the next leg's.
 
-| # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | m lost | Closest to mark m | Gate |
-|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | windward | 18:48 | layline tack 133 s out, overstood 7° | 6.54 | 5.71 | 6.85 | 15 | 28.3 | 7.3 | – |
-| 2 | leeward | 32:00 | last gybe 215 s out | 5.23 | 3.4 | 4.33 | 80 | 84.5 | 7.5 | left-hand mark (looking downwind) |
+| # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | m lost | Closest to mark m | Gate | vs best m |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | windward | 18:48 | layline tack 133 s out, overstood 7° | 6.54 | 5.71 | 6.85 | 15 | 28.3 | 7.3 | – | 4.3 |
+| 2 | leeward | 32:00 | last gybe 215 s out | 5.23 | 3.4 | 4.33 | 80 | 84.5 | 7.5 | left-hand mark (looking downwind) | 62.7 |
+
+vs best: metres more than the best rounding of the same type in this analysis. The goal is zero lost; the best is the next milestone.
+
+- #1 windward: Overstood the layline by ~7°. Tack onto it a little sooner and sail the last 100 m at full upwind speed.
+- #2 leeward: Came out at 43° to the wind, low and wide (your best exited at 26°). Finish the turn close to close-hauled; the wide entry is what makes a tight exit possible. Took 80 s to settle upwind (best 27 s). Trim main and jib on through the turn, then speed before height. Speed dropped 35% through the turn (5.23 → 3.4 kt; best 26%). A smoother, rounder turn with trim in step with the helm keeps more of it.
 
 ## Upwind vs. targets
 TWS: user-supplied TWS 8–10 kt. TWA: estimated from GPS tacking headings. Speed: SOG.

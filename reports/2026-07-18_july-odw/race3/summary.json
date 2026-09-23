@@ -72,6 +72,11 @@
       "start_s": 0,
       "duration_s": 1111,
       "distance_sailed_nm": 1.65,
+      "straight_nm": 1.2,
+      "extra_pct": 37.8,
+      "ideal_nm": 1.63,
+      "extra_vs_ideal_m": 40,
+      "track_angle": 42.7,
       "sog_avg": 5.35,
       "sog_steady": 5.45,
       "vmc_avg": null,
@@ -98,6 +103,11 @@
       "start_s": 1112,
       "duration_s": 383,
       "distance_sailed_nm": 0.51,
+      "straight_nm": 0.43,
+      "extra_pct": 18.0,
+      "ideal_nm": 0.46,
+      "extra_vs_ideal_m": 92,
+      "track_angle": 22.6,
       "sog_avg": 4.79,
       "sog_steady": 4.79,
       "vmc_avg": null,
@@ -390,8 +400,20 @@
       "vmg_before": 3.99,
       "vmg_after": 4.4,
       "metres_lost": 87.1,
+      "lost_before_m": 7.7,
+      "lost_after_m": 79.4,
+      "entry_twa": 43.0,
+      "exit_twa": 130.0,
       "mark_dist_m": null,
-      "gate_side": null
+      "gate_side": null,
+      "vs_best_m": 63.1,
+      "best_ref": "Race 2 #3",
+      "best_m": 24.0,
+      "is_best": false,
+      "tips": [
+        "Reached off at 130\u00b0 to the wind for the first 15\u201340 s after the mark (your best exited at 159\u00b0). Bear away all the way to the run angle first, then set.",
+        "Took 32 s to settle on the run (best 12 s). Pole and halyard ready on the layline, so the set happens as you bear away."
+      ]
     }
   ]
 }

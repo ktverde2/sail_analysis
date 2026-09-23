@@ -287,3 +287,30 @@ def test_polar_data(results):
         if s["leg"][i] == 1 and s["steady"][i] and s["twa"][i] is not None
     ]
     assert 30 < sum(s["twa"][i] for i in up) / len(up) < 40
+
+
+def test_rounding_vs_best_and_tips(results):
+    _, r = results
+    rs = r["race1"]["roundings"] + r["race2"]["roundings"]
+    for kind in ("windward", "leeward"):
+        k = [x for x in rs if x["type"] == kind]
+        best = min(k, key=lambda x: x["metres_lost"])
+        assert best["is_best"] and best["vs_best_m"] == 0
+        assert all(x["vs_best_m"] == round(x["metres_lost"] - best["metres_lost"], 1) for x in k)
+    for x in rs:
+        assert x["lost_before_m"] + x["lost_after_m"] == pytest.approx(x["metres_lost"], abs=0.2)
+        assert 1 <= len(x["tips"]) <= 4
+    lw2 = r["race2"]["roundings"][1]  # the 84 m leeward gate
+    assert any("low and wide" in t for t in lw2["tips"]) and any("80 s" in t for t in lw2["tips"])
+    assert not any("pinching" in t for t in r["race1"]["roundings"][1]["tips"])  # same exit as best
+
+
+def test_leg_distance(results):
+    _, r = results
+    for lg in r["race1"]["legs"] + r["race2"]["legs"]:
+        assert lg["straight_nm"] < lg["distance_sailed_nm"]
+        if lg["type"] == "upwind":
+            assert 20 < lg["extra_pct"] < 45 and 35 < lg["track_angle"] < 45
+            assert lg["straight_nm"] < lg["ideal_nm"] < lg["distance_sailed_nm"] + 0.05
+        else:
+            assert 0 < lg["extra_pct"] < 10 and lg["track_angle"] < 25

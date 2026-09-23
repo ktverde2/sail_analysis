@@ -17,13 +17,14 @@ Gun 2026-07-19 11:40:00 (America/Los_Angeles), race 59.5 min. Speed source: SOG.
 
 ## Legs
 Legs: Njord course.
+Straight: mark to mark. Ideal: shortest path at our average angle to the wind over the ground (leeway included) in steady wind; m vs ideal is the extra we sailed.
 
-| Leg | Type | Time | Dist nm | SOG | SOG steady | VMC | Maneuvers | Heel (abs) | Heel sd | Tacking ∠ | TWD est | SOG stbd/port | Heel stbd/port | % stbd |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | upwind | 18:17 | 1.74 | 5.71 | 5.78 | 4.33 | 5 | 22.3 | 5.1 | 67.6 | 278.2 | 5.59/5.94 | 21.5/22.9 | 46 |
-| 2 | downwind | 12:07 | 1.28 | 6.35 | 6.38 | 6.14 | 0 | 3.4 | 2.3 | – | – | 6.27/6.53 | 3.8/2.8 | 59 |
-| 3 | upwind | 16:40 | 1.63 | 5.86 | 5.96 | 4.46 | 4 | 22.2 | 4.4 | 66.1 | 275.1 | 5.96/5.96 | 22.1/22.3 | 40 |
-| 4 | downwind | 12:26 | 1.35 | 6.52 | 6.51 | 6.36 | 0 | 5.8 | 2.9 | – | – | 6.53/6.48 | 6.3/5.1 | 63 |
+| Leg | Type | Time | Sailed nm | Straight nm | +% vs straight | m vs ideal | SOG | SOG steady | VMC | Maneuvers | Heel (abs) | Heel sd | Tacking ∠ | TWD est | SOG stbd/port | Heel stbd/port | % stbd |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | upwind | 18:17 | 1.74 | 1.32 | 31.7 | 40 | 5.71 | 5.78 | 4.33 | 5 | 22.3 | 5.1 | 67.6 | 278.2 | 5.59/5.94 | 21.5/22.9 | 46 |
+| 2 | downwind | 12:07 | 1.28 | 1.25 | 2.8 | 38 | 6.35 | 6.38 | 6.14 | 0 | 3.4 | 2.3 | – | – | 6.27/6.53 | 3.8/2.8 | 59 |
+| 3 | upwind | 16:40 | 1.63 | 1.25 | 30.0 | 60 | 5.86 | 5.96 | 4.46 | 4 | 22.2 | 4.4 | 66.1 | 275.1 | 5.96/5.96 | 22.1/22.3 | 40 |
+| 4 | downwind | 12:26 | 1.35 | 1.32 | 2.8 | 45 | 6.52 | 6.51 | 6.36 | 0 | 5.8 | 2.9 | – | – | 6.53/6.48 | 6.3/5.1 | 63 |
 
 ## Maneuvers
 - Tacks: 7, avg entry 5.81 kt, avg loss 1.51 kt (26%), avg recovery 14.1 s, avg 4.2 m lost (total 29 m); onto port 4.3 m vs onto stbd 4.0 m; 2 in double tacks/gybes left out of these averages.
@@ -70,11 +71,17 @@ Headed before: + means the old tack was headed (a good time to tack). New tack a
 ## Mark roundings
 Metres lost: VMG from 30 s before to 60 s after the rounding against the steady VMG of the leg before and after. Settled: 10 s VMG back to 90% of the next leg's.
 
-| # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | m lost | Closest to mark m | Gate |
-|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | windward | 18:17 | layline tack 101 s out | 5.7 | 5.16 | 5.34 | 49 | 50.5 | 4.2 | – |
-| 2 | leeward | 30:25 | no gybe on the run | 5.47 | 3.99 | 4.64 | 44 | 53.3 | 5.0 | right-hand mark (looking downwind) |
-| 3 | windward | 47:06 | layline tack 59 s out, overstood 11° | 6.74 | 6.01 | 6.87 | 15 | 32.2 | 5.2 | – |
+| # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | m lost | Closest to mark m | Gate | vs best m |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | windward | 18:17 | layline tack 101 s out | 5.7 | 5.16 | 5.34 | 49 | 50.5 | 4.2 | – | 26.5 |
+| 2 | leeward | 30:25 | no gybe on the run | 5.47 | 3.99 | 4.64 | 44 | 53.3 | 5.0 | right-hand mark (looking downwind) | 31.5 |
+| 3 | windward | 47:06 | layline tack 59 s out, overstood 11° | 6.74 | 6.01 | 6.87 | 15 | 32.2 | 5.2 | – | 8.2 |
+
+vs best: metres more than the best rounding of the same type in this analysis. The goal is zero lost; the best is the next milestone.
+
+- #1 windward: Took 49 s to settle on the run (best 12 s). Pole and halyard ready on the layline, so the set happens as you bear away. Gave away 16 m in the 30 s before the mark. Keep target speed on the layline; don't pinch up to the mark.
+- #2 leeward: Took 44 s to settle upwind (best 27 s). Trim main and jib on through the turn, then speed before height. Tacked 46 s after the mark, so its cost is in this number. Fine if it was for clear air or the favoured side; otherwise hold the lane until you're up to speed.
+- #3 windward: Overstood the layline by ~11°. Tack onto it a little sooner and sail the last 100 m at full upwind speed.
 
 ## Upwind vs. targets
 TWS: user-supplied TWS 8–10 kt. TWA: estimated from GPS tacking headings. Speed: SOG.
