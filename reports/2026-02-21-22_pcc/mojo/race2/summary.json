@@ -294,9 +294,9 @@
           8.9
         ],
         "pattern": "oscillating",
-        "pct_time_right": 83,
-        "max_left_m": 117,
-        "max_right_m": 680,
+        "pct_time_right": 88,
+        "max_left_m": 77,
+        "max_right_m": 700,
         "missed_headers": [
           {
             "start_s": 797,

@@ -143,7 +143,7 @@ def test_html_report(results, tmp_path):
     page = write_html(out, debrief, tmp_path / "r.html", interactive=False).read_text()
     assert "<title>Mojo · July ODW · Sun 19 Jul 2026</title>" in page
     assert page.count("data:image/png;base64,") == 16  # 8 plots x 2 races, each shown once
-    assert '<section class="page" id="debrief">' in page
+    assert '<section class="page" id="debrief" data-level="2">' in page
     assert '<section class="card debrief"><h2>Debrief</h2>' in page
     assert "<ol><li><strong>Starts</strong> — late.</li></ol>" in page
     # Every table row has as many cells as its header (a stray "|" would break this)
@@ -358,7 +358,35 @@ def test_nested_lists_and_coach_summary(results, tmp_path):
     debrief = tmp_path / "debrief.md"
     debrief.write_text(md)
     page = write_html(out, debrief, tmp_path / "c.html").read_text()
-    summary = page[page.index('id="summary"') : page.index('id="debrief"')]
+    summary = page[page.index('id="quick"') : page.index('id="debrief"')]  # the Quick look
     assert "Coach&#x27;s summary" in summary or "Coach's summary" in summary
     assert "<strong>Next time:</strong> Bear away first." in summary
     assert "<strong>Tacks</strong>" not in summary  # "also worth a look" stays on Debrief
+
+
+def test_depth_levels(results, tmp_path):
+    from html_report import write_html
+
+    out, _ = results
+    debrief = tmp_path / "debrief.md"
+    debrief.write_text(
+        "**What went well**\n- **Fast upwind**\n\n**Top 3 to work on**\n1. **Starts**\n"
+    )
+    overview = tmp_path / "overview.md"
+    overview.write_text("## Quick\n- **Result:** 3rd\n")
+    deep = tmp_path / "deep.md"
+    deep.write_text("## Race notes\n- **Race 1:** pin end\n")
+    page = write_html(
+        out, debrief, tmp_path / "l.html", None, True, False, overview, deep
+    ).read_text()
+    levels = dict(re.findall(r'<section class="page" id="([^"]+)" data-level="(\d)"', page))
+    assert list(levels)[:4] == ["quick", "debrief", "summary", "notes"]
+    assert levels["quick"] == "1" and levels["debrief"] == levels["summary"] == "2"
+    assert all(levels[i] == "3" for i in ("notes", "starts", "upwind", "races"))
+    assert '<nav class="levels"' in page and 'href="#quick" data-level="1"' in page
+    assert 'href="#debrief" data-level="2"' in page and 'href="#notes" data-level="3"' in page
+    assert "Result:</strong> 3rd" in page.split('id="debrief"')[0]
+    # no overview: the Quick look is the coach's summary from the debrief
+    page = write_html(out, debrief, tmp_path / "m.html").read_text()
+    quick = page.split('id="quick"')[1].split('id="debrief"')[0]
+    assert "Coach&#x27;s summary" in quick or "Coach's summary" in quick

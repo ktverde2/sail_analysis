@@ -9,9 +9,9 @@ Gun 2026-02-22 12:45:00 (America/Los_Angeles), race 71.5 min. Speed source: SOG.
 
 ## Start
 - Distance behind line: 80.6 m at -60 s, 35.9 m at -30 s, 17.7 m at -10 s, -0.8 m at the gun.
-- On the line at the gun (within 1 m).
+- Over the line at the gun by 0.8 m; back behind it at +36 s and restarted at +56 s.
 - SOG: 2.54 kt at -30 s, 3.8 at -10 s, 4.93 at the gun, 3.41 at +10 s, 5.61 at +30 s. Acceleration ±5 s: +0.37 kt.
-- Line position: 56% from the pin (middle), line 502 m long.
+- Line position: 39% from the pin (middle), line 502 m long.
 - 100% of the last minute on starboard.
 - Recrossed the line backwards within 2 min of the gun.
 
@@ -55,14 +55,13 @@ Wind direction from headings: heading ± half the tacking angle. Shifts are rela
 
 | Leg | Median wind | Trend over beat | Oscillation | Pattern | % right of rhumb | Max left/right m | Headed > 5° without tacking |
 |---|---|---|---|---|---|---|---|
-| 1 | 308° | +17° | ±8° | persistent right shift | 56 | 188/345 | 59 s |
+| 1 | 308° | +10° | ±4° | persistent right shift | 66 | 132/402 | 0 s |
 | 3 | 316° | +16° | ±4° | persistent right shift | 86 | 103/410 | 93 s |
 | 5 | 311° | -1° | ±3° | oscillating | 25 | 652/144 | 0 s |
 
-- Leg 1: Wind went right 17° over the beat, which pays the right; we worked the middle (56% of the time right of the rhumb line) - the other side should have paid.
+- Leg 1: Wind went right 10° over the beat, which pays the right; we worked the right (66% of the time right of the rhumb line) - right call.
 - Leg 3: Wind went right 16° over the beat, which pays the right; we worked the right (86% of the time right of the rhumb line) - right call.
 - Leg 5: Oscillating (±3°): tacking on the headers is what pays. We worked the left.
-- Leg 1: sailed 59 s on stbd headed ~15° from 0:40 without tacking.
 - Leg 3: sailed 93 s on stbd headed ~12° from 32:50 without tacking.
 
 Tacks: 4 on a header, 5 no clear shift (< 3°), 2 at a mark, 3 layline.

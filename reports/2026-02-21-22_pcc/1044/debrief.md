@@ -14,8 +14,8 @@
 - **Side selection: usually on the paying side**
   - Left on race 1's beats, right on race 2 beat 2 (87% right, 42–50 s faster than the other two), left on race 3 beat 2 with the shift.
   - Race 3 beat 1: stayed near the middle while Chomp went to the right corner and lost 2:24.
-- **Sunday starts: clean**
-  - Race 4: 1 s late at 5.5 kt; race 5: on the line. After Saturday's two costly starts, that's the fix.
+- **Race 4's start: the template**
+  - Middle of the line, 1.4 m back at the gun at 5.5 kt, 1 s late. First of the three at every mark.
 
 **Top 3 to work on**
 1. **Leeward mark exits**
@@ -25,10 +25,11 @@
 2. **First runs: Chomp gained twice on Saturday**
    - Race 2: 10:47 against Chomp's 10:18 (+29 s); race 3: 9:29 against 9:02 (+27 s). Chomp gybed once on each; 1044 didn't gybe.
    - **Next time:** someone looks aft for pressure all the way down, and gybe to stay in the puffs and on the headed gybe rather than holding one gybe to the layline.
-3. **Sunday's first beats**
-   - Race 5 beat 1: 48 s behind Chomp at the first mark, the biggest first-beat deficit of the regatta (race 2's was 4 s). It got the lead back on the second run.
-   - Sunday overall: fastest on 2 of 5 beats (5 of 7 on Saturday), and 81 s lost upwind against 14 s on Saturday.
-   - **Next time:** on a new day, take a couple of reference tacks before the start to re-check the angles and the pressure pattern rather than carrying Saturday's plan over.
+3. **Starts: two restarts from small misses**
+   - Race 3: 2.5 m over, back at +4 s, restarted at +10 s.
+   - Race 5: 0.8 m over at 4.9 kt. It sailed on to about 27 m over, turned back at about +20 s, was behind the line at +36 s and restarted at +56 s: 48 s behind Chomp at the first mark. At about 10 s a place, that's roughly 5 places.
+   - The distances are from the GPS antenna. With the antenna 0.8 m over, the bow was several metres over.
+   - **Next time:** line sights before every start and a bow call on the distance in the last 30 s. Put the bow on the line at the gun, not the antenna: that means the antenna a few metres back, which costs about a second.
 
 *Also worth a look:*
 - **Saturday starts**
@@ -47,7 +48,7 @@
 - **Race 4 (18th):**
   - 1 s late at 5.5 kt; first of the three at every mark, 58 s ahead at the finish.
 - **Race 5 (26th):**
-  - On the line, but 48 s behind Chomp at the first mark. Level by the first leeward gate, ahead after the second run; 16 s ahead of Mojo at the finish.
+  - Over by 0.8 m, restarted at +56 s; 48 s behind Chomp at the first mark. Level by the first leeward gate, ahead after the second run; 16 s ahead of Mojo (which also restarted, at +52 s) at the finish.
 
 **Against the other tracked boats (1044 was first of the three in every race)**
 | Race | Official | Margin over the next tracked boat | Fastest beats | Fastest runs |
@@ -65,4 +66,4 @@
 - Only three boats had data. "Fastest", "order" and "which side paid" are among these three, not the whole fleet.
 
 **Question**
-- What was different about race 5's first beat? Chomp, on the right (77%), beat 1044 (61%) to the first mark by 48 s, 1044's biggest first-beat deficit of the regatta.
+- Race 5's start: did 1044 hear a recall, or see that it was over? The turn back came about 20 s after the gun; a dip in the first 5 s would have cost a few seconds, not 56.

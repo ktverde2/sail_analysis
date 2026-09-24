@@ -315,13 +315,19 @@ def analyze_race(race: Race, tws_override: float | None) -> dict:
         row["leg"] = next(
             (lg["leg"] for lg in legs if lg["start"] <= m["t"] <= lg["end"]), row["leg"]
         )
-    shifts = wind_shifts(df, legs, man_rows, gun, hdg_col) if gun is not None else None
-    roundings = (
-        rounding_stats(race, df, legs, leg_rows, man_rows, shifts) if gun is not None else []
-    )
     if legs_source.startswith("detected") and twd_est is not None:
         axis = twd_est  # better than the mean upwind heading used to find the tacks
     start = start_stats(race, df, axis) if gun is not None else None
+    # After an OCS return the first beat starts at the restart, not the gun
+    racing_from = (
+        gun + pd.Timedelta(seconds=start["late_s"])
+        if start and start.get("ocs_returned_s") is not None and start.get("late_s")
+        else None
+    )
+    shifts = wind_shifts(df, legs, man_rows, gun, hdg_col, racing_from) if gun is not None else None
+    roundings = (
+        rounding_stats(race, df, legs, leg_rows, man_rows, shifts) if gun is not None else []
+    )
     targets = target_bands(df, wind, parse_tws(tws_override))
 
     return {
@@ -358,7 +364,7 @@ MISSED_HEADER_S = 45
 MARK_ZONE_S = 90  # tacks this close to the end of a beat are about the mark, not the wind
 
 
-def wind_shifts(df, legs, man_rows, gun, hdg_col) -> dict:
+def wind_shifts(df, legs, man_rows, gun, hdg_col, racing_from=None) -> dict:
     """Wind direction through each beat from headings, and whether each tack was a good call.
 
     Upwind, the boat sails at a roughly constant angle to the wind (half the tacking angle), so
@@ -373,6 +379,8 @@ def wind_shifts(df, legs, man_rows, gun, hdg_col) -> dict:
         if lg["type"] != "upwind" or lg.get("twd") is None:
             continue
         half = lg["tacking_angle"] / 2
+        if racing_from is not None and lg["start"] < racing_from < lg["end"]:
+            lg = {**lg, "start": racing_from}  # restarted: from the restart on
         sel = (df.t >= lg["start"]) & (df.t <= lg["end"])
         ok = sel & df.steady & (df.SOG > 3) & df.tack.notna()
         # After the layline tack the boat sails to the mark (bearing away if it overstood):
@@ -1162,6 +1170,16 @@ def start_stats(race, df, axis):
                 again = post[(post.tg > t_back) & (post.BelowLineCalc <= 0)]
                 out["ocs_returned_s"] = round(t_back, 1)
                 out["late_s"] = round(float(again.tg.iloc[0]), 1) if len(again) else None
+        elif below is not None and below < 0:
+            # Over by less than the tolerance: only an OCS if the boat went back to restart
+            back = post[post.BelowLineCalc > OCS_TOLERANCE_M]
+            if len(back):
+                t_back = float(back.tg.iloc[0])
+                again = post[(post.tg > t_back) & (post.BelowLineCalc <= 0)]
+                if len(again):
+                    out["ocs_at_gun_m"] = round(-below, 1)
+                    out["ocs_returned_s"] = round(t_back, 1)
+                    out["late_s"] = round(float(again.tg.iloc[0]), 1)
         if below and below > OCS_TOLERANCE_M and out["sog_+0s"]:
             out["late_tod_estimate_s"] = round(below / (out["sog_+0s"] * KT_TO_MS), 1)
     back = [

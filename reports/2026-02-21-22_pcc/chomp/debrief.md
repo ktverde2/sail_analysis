@@ -5,12 +5,12 @@
 - **Between the tracked boats:**
   - Chomp was 2nd of the three in races 1–4 and 3rd in race 5: 7:11 behind 1044 over the regatta.
   - It was ahead of Mojo in the first four races, though race 4 was a 2 s photo finish that Mojo won officially.
-- Almost all of the gap to 1044 came upwind: 6:33 on the beats, against 30 s downwind and 8 s at the starts.
+- The gap to 1044 came upwind: 7:29 on the beats, against 30 s downwind. Chomp's starts were 48 s better than 1044's (1044 restarted twice).
 - In this fleet a place was worth about 10 s. Race 3's right-hand corner (2:24) cost around 14 places.
 
 **What went well**
 - **Race 5: led the three boats for three marks**
-  - Fastest of the three on the first beat by 48 s (19.5° of heel, 4 tacks), and ahead at the first windward mark, the first leeward mark and the second windward mark.
+  - First to the windward mark by 48 s (19.5° of heel, 4 tacks), and ahead at the first leeward mark and the second windward mark too. 1044 and Mojo had both restarted; from its restart 1044 was 5 s quicker up that beat, so the lead came from the clean start.
 - **Saturday downwind and leeward roundings: the best of the three**
   - Fastest first run in races 2 and 3 (by 27–29 s over 1044). Chomp gybed once on each; the others didn't.
   - Out of Saturday's leeward marks at 4.2–4.9 kt, against 3.1–3.5 kt for 1044, and the lowest leeward loss of the three (70 m on average).
@@ -20,7 +20,7 @@
 **Top 3 to work on**
 1. **Upwind angle: sailing wide, and flat on Saturday**
    - Over the ground (GPS track), Chomp tacks through about 89° on average, 8° wider than 1044 (81°). It was often as fast as the others through the water, but the angle gave it back: fastest on only 3 of 12 beats.
-   - Saturday it was the flattest of the three (15.6° average heel against 18° for 1044), and its two fast Saturday beats were at 17–18°. On Sunday it carried 18.4°, and led race 5 up the first beat.
+   - Saturday it was the flattest of the three (15.6° average heel against 18° for 1044), and its two fast Saturday beats were at 17–18°. On Sunday it carried 18.4°, closer to the others.
    - The heading sensor reads about 5° off (slip −10° on starboard, +1° on port). Real slip is about 5–6°, so the boat is steering low, not sliding.
    - **Next time:** Sunday's heel is the target: hold 18° or so with traveler and mainsheet, jib a touch harder, and steer for height once the speed is there.
 2. **Tacks: the most in the fleet, and the slowest to recover**
@@ -62,7 +62,7 @@
 | 2 | 22 | 2 | +0:42 | −10 s | +56 s | −4 s |
 | 3 | 29 | 2 | +2:13 | 0 s | +155 s | −22 s |
 | 4 | 31 | 2 | +0:58 | +5 s | +69 s | −16 s |
-| 5 | 31 | 3 | +0:50 | +3 s | −17 s | +64 s |
+| 5 | 31 | 3 | +0:50 | −53 s | +39 s | +64 s |
 
 **Data notes**
 - Official places are from YachtScoring (event 50508, 42 boats). Its finish times aren't used (some are data-entry artifacts); gaps come from the GPS tracks.

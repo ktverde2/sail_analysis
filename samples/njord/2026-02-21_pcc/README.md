@@ -13,7 +13,8 @@ Five races (1–3 on Saturday, 4–5 on Sunday), three boats, exported from Njor
 Used by `tests/test_fleet.py`. Things this data exercises:
 
 - **Njord's leg split fails for Chomp** after race 1 (its `Leg` column stays at 1–2, and `fleetRaceInfo` has no legs for it in races 2–5). `analyze.py` falls back to mark passages from the course (`course_legs`), which shows Chomp 2nd of the three in races 1–4 and 3rd in race 5.
-- **Over at the gun and restarted:** Mojo race 2 and 1044 race 3 are 2.5 m over at the gun, back behind the line within ~5 s, and restart at +10 s. On Sunday Mojo is over in both races (8 m in race 4, 1.3 m in race 5), sails on 10–15 s and restarts at +44 s and +52 s.
+- **Over at the gun and restarted:** Mojo race 2 and 1044 race 3 are 2.5 m over at the gun, back behind the line within ~5 s, and restart at +10 s. On Sunday Mojo is over in both races (8 m in race 4, 1.3 m in race 5), sails on 10–15 s and restarts at +44 s and +52 s. 1044 in race 5 is only 0.8 m over (inside the 1 m on-time tolerance) but goes back and restarts at +56 s, so a return counts as an OCS at any distance, and the first beat's shift analysis starts at the restart.
+- **Side by side:** the three boats are within 200 m on the same leg and tack for 50 stretches of a minute or more, enough to split gains into speed and angle.
 - **Model-feed wind:** TWS on Mojo and 1044 is identical and changes by ~0.001 kt a second (a smoothed weather-model feed, not measured). `analyze.py` doesn't trust it, so there are no targets.
 - **Offset marks:** the windward marks in races 1–4 have an offset ~20–30 s away; rounding stats run on to the offset.
 - **Finish near the line end:** Chomp crosses race 5's finish close to the end; line crossings count up to 20 m past either end.

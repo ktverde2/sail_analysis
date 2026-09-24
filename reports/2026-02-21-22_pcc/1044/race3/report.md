@@ -56,7 +56,7 @@ Wind direction from headings: heading ± half the tacking angle. Shifts are rela
 
 | Leg | Median wind | Trend over beat | Oscillation | Pattern | % right of rhumb | Max left/right m | Headed > 5° without tacking |
 |---|---|---|---|---|---|---|---|
-| 1 | 306° | -2° | ±4° | oscillating | 29 | 341/144 | 0 s |
+| 1 | 306° | -2° | ±4° | oscillating | 34 | 325/146 | 0 s |
 | 3 | 307° | -10° | ±3° | persistent left shift | 13 | 358/46 | 55 s |
 | 5 | 306° | -7° | ±4° | persistent left shift | 80 | 122/417 | 0 s |
 

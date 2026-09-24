@@ -30,8 +30,8 @@ Against the first tracked boat in each race, so the three parts add up to the ga
 | Boat | Start | Upwind legs | Downwind legs | Total |
 |---|---|---|---|---|
 | 1044 | 0 | 0 | 0 | 0 |
-| Chomp | 8 | 393 | 30 | 431 |
-| Mojo | 88 | 402 | 98 | 588 |
+| Chomp | -48 | 449 | 30 | 431 |
+| Mojo | 32 | 458 | 98 | 588 |
 
 ## Race 1 (11:49)
 
@@ -232,7 +232,7 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 
 | Boat | Late (s) | Line pos (from pin) | SOG at gun | Accel ±5 s | Back at −60 s |
 |---|---|---|---|---|---|
-| 1044 | on the line | 56% | 4.93 kt | 0.37 kt | 80.6 m |
+| 1044 | over 0.8 m, restarted +56 s | 39% | 4.93 kt | 0.37 kt | 80.6 m |
 | Mojo | over 1.3 m, restarted +52 s | 31% | 5.92 kt | -0.3 kt | 84.0 m |
 | Chomp | 3.0 | 43% | 5.55 kt | 0.4 kt | 78.0 m |
 
@@ -265,3 +265,75 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 | Chomp | 75 | 90 | 91 | 57 |
 
 *Speeds are over ground. % right of rhumb: share of the leg spent right of the line from the previous mark to the next, looking at the mark.*
+
+## Side by side (within 200 m, same leg, same tack or gybe)
+
+Both boats had the same wind, so the gain is the boats: speed, and angle (height on a beat, depth on a run). Gain is progress up or down the course axis.
+
+**1044 vs Mojo**
+- 25 min side by side upwind (9 stretches): **1044 gained 83 m on Mojo** (3.3 m a minute): 81 m lost on speed, 164 m from height.
+- 16 min side by side downwind (6 stretches): **Mojo gained 32 m on 1044** (2.0 m a minute): 96 m from speed, 64 m lost on depth.
+
+**1044 vs Chomp**
+- 32 min side by side upwind (9 stretches): **1044 gained 131 m on Chomp** (4.1 m a minute): 33 m lost on speed, 164 m from height.
+- 29 min side by side downwind (8 stretches): **Chomp gained 25 m on 1044** (0.9 m a minute): 19 m lost on speed, 44 m from depth.
+
+**Chomp vs Mojo**
+- 13 min side by side upwind (9 stretches): **Mojo gained 144 m on Chomp** (10.8 m a minute): 19 m lost on speed, 163 m from height.
+- 39 min side by side downwind (9 stretches): **Chomp gained 33 m on Mojo** (0.9 m a minute): 29 m lost on speed, 62 m from depth.
+
+| Race | Leg | Tack | From | Length | Boats | Apart (m) | Gain (m) | Speed / angle (m) | SOG (kt) | Angle (°) | Heel (°) |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Race 1 | Beat 1 | starboard tack | 0:25 | 1:09 | 1044 / Mojo | 148→112 | 1044 +10 | -14 / +24 | 5.38 / 5.95 | 40.1 / 49.6 | 20.4 / 16.9 |
+| Race 1 | Beat 1 | starboard tack | 0:34 | 2:38 | 1044 / Chomp | 179→122 | 1044 +31 | -22 / +53 | 5.58 / 5.97 | 40.7 / 49.4 | 19.8 / 14.0 |
+| Race 1 | Beat 1 | starboard tack | 0:34 | 1:00 | Chomp / Mojo | 39→41 | Mojo +11 | +1 / -12 | 5.99 / 5.95 | 54.3 / 49.8 | 12.7 / 16.6 |
+| Race 1 | Beat 1 | port tack | 4:35 | 6:58 | 1044 / Chomp | 124→140 | 1044 +64 | -21 / +85 | 5.7 / 5.82 | 32.9 / 39.5 | 20.5 / 15.7 |
+| Race 1 | Run 1 | port gybe | 18:07 | 5:37 | Chomp / Mojo | 200→128 | Chomp +64 | +39 / +25 | 6.12 / 5.88 | 18.0 / 21.9 | 1.9 / 2.3 |
+| Race 1 | Beat 2 | starboard tack | 25:02 | 6:03 | 1044 / Mojo | 133→174 | 1044 +38 | +13 / +25 | 5.66 / 5.57 | 38.7 / 40.6 | 17.9 / 15.4 |
+| Race 1 | Beat 2 | port tack | 36:46 | 1:22 | Chomp / Mojo | 173→156 | Mojo +26 | +0 / -26 | 4.77 / 4.78 | 62.2 / 53.3 | 9.8 / 13.1 |
+| Race 1 | Run 2 | port gybe | 41:39 | 11:26 | Chomp / Mojo | 64→90 | Chomp +26 | +21 / +5 | 5.05 / 4.99 | 14.2 / 14.7 | 3.0 / 2.8 |
+| Race 2 | Beat 1 | starboard tack | 4:19 | 2:18 | 1044 / Chomp | 167→171 | Chomp +2 | -6 / +4 | 6.07 / 6.18 | 44.6 / 44.7 | 20.7 / 20.3 |
+| Race 2 | Beat 1 | port tack | 8:28 | 5:20 | 1044 / Chomp | 168→184 | 1044 +18 | -1 / +19 | 5.8 / 5.81 | 29.6 / 31.4 | 21.3 / 19.6 |
+| Race 2 | Beat 1 | port tack | 13:38 | 1:15 | 1044 / Mojo | 124→136 | Mojo +5 | -6 / +1 | 5.71 / 5.91 | 35.8 / 39.7 | 17.9 / 17.4 |
+| Race 2 | Run 1 | starboard gybe | 15:41 | 1:41 | 1044 / Chomp | 19→29 | 1044 +9 | +13 / -4 | 6.5 / 6.24 | 13.0 / 8.6 | 4.8 / 2.3 |
+| Race 2 | Run 1 | starboard gybe | 16:33 | 1:08 | 1044 / Mojo | 184→180 | 1044 +3 | -15 / +18 | 6.38 / 6.81 | 6.0 / 21.5 | 5.7 / 4.2 |
+| Race 2 | Run 1 | port gybe | 18:14 | 7:09 | 1044 / Chomp | 51→65 | Chomp +42 | -32 / -10 | 6.35 / 6.5 | 16.2 / 14.9 | 3.8 / 2.3 |
+| Race 2 | Run 1 | port gybe | 19:15 | 2:05 | 1044 / Mojo | 198→199 | 1044 +20 | +7 / +13 | 6.4 / 6.28 | 14.3 / 19.9 | 3.4 / 3.6 |
+| Race 2 | Beat 2 | port tack | 27:32 | 1:37 | 1044 / Chomp | 142→113 | 1044 +6 | -11 / +17 | 5.65 / 5.9 | 29.0 / 34.6 | 21.6 / 19.6 |
+| Race 2 | Beat 2 | port tack | 28:06 | 5:11 | 1044 / Mojo | 137→168 | 1044 +30 | -20 / +50 | 5.65 / 5.8 | 29.7 / 35.2 | 21.0 / 18.5 |
+| Race 2 | Beat 2 | port tack | 28:06 | 1:03 | Chomp / Mojo | 193→193 | Chomp +0 | +1 / -1 | 5.77 / 5.75 | 30.9 / 31.2 | 19.1 / 17.3 |
+| Race 2 | Beat 2 | starboard tack | 33:39 | 3:39 | 1044 / Mojo | 169→184 | 1044 +19 | -16 / +35 | 5.95 / 6.14 | 40.8 / 44.9 | 22.8 / 19.0 |
+| Race 2 | Run 2 | port gybe | 42:42 | 8:11 | 1044 / Chomp | 134→139 | 1044 +42 | +22 / +20 | 6.47 / 6.38 | 12.6 / 15.2 | 3.3 / 2.3 |
+| Race 2 | Run 2 | port gybe | 49:27 | 2:08 | Chomp / Mojo | 200→174 | Mojo +11 | -2 / -9 | 6.43 / 6.46 | 15.7 / 10.0 | 2.3 / 3.2 |
+| Race 3 | Beat 1 | port tack | 2:01 | 1:15 | 1044 / Mojo | 55→48 | Mojo +9 | -7 / -2 | 5.19 / 5.42 | 40.1 / 39.3 | 16.5 / 18.6 |
+| Race 3 | Run 1 | port gybe | 18:26 | 6:40 | 1044 / Mojo | 152→102 | Mojo +47 | -46 / -1 | 6.0 / 6.23 | 14.7 / 14.9 | 2.8 / 2.9 |
+| Race 3 | Beat 2 | starboard tack | 27:23 | 1:44 | Chomp / Mojo | 80→143 | Mojo +21 | +15 / -36 | 5.7 / 5.34 | 43.9 / 31.9 | 17.1 / 15.5 |
+| Race 3 | Run 2 | starboard gybe | 38:52 | 1:34 | Chomp / Mojo | 133→151 | Chomp +22 | +13 / +9 | 6.32 / 6.04 | 13.2 / 17.9 | 2.7 / 2.8 |
+| Race 3 | Run 2 | port gybe | 41:09 | 3:41 | Chomp / Mojo | 148→111 | Mojo +36 | -36 / +0 | 5.46 / 5.8 | 21.0 / 21.3 | 2.9 / 2.3 |
+| Race 4 | Beat 1 | starboard tack | 0:26 | 2:45 | 1044 / Chomp | 77→85 | 1044 +5 | +0 / +5 | 5.51 / 5.51 | 36.1 / 37.2 | 18.2 / 16.3 |
+| Race 4 | Beat 1 | port tack | 10:56 | 2:34 | 1044 / Chomp | 186→137 | Chomp +21 | +13 / -34 | 5.9 / 5.67 | 46.6 / 40.7 | 21.1 / 16.1 |
+| Race 4 | Beat 1 | port tack | 11:42 | 1:48 | Chomp / Mojo | 103→117 | Mojo +5 | -6 / +1 | 5.71 / 5.86 | 40.1 / 41.9 | 16.2 / 20.8 |
+| Race 4 | Beat 1 | starboard tack | 17:22 | 1:27 | Chomp / Mojo | 93→88 | Mojo +10 | -3 / -7 | 6.16 / 6.25 | 47.6 / 46.4 | 19.3 / 22.3 |
+| Race 4 | Run 1 | port gybe | 22:11 | 1:41 | 1044 / Chomp | 128→104 | Chomp +26 | -34 / +8 | 6.44 / 7.11 | 6.0 / 13.8 | 2.8 / 2.1 |
+| Race 4 | Beat 2 | port tack | 34:40 | 2:34 | 1044 / Mojo | 194→166 | 1044 +17 | -16 / +33 | 5.48 / 5.79 | 46.2 / 51.5 | 18.7 / 20.4 |
+| Race 4 | Beat 2 | port tack | 43:05 | 1:03 | Chomp / Mojo | 199→147 | Mojo +49 | +5 / -54 | 5.95 / 5.71 | 62.0 / 42.3 | 14.3 / 19.2 |
+| Race 4 | Run 2 | starboard gybe | 45:55 | 7:51 | Chomp / Mojo | 19→49 | Mojo +11 | -21 / +10 | 6.96 / 7.05 | 15.2 / 16.1 | 4.3 / 4.0 |
+| Race 5 | Beat 1 | port tack | 2:17 | 4:19 | 1044 / Chomp | 136→175 | Chomp +7 | +10 / -17 | 5.75 / 5.65 | 39.5 / 36.5 | 20.1 / 18.4 |
+| Race 5 | Beat 1 | starboard tack | 15:58 | 2:15 | Chomp / Mojo | 159→156 | Mojo +2 | -3 / +1 | 5.52 / 5.58 | 38.9 / 38.9 | 18.2 / 20.4 |
+| Race 5 | Run 1 | starboard gybe | 19:53 | 1:42 | 1044 / Chomp | 144→116 | 1044 +25 | +53 / -28 | 7.03 / 5.92 | 29.1 / 18.5 | 4.6 / 3.8 |
+| Race 5 | Run 1 | port gybe | 21:56 | 1:19 | 1044 / Mojo | 170→199 | Mojo +14 | -24 / +10 | 7.23 / 7.83 | 8.2 / 16.6 | 3.4 / 2.6 |
+| Race 5 | Run 1 | port gybe | 26:50 | 1:33 | 1044 / Chomp | 85→106 | Chomp +18 | -12 / -6 | 6.58 / 6.84 | 11.3 / 8.5 | 3.2 / 2.4 |
+| Race 5 | Beat 2 | starboard tack | 39:24 | 1:41 | 1044 / Mojo | 103→122 | Mojo +2 | -11 / +9 | 5.3 / 5.55 | 28.6 / 32.1 | 19.1 / 16.1 |
+| Race 5 | Run 2 | starboard gybe | 45:26 | 2:15 | 1044 / Chomp | 64→71 | Chomp +6 | -2 / -4 | 6.15 / 6.18 | 32.9 / 32.9 | 4.0 / 2.8 |
+| Race 5 | Run 2 | starboard gybe | 46:02 | 1:39 | 1044 / Mojo | 110→98 | 1044 +17 | -7 / +24 | 6.12 / 6.28 | 28.6 / 36.4 | 4.2 / 5.5 |
+| Race 5 | Run 2 | starboard gybe | 46:02 | 1:46 | Chomp / Mojo | 162→165 | Chomp +25 | +4 / +21 | 6.34 / 6.26 | 29.0 / 35.5 | 2.6 / 5.5 |
+| Race 5 | Run 2 | port gybe | 48:42 | 1:31 | Chomp / Mojo | 144→124 | Mojo +29 | -29 / +0 | 6.21 / 6.84 | 5.3 / 6.0 | 1.6 / 2.4 |
+| Race 5 | Run 2 | port gybe | 50:44 | 4:29 | 1044 / Chomp | 20→67 | Chomp +9 | +11 / -20 | 6.11 / 6.03 | 12.4 / 9.1 | 3.1 / 4.0 |
+| Race 5 | Run 2 | port gybe | 52:11 | 3:02 | 1044 / Mojo | 65→52 | Mojo +11 | -11 / +0 | 6.07 / 6.19 | 9.2 / 10.0 | 3.2 / 2.8 |
+| Race 5 | Run 2 | port gybe | 52:11 | 3:02 | Chomp / Mojo | 103→91 | Mojo +17 | -18 / +1 | 6.0 / 6.19 | 9.9 / 10.0 | 4.5 / 2.8 |
+| Race 5 | Beat 3 | starboard tack | 58:58 | 3:26 | 1044 / Chomp | 52→38 | 1044 +37 | +5 / +32 | 5.61 / 5.55 | 37.6 / 42.1 | 20.5 / 16.5 |
+| Race 5 | Beat 3 | port tack | 62:45 | 1:36 | Chomp / Mojo | 162→136 | Mojo +20 | +9 / -29 | 5.93 / 5.67 | 49.8 / 42.9 | 19.3 / 22.8 |
+| Race 5 | Beat 3 | port tack | 68:11 | 2:37 | 1044 / Mojo | 143→141 | Mojo +15 | -4 / -11 | 5.71 / 5.78 | 47.1 / 45.7 | 20.2 / 22.9 |
+
+*Gain, speed and angle are from the first boat's side (+ = it gained). Angle is the track against straight up or down the course, so it depends on the tack when the wind is shifted; compare the two boats on the same stretch.*
+

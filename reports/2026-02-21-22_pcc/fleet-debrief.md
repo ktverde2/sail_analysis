@@ -11,8 +11,11 @@
 - **A place was worth about 10 s.** Between the tracked boats, each official place was 4–24 s of GPS time (median 10 s).
 - **Over the regatta, against 1044:**
   - Chomp finished 7:11 behind and Mojo 9:48.
-  - Upwind was most of both gaps (6:33 and 6:42).
-  - Mojo also lost 1:28 at the starts, almost all in two Sunday restarts.
+  - Upwind was more than all of both gaps (7:29 and 7:38).
+  - Starts: 1044 and Mojo both restarted in race 5 (1044 at +56 s, Mojo at +52 s), so Chomp's starts came out 48 s better than 1044's over the regatta and Mojo's 32 s worse.
+- **Side by side, in the same breeze** (within 200 m, same leg and tack; the Side by side page has every stretch):
+  - Upwind, 1044 gained 131 m on Chomp and 83 m on Mojo, and Mojo 144 m on Chomp. Each time it was height: the slower boat pointed higher and won.
+  - Downwind the gains were small (25–33 m) and went the other way: Chomp sailed deepest, Mojo was fastest.
 
 [[chart:places]]
 
@@ -22,11 +25,11 @@
 - **1044: best upwind of the three (fastest on 7 of 12 beats)**
   - The best angle over the ground (about 81° tacking angle, against 88–89°) at the same speed, on the shortest path (34% over the straight line, against 41–42%), and usually on the paying side.
 - **Mojo: Sunday speed, and the cheapest tacks**
-  - Fastest of the three on 3 of 4 Sunday runs and 2 of 5 beats. After its race 5 restart it sailed the race 36 s faster than 1044.
+  - Fastest of the three on 3 of 4 Sunday runs and 2 of 5 beats (race 5's second and third).
   - 10–16 s to recover from a tack all regatta, against 16–27 s for Chomp.
 - **Chomp: Saturday downwind and leeward exits, and a race 5 lead**
   - Fastest first run in races 2 and 3 (by 27–29 s over 1044); out of Saturday's leeward marks at 4.2–4.9 kt, against 3.1–3.5 for 1044.
-  - Led the three for three marks in race 5.
+  - Led the three for three marks in race 5 (1044 and Mojo had both restarted).
 
 **Top 3 to work on**
 1. **1044: leeward exits and first runs**
@@ -38,13 +41,19 @@
    - The most tacks (8–17 a race) and the slowest recovery (16–27 s). Race 5's last beat had 6 tacks, cost 59 s, and let Mojo past.
    - **Next time:** hold Sunday's heel, tack only on clear headers, and stay in the middle when ahead or after a bad start.
 3. **Mojo: starts and side choice**
-   - Over at the gun in both Sunday races. It sailed on 10–15 s before turning back and restarted at +44 s and +52 s, costing about 4–5 places each.
+   - Over at the gun in both Sunday races. It sailed on 10–15 s before turning back and restarted at +44 s and +52 s, costing about 4–5 places each. (1044 did the same in race 5: 0.8 m over, restarted at +56 s.)
    - Saturday: right of the rhumb line 78–91% of the time on four beats; on three of them the left or middle paid (44–56 s each).
    - **Next time:** line sights and a bow call in the last 30 s. If in doubt at the gun, dip back at once. Stay between the other boats and the mark unless the side is clear.
 
+**Replay any race**
+- Press play or drag the slider. The panel beside the chart shows each boat's leg, speed, heel, distance to the next mark and gap at the last mark at that moment.
+- Worth watching: race 5 (1044 and Mojo both go back to restart, Chomp leads for three marks, then Mojo comes through on the last beat), and race 3 beat 1 (Chomp's right-hand corner).
+
+[[chart:replay]]
+
 **The takeaways in charts**
 
-**1044 was fastest of the three on 7 of 12 beats.** Each beat is timed against the fastest of the three; the first beat is timed from the gun, so a late start or a restart shows there (Mojo's race 4 and 5 bars).
+**1044 was fastest of the three on 7 of 12 beats.** Each beat is timed against the fastest of the three; the first beat is timed from the gun, so a late start or a restart shows there (Mojo's race 4 bar, and both 1044's and Mojo's in race 5).
 
 [[chart:beats]]
 
@@ -64,7 +73,7 @@
 
 [[chart:exits]]
 
-**Side of the course against time lost on each beat.** Points on the zero line are the fastest beats. Saturday leaned left, and Mojo's right-hand beats sat high. Sunday was mixed: the right paid on race 4's second beat and race 5's first, the left on race 5's last. Chomp's point at 100% right is race 3 beat 1, the 2:24 corner.
+**Side of the course against time lost on each beat.** Points on the zero line are the fastest beats. Saturday leaned left, and Mojo's right-hand beats sat high. Sunday was mixed: the right paid on race 4's second beat and race 5's first (where 1044's and Mojo's times include their restarts), the left on race 5's last. Chomp's point at 100% right is race 3 beat 1, the 2:24 corner.
 
 [[chart:sides]]
 
@@ -84,7 +93,7 @@
 | Runs | 1044 and Mojo | 4 of 10 fastest each (Chomp 3); Mojo 3 of 4 on Sunday |
 | Tacks | Mojo | 10–16 s to recover, 28–35% speed loss |
 | Leeward exits | Chomp (Saturday) | 4.2–4.9 kt out of the mark, against 3.1–3.5 for 1044 |
-| Starts | 1044 (Sunday), Mojo (Saturday) | 1044 on time on Sunday after two poor Saturday starts; Mojo best on Saturday, then two restarts |
+| Starts | None clearly | Chomp never restarted: on time in race 2, 3–14 s late in the other four. 1044 and Mojo had five restarts between them, and good starts otherwise (1044 race 4, Mojo race 3) |
 
 **Head to head**
 - **1044 vs Chomp:** 1044 ahead in all five, by 2:28, 0:42, 2:13, 0:58 and 0:50.
@@ -100,5 +109,6 @@
 - Mark passages and finishes come from the course marks for every boat. Njord's own fleet table has no legs for Chomp after race 1.
 - Tacking angles over the ground come from GPS course, independent of each boat's compass. Heading-based slip figures depend on each heading sensor: Chomp's reads about 5° off, and 1044's reads unusually little slip.
 
-**Question**
-- Mojo's Sunday speed matched 1044's once it was racing. What changed from Saturday, and can it be written down so it carries into Midwinters West?
+**Questions**
+- Mojo's Sunday speed matched 1044's. What changed from Saturday, and can it be written down so it carries into Midwinters West?
+- Two of three boats restarted in race 5. Was the line hard to judge (a sag, a current, a pin that moved)?

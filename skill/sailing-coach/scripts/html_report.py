@@ -2,10 +2,14 @@
 """Render an analyze.py report folder as one self-contained HTML file.
 
 Usage:
-  python html_report.py <report_dir> [--debrief debrief.md] [--out report.html]
+  python html_report.py <report_dir> [--debrief debrief.md] [--overview overview.md]
+                        [--deep deep-dive.md] [--out report.html]
 
-Reads <report_dir>/event.md, each <race>/report.md and its PNGs, and an optional debrief
-(Markdown written by the coach). Charts are interactive (hover for time, speed, VMG and heading;
+Reads <report_dir>/event.md, each <race>/report.md and its PNGs, and the coach's Markdown: the
+debrief, and optionally a short overview and a deep-dive. The page has three depths, each with
+its own pages: Quick look (the overview, or the coach's summary from the debrief), Debrief (the
+debrief and the event numbers) and Deep dive (the race notes, then starts, maneuvers, upwind,
+downwind, roundings and every race). Charts are interactive (hover for time, speed, VMG and heading;
 drag to zoom) using the bundled Plotly library and each race's plotdata.json; --static uses the
 PNGs instead. Everything is inlined, so the HTML file works offline, shared or uploaded on its
 own. No third-party Python packages.
@@ -92,6 +96,15 @@ p.facts { color: var(--ink2); margin: 2px 0 6px; font-size: 0.92rem; }
 .next { color: var(--ink2); }
 footer { color: var(--muted); font-size: 0.85rem; margin-top: 32px; }
 nav.pages a[aria-current="page"] { background: var(--accent); color: #fff; }
+nav.levels { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; margin: 16px 0 4px;
+  border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--card); }
+nav.levels a { display: block; padding: 8px 12px; text-decoration: none; color: var(--ink);
+  border-left: 1px solid var(--line); border-radius: 0; background: none; font-size: 0.95rem; }
+nav.levels a:first-child { border-left: 0; }
+nav.levels a small { display: block; color: var(--muted); font-size: 0.78rem; }
+nav.levels a[aria-current="true"] { background: var(--accent); color: #fff; }
+nav.levels a[aria-current="true"] small { color: #fff; opacity: 0.85; }
+nav.pages a[hidden] { display: none; }
 nav.sub { margin: 0 0 8px; }
 nav.sub a { background: none; border: 1px solid var(--line); color: var(--ink2); }
 .page > h1 { font-size: 1.5rem; margin: 8px 0 4px; }
@@ -113,6 +126,11 @@ function show() {
   const id = (location.hash || '').slice(1);
   let target = pages.find(p => p.id === id) || (id && document.getElementById(id)?.closest('.page')) || pages[0];
   pages.forEach(p => p.classList.toggle('active', p === target));
+  const lv = target.dataset.level;  // depth levels (boat reports): show that level's pages only
+  if (lv) {
+    document.querySelectorAll('nav.levels a').forEach(a => a.setAttribute('aria-current', a.dataset.level === lv));
+    document.querySelectorAll('nav.pages a[data-level]').forEach(a => { a.hidden = a.dataset.level !== lv; });
+  }
   if (window.renderCharts) window.renderCharts(target);
   document.querySelectorAll('nav.pages a').forEach(a => {
     if (a.getAttribute('href') === '#' + target.id) a.setAttribute('aria-current', 'page');
@@ -371,11 +389,20 @@ def figures(entries) -> str:
     return f'<div class="plots">{"".join(figs)}</div>' if figs else ""
 
 
-def page(pid: str, title: str, lede: str, body: str) -> str:
+def page(pid: str, title: str, lede: str, body: str, level: int | None = None) -> str:
+    lv = f' data-level="{level}"' if level else ""
     return (
-        f'<section class="page" id="{pid}"><h1>{html.escape(title)}</h1>'
+        f'<section class="page" id="{pid}"{lv}><h1>{html.escape(title)}</h1>'
         f'<p class="lede">{html.escape(lede)}</p>{body}</section>'
     )
+
+
+# The three depths of a boat report: (level, name, who it's for)
+LEVELS = [
+    (1, "Quick look", "The takeaways, 2 minutes"),
+    (2, "Debrief", "The coaching and the numbers"),
+    (3, "Deep dive", "Every race, leg and maneuver"),
+]
 
 
 def card(inner: str, cls: str = "") -> str:
@@ -908,6 +935,8 @@ def build(
     title: str | None,
     interactive: bool = True,
     cdn: bool = False,
+    overview: str | None = None,
+    deep: str | None = None,
 ) -> str:
     global INTERACTIVE
     INTERACTIVE = interactive and VENDOR.exists() and CHARTS_JS.exists()
@@ -925,7 +954,34 @@ def build(
     exec_md = report_dir / "executive.md"
     event = (report_dir / "event.md").read_text().split("\nPer-race detail")[0]
     event = event.replace("# Event summary", "## All races")
-    summary_body = coach_card(debrief) if debrief else ""
+    # level 1: the overview, or the coach's summary pulled from the debrief
+    quick = (
+        card(md_to_html(overview), "debrief")
+        if overview
+        else (coach_card(debrief) if debrief else "")
+    )
+    if quick:
+        pages.append(
+            page(
+                "quick",
+                "Quick look",
+                "The main takeaways. Switch to Debrief or Deep dive above for more.",
+                quick,
+                1,
+            )
+        )
+    # level 2: the debrief and the event numbers
+    if debrief:
+        pages.append(
+            page(
+                "debrief",
+                "Debrief",
+                "The coaching debrief.",
+                card(md_to_html(debrief), "debrief"),
+                2,
+            )
+        )
+    summary_body = coach_card(debrief) if debrief and overview else ""
     summary_body += card(md_to_html(exec_md.read_text()), "exec") if exec_md.exists() else ""
     summary_body += card(md_to_html(event))
     pages.append(
@@ -934,12 +990,18 @@ def build(
             "Summary",
             "The whole event at a glance, then each day and each race.",
             summary_body,
+            2,
         )
     )
-    if debrief:
+    # level 3: the coach's race notes, then every number
+    if deep:
         pages.append(
             page(
-                "debrief", "Debrief", "The coaching debrief.", card(md_to_html(debrief), "debrief")
+                "notes",
+                "Race notes",
+                "The nuances, race by race and leg by leg.",
+                card(md_to_html(deep), "debrief"),
+                3,
             )
         )
     if runs:
@@ -964,12 +1026,15 @@ def build(
             "Race by race",
             "Everything for one race in one place.",
             sub_nav + "".join(s for _, _, s in sections),
+            3,
         )
     )
 
     names = {
+        "quick": "Quick look",
         "summary": "Summary",
         "debrief": "Debrief",
+        "notes": "Race notes",
         "starts": "Starts",
         "maneuvers": "Maneuvers",
         "upwind": "Upwind",
@@ -977,15 +1042,44 @@ def build(
         "roundings": "Roundings",
         "races": "Race by race",
     }
-    ids = re.findall(r'<section class="page" id="([^"]+)"', "".join(pages))
+    joined = "".join(pages)
+    ids = re.findall(r'<section class="page" id="([^"]+)"', joined)
+    lvl = dict(re.findall(r'<section class="page" id="([^"]+)" data-level="(\d)"', joined))
+    for i in ids:  # the data pages (starts, upwind, ...) are deep-dive pages
+        lvl.setdefault(i, "3")
+    pages = [
+        re.sub(
+            r'^<section class="page" id="([^"]+)">',
+            lambda m: f'<section class="page" id="{m.group(1)}" data-level="{lvl[m.group(1)]}">',
+            p,
+        )
+        for p in pages
+    ]
+    first = {}
+    for i in ids:
+        first.setdefault(lvl[i], i)
+    levels = (
+        '<nav class="levels" aria-label="Depth">'
+        + "".join(
+            f'<a href="#{first[str(n)]}" data-level="{n}">{name}<small>{hint}</small></a>'
+            for n, name, hint in LEVELS
+            if str(n) in first
+        )
+        + "</nav>"
+    )
     nav = (
         '<nav class="pages">'
-        + "".join(f'<a href="#{i}">{names.get(i, i)}</a>' for i in ids)
+        + "".join(
+            f'<a href="#{i}" data-level="{lvl[i]}">{names.get(i, i)}</a>'
+            for i in ids
+            if sum(v == lvl[i] for v in lvl.values()) > 1
+        )
         + "</nav>"
     )
     parts = [
         f'<header class="top"><h1>{html.escape(page_title)}</h1>',
         "<p>Race analysis from Njord data</p></header>",
+        levels,
         nav,
         *pages,
         (
@@ -1026,10 +1120,24 @@ def write_html(
     title: str | None = None,
     interactive: bool = True,
     cdn: bool = False,
+    overview_path: Path | None = None,
+    deep_path: Path | None = None,
 ) -> Path:
-    debrief = debrief_path.read_text() if debrief_path else None
+    def text(p):
+        return p.read_text() if p else None
+
     out = out or report_dir / "report.html"
-    out.write_text(build(report_dir, debrief, title, interactive, cdn))
+    out.write_text(
+        build(
+            report_dir,
+            text(debrief_path),
+            title,
+            interactive,
+            cdn,
+            text(overview_path),
+            text(deep_path),
+        )
+    )
     return out
 
 
@@ -1038,7 +1146,9 @@ def main():
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     ap.add_argument("report_dir", type=Path)
-    ap.add_argument("--debrief", type=Path, help="Markdown debrief to put at the top")
+    ap.add_argument("--debrief", type=Path, help="the coaching debrief (Markdown)")
+    ap.add_argument("--overview", type=Path, help="short Quick look overview (Markdown)")
+    ap.add_argument("--deep", type=Path, help="Deep dive race notes (Markdown)")
     ap.add_argument("--out", type=Path, help="default: <report_dir>/report.html")
     ap.add_argument("--title")
     ap.add_argument("--static", action="store_true", help="PNG plots instead of interactive charts")
@@ -1048,7 +1158,9 @@ def main():
         help="load Plotly from jsDelivr instead of inlining it (smaller; needs internet)",
     )
     a = ap.parse_args()
-    print(write_html(a.report_dir, a.debrief, a.out, a.title, not a.static, a.cdn))
+    print(
+        write_html(a.report_dir, a.debrief, a.out, a.title, not a.static, a.cdn, a.overview, a.deep)
+    )
 
 
 if __name__ == "__main__":

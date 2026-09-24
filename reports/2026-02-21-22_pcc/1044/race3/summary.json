@@ -507,9 +507,9 @@
           4.4
         ],
         "pattern": "oscillating",
-        "pct_time_right": 29,
-        "max_left_m": 341,
-        "max_right_m": 144,
+        "pct_time_right": 34,
+        "max_left_m": 325,
+        "max_right_m": 146,
         "missed_headers": [],
         "missed_header_s": 0,
         "side_note": "Oscillating (\u00b14\u00b0): tacking on the headers is what pays. We worked the left."

@@ -1,4 +1,4 @@
-"""analyze.py and fleet.py against PCC 2026 day 1 (three boats) in samples/."""
+"""analyze.py and fleet.py against PCC 2026 (three boats, five races) in samples/."""
 
 import json
 import sys
@@ -46,6 +46,21 @@ def test_restart_after_being_over_at_the_gun(pcc):
     assert s["ocs_returned_s"] is not None and 0 < s["ocs_returned_s"] < s["late_s"]
     assert s["late_s"] == pytest.approx(10, abs=1)
     assert analyze.ocs_label(s).startswith("over 2.5 m, restarted +")
+
+
+def test_restart_when_over_by_less_than_a_metre(pcc):
+    _, res = pcc
+    r = res["1044"]["race5"]  # 0.8 m over at the gun, went back, restarted
+    s = r["start"]
+    assert s["ocs_at_gun_m"] == 0.8
+    assert s["ocs_returned_s"] == pytest.approx(36, abs=3)
+    assert s["late_s"] == pytest.approx(56, abs=3)
+    # the first beat's shift analysis starts at the restart, not during the return
+    beat1 = r["shifts"]["beats"][0]
+    assert beat1["missed_headers"] == []
+    # a boat on the line that never went back is still on time
+    assert res["chomp"]["race2"]["start"]["late_s"] == 0.0
+    assert "ocs_at_gun_m" not in res["chomp"]["race2"]["start"]
 
 
 def test_model_feed_wind_is_not_trusted(pcc):
@@ -104,7 +119,10 @@ def test_fleet_outputs(pcc, tmp_path):
     )
     debrief = "**What went well**\n- **1044: fast**\n\n**Top 3 to work on**\n1. **Mojo: sides**\n   - **Next time:** stay central.\n"
     page = fleet.write_html(fa, md, tmp_path, "PCC", debrief, reports, boats, cdn=True).read_text()
-    assert 'data-fleet="tracks"' in page and 'data-fleet="gaps"' in page
+    assert '<div class="replay" id="replay-race1" data-race="race1"></div>' in page
+    assert 'data-fleet="gaps"' in page and 'data-fleet="tracks"' not in page
+    assert 'id="pairs"' in page and 'data-fleet="pair"' in page
+    assert 'data-watch="race1"' in page and "## Side by side" in md
     assert "Next time:</strong> Stay central." in page
     data = json.loads(page.split('id="fleet-data">')[1].split("</script>")[0].replace("<\\/", "</"))
     assert len(data["races"]) == 5
@@ -118,12 +136,13 @@ def test_debrief_chart_placeholders(pcc, tmp_path):
     debrief = (
         "**What went well**\n- **1044: fast**\n\n[[chart:split]]\n\n"
         "**Top 3 to work on**\n1. **Mojo: sides**\n   - **Next time:** stay central.\n\n"
-        "[[chart:angles]]\n[[chart:nonsense]]\n"
+        "[[chart:angles]]\n[[chart:nonsense]]\n[[chart:replay]]\n"
     )
     page = fleet.write_html(fa, md, tmp_path, "PCC", debrief, reports, boats, cdn=True).read_text()
     debrief_page = page[page.index('id="debrief"') :]
     assert '<div class="chart" data-fleet="split"></div>' in debrief_page
     assert '<div class="chart" data-fleet="angles"></div>' in debrief_page
+    assert '<div class="replay"></div>' in debrief_page  # replay with a button per race
     assert "nonsense" not in debrief_page and "[[chart:" not in page
     # the coach's summary still finds both sections around the chart line
     assert "Next time:</strong> Stay central." in page
@@ -164,4 +183,32 @@ def test_official_results(pcc):
     assert (
         "## Official results (42 boats, YachtScoring)" in md
         and "| 12 | 16 | 17 | 18 | 26 | 45 (14) | 44 (" in md
+    )
+
+
+def test_side_by_side(pcc):
+    reports, res = pcc
+    fa = fleet.fleet_analysis(fleet.load_fleet(PCC, reports))
+    pairs = [(r, p) for r in fa["races"] for p in r["pairs"]]
+    assert len(pairs) > 30
+    for r, p in pairs:
+        assert p["duration_s"] >= fleet.PAIR_MIN_S
+        assert max(p["apart_m"]) <= fleet.PAIR_RADIUS_M
+        assert p["leg_type"] == r["leg_types"][p["leg"]]
+        assert p["gain_speed_m"] + p["gain_angle_m"] == p["gain_m"]
+        assert p["side"] in ("starboard tack", "port tack", "starboard gybe", "port gybe")
+        assert p["leg_type"] == "upwind" or p["side"].endswith("gybe")
+        for bid in (p["a"], p["b"]):  # only once both boats are racing (after any restart)
+            assert p["t0"] >= (res[bid][r["stem"]]["start"].get("late_s") or 0)
+    tot = {(x["a"], x["b"]): x for x in fa["pairs"]}
+    up = tot[("1044", "chomp")]["upwind"]
+    assert up["gain_m"] > 0 and up["gain_angle_m"] > 0 > up["gain_speed_m"]  # higher, slower
+    up = tot[("chomp", "mojo")]["upwind"]
+    assert up["gain_m"] < 0 and up["gain_angle_m"] < 0  # Mojo points higher than Chomp
+    assert all(
+        x[k]["duration_s"]
+        == sum(p["duration_s"] for _, p in pairs if (p["a"], p["b"]) == key and p["leg_type"] == k)
+        for key, x in tot.items()
+        for k in ("upwind", "downwind")
+        if x[k]
     )

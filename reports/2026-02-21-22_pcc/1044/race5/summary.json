@@ -53,14 +53,16 @@
     "below_line_-30s_m": 35.9,
     "below_line_-10s_m": 17.7,
     "below_line_+0s_m": -0.8,
-    "late_s": 0.0,
+    "late_s": 56.0,
+    "ocs_at_gun_m": 0.8,
+    "ocs_returned_s": 36.0,
     "recrossed_after_gun": true,
     "prestart_maneuvers_5min": 0,
     "last_maneuver_before_gun_s": null,
     "line_length_m": 502,
-    "line_pos_pct_from_pin": 56,
+    "line_pos_pct_from_pin": 39,
     "line_pos_label": "middle",
-    "distance_from_line_at_cross_m": 2.8,
+    "distance_from_line_at_cross_m": 2.1,
     "pct_last_60s_on_stbd": 100
   },
   "legs": [
@@ -484,26 +486,19 @@
         "twd_median": 308.1,
         "half_angle": 37.6,
         "leeway_deg": 3.2,
-        "trend_deg": 16.6,
-        "oscillation_deg": 7.9,
+        "trend_deg": 10.3,
+        "oscillation_deg": 4.4,
         "range_deg": [
-          -5.1,
-          5.1
+          -4.8,
+          5.3
         ],
         "pattern": "persistent right shift",
-        "pct_time_right": 56,
-        "max_left_m": 188,
-        "max_right_m": 345,
-        "missed_headers": [
-          {
-            "start_s": 40,
-            "duration_s": 59,
-            "tack": "stbd",
-            "avg_header_deg": 15.3
-          }
-        ],
-        "missed_header_s": 59,
-        "side_note": "Wind went right 17\u00b0 over the beat, which pays the right; we worked the middle (56% of the time right of the rhumb line) - the other side should have paid."
+        "pct_time_right": 66,
+        "max_left_m": 132,
+        "max_right_m": 402,
+        "missed_headers": [],
+        "missed_header_s": 0,
+        "side_note": "Wind went right 10\u00b0 over the beat, which pays the right; we worked the right (66% of the time right of the rhumb line) - right call."
       },
       {
         "leg": 3,

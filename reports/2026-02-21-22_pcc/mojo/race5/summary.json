@@ -487,19 +487,19 @@
         "twd_median": 303.9,
         "half_angle": 35.0,
         "leeway_deg": 9.1,
-        "trend_deg": -0.4,
-        "oscillation_deg": 6.7,
+        "trend_deg": 4.0,
+        "oscillation_deg": 4.4,
         "range_deg": [
           -4.9,
-          7.9
+          6.9
         ],
         "pattern": "oscillating",
-        "pct_time_right": 93,
-        "max_left_m": 52,
-        "max_right_m": 798,
+        "pct_time_right": 91,
+        "max_left_m": 98,
+        "max_right_m": 776,
         "missed_headers": [],
         "missed_header_s": 0,
-        "side_note": "Oscillating (\u00b17\u00b0): tacking on the headers is what pays. We worked the right."
+        "side_note": "Oscillating (\u00b14\u00b0): tacking on the headers is what pays. We worked the right."
       },
       {
         "leg": 3,
@@ -546,7 +546,7 @@
         "leg": 1,
         "onto": "Port",
         "headed_before_deg": null,
-        "lifted_after_deg": -14.3,
+        "lifted_after_deg": 3.9,
         "note": null,
         "overstand_deg": null,
         "dist_to_mark_m": null,

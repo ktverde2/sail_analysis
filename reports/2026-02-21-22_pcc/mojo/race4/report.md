@@ -48,22 +48,22 @@ Wind direction from headings: heading ± half the tacking angle. Shifts are rela
 
 | Leg | Median wind | Trend over beat | Oscillation | Pattern | % right of rhumb | Max left/right m | Headed > 5° without tacking |
 |---|---|---|---|---|---|---|---|
-| 1 | 301° | +16° | ±6° | persistent right shift | 87 | 126/567 | 0 s |
+| 1 | 301° | +9° | ±2° | persistent right shift | 94 | 53/613 | 0 s |
 | 3 | 308° | -1° | ±4° | oscillating | 31 | 340/144 | 0 s |
 
-- Leg 1: Wind went right 16° over the beat, which pays the right; we worked the right (87% of the time right of the rhumb line) - right call.
+- Leg 1: Wind went right 9° over the beat, which pays the right; we worked the right (94% of the time right of the rhumb line) - right call.
 - Leg 3: Oscillating (±4°): tacking on the headers is what pays. We worked the left.
 
 Tacks: 3 on a header, 3 no clear shift (< 3°), 2 on a lift, 1 double tack, 2 layline.
 
 | Time | Leg | Onto | Headed before | New tack after | Call |
 |---|---|---|---|---|---|
-| 1:08 | 1 | Port | +36° | +2° | tacked on a header, new tack neutral |
+| 1:08 | 1 | Port | +10° | +2° | tacked on a header, new tack neutral |
 | 7:31 | 1 | Stbd | -1° | +4° | tacked no clear shift |
 | 11:22 | 1 | Port | -6° | +0° | tacked on a lift, new tack neutral |
 | 14:29 | 1 | Stbd | +7° | +2° | tacked on a header, new tack neutral |
 | 16:40 | 1 | Port | -5° | – | double tack (on a lift) |
-| 17:00 | 1 | Stbd | +5° | – | layline tack, overstood by ~6° |
+| 17:00 | 1 | Stbd | +5° | – | layline tack, overstood by ~7° |
 | 30:26 | 3 | Stbd | +4° | +0° | tacked on a header, new tack neutral |
 | 33:29 | 3 | Port | +0° | +4° | tacked no clear shift |
 | 37:13 | 3 | Stbd | -0° | +6° | tacked no clear shift |
