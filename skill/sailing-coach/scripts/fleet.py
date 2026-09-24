@@ -52,6 +52,7 @@ SERIES_STEP_S = 2  # track overlay and replay resolution
 PAIR_RADIUS_M = 200
 PAIR_MIN_S = 60  # shortest stretch worth comparing
 PAIR_SETTLE_S = 20  # skip this long after a mark or a tack/gybe (either boat)
+PAIR_MIDDLE_M = 100  # within this of the rhumb line counts as the middle of the course
 KT = 1852 / 3600  # m/s per knot
 
 
@@ -240,6 +241,60 @@ def side_by_side(per: dict[str, pd.DataFrame], leg_types: list[str]) -> list[dic
     return out
 
 
+def place_pairs(pairs, per, origins, targets, stem) -> list[dict]:
+    """Number each stretch (R2-3 = race 2, third stretch) and say where on the leg it was:
+    along the leg (first, middle or last third, from the last mark to the next) and across it
+    (left, middle or right of the rhumb line, looking at the next mark)."""
+    n = (re.findall(r"\d+", stem) or [stem])[0]
+    for k, p in enumerate(pairs, 1):
+        p["id"] = f"R{n}-{k}"
+        mid = (p["t0"] + p["t1"]) // 2
+        pts = [per[b].loc[mid] for b in (p["a"], p["b"]) if mid in per[b].index]
+        j = p["leg"]
+        if not pts or j >= len(targets) or j >= len(origins):
+            continue
+        px = float(np.mean([q.x for q in pts]))
+        py = float(np.mean([q.y for q in pts]))
+        (ax, ay), (bx, by) = origins[j], targets[j]
+        L = math.hypot(bx - ax, by - ay) or 1.0
+        ux, uy = (bx - ax) / L, (by - ay) / L
+        frac = ((px - ax) * ux + (py - ay) * uy) / L
+        xte = (px - ax) * uy - (py - ay) * ux  # + = right of the rhumb, looking at the mark
+        along = "first third" if frac < 1 / 3 else "middle third" if frac < 2 / 3 else "last third"
+        side = "right" if xte > PAIR_MIDDLE_M else "left" if xte < -PAIR_MIDDLE_M else "middle"
+        p["where"] = {
+            "along": along,
+            "side": side,
+            "frac": round(frac, 2),
+            "xte_m": round(xte),
+            "label": f"{side}, {along}",
+        }
+    return pairs
+
+
+def where_summary(fa: dict) -> list[dict]:
+    """Stretches counted by where on the leg they were, beats and runs apart."""
+    rows = {}
+    for r in fa["races"]:
+        for p in r.get("pairs", []):
+            w = p.get("where")
+            if not w:
+                continue
+            k = (p["leg_type"], w["along"], w["side"])
+            row = rows.setdefault(k, {"n": 0, "duration_s": 0})
+            row["n"] += 1
+            row["duration_s"] += p["duration_s"]
+    order_a = ["first third", "middle third", "last third"]
+    order_s = ["left", "middle", "right"]
+    return [
+        {"leg_type": t, "along": a, "side": sd, **rows[(t, a, sd)]}
+        for t in ("upwind", "downwind")
+        for a in order_a
+        for sd in order_s
+        if (t, a, sd) in rows
+    ]
+
+
 def _pair_row(a, b, pa, pb, leg_types, names) -> dict:
     leg = int(pa.leg.iloc[0])
     up = leg_types[leg] == "upwind"
@@ -323,7 +378,7 @@ def pair_summary(races: list[dict]) -> list[dict]:
 def race_fleet(stem: str, entries: list[tuple[dict, dict]]) -> dict:
     """entries: (boat, {"race", "summary"}) for every boat that sailed this race."""
     boats, per_second = {}, {}
-    ref_legs = course_xy = targets_xy = None
+    ref_legs = course_xy = targets_xy = origins_xy = None
     race_name, gun_local = stem, None
     for boat, e in entries:
         race, summ = e["race"], e["summary"]
@@ -412,6 +467,15 @@ def race_fleet(stem: str, entries: list[tuple[dict, dict]]) -> dict:
             ]
             race_name, gun_local = summ.get("race", stem), summ.get("gun_local")
             targets_xy = [[round(float(v), 1) for v in xy(*p)] for p in targets]
+            # where each leg starts for "where on the leg": after a mark with an offset, the offset
+            els = [c for c in race.course if c["type"] in ("StartLine", "Mark", "Gate", "Offset")]
+            leg_from = []
+            for i, c in enumerate(els):
+                if c["type"] == "Offset":
+                    continue
+                nxt = els[i + 1] if i + 1 < len(els) else None
+                leg_from.append(_mid(nxt) if nxt and nxt["type"] == "Offset" else _mid(c))
+            origins_xy = [[round(float(v), 1) for v in xy(*p)] for p in leg_from]
     if not boats:
         return {}
     labels = leg_labels(ref_legs)
@@ -456,7 +520,9 @@ def race_fleet(stem: str, entries: list[tuple[dict, dict]]) -> dict:
         "course": course_xy,
         "targets": targets_xy,
         "boats": boats,
-        "pairs": side_by_side(per_second, leg_types),
+        "pairs": place_pairs(
+            side_by_side(per_second, leg_types), per_second, origins_xy, targets_xy, stem
+        ),
     }
 
 
@@ -1167,6 +1233,128 @@ FLEET_JS = r"""
     };
     load(0);
   }
+  // ---------------------------------------------------------------- side-by-side map
+  // Every side-by-side stretch drawn where it happened: both boats' tracks in their colours,
+  // the boat that gained drawn thick. Filter by race (or all races overlaid, each in its own
+  // course frame: start line at 0, upwind up) and by pair. Click a stretch to watch it.
+  function pairmap(el) {
+    const fixed = el.dataset.a ? [el.dataset.a, el.dataset.b] : null;
+    const pairs = (FLEET.pairs || []).map(x => [x.a, x.b]);
+    const name = id => FLEET.day[id].name;
+    let ri = -1, li = 0, pi = fixed ? pairs.findIndex(x => x[0] === fixed[0] && x[1] === fixed[1]) : -1;
+    const legs = [['Beats and runs', null], ['Beats', 'upwind'], ['Runs', 'downwind']];
+    const row = (cls, labels, cur) => '<div class="rp-races ' + cls + '">' + labels.map((t, i) =>
+      '<button type="button" data-i="' + (i + cur) + '">' + t + '</button>').join('') + '</div>';
+    el.innerHTML =
+      row('pm-races', ['All races', ...FLEET.races.map(r => r.race)], -1) +
+      row('pm-legs', legs.map(x => x[0]), 0) +
+      (fixed ? '' : row('pm-pairs', ['All pairs', ...pairs.map(x => name(x[0]) + ' vs ' + name(x[1]))], -1)) +
+      '<div class="pm-body"><div class="pm-plot"></div><aside class="pm-list"></aside></div>';
+    const plot = el.querySelector('.pm-plot'), list = el.querySelector('.pm-list');
+    let shown = [];  // [{r, p, traces: [indices]}]
+    function seg(s, t0, t1) {
+      const i0 = Math.max(0, at(s.t, t0)), i1 = at(s.t, t1);
+      return [s.x.slice(i0, i1 + 1), s.y.slice(i0, i1 + 1)];
+    }
+    function watch(stem, t0, t1) {
+      location.hash = '#replay-' + stem;
+      setTimeout(() => {
+        const rp = document.getElementById('replay-' + stem);
+        if (rp && rp._replay) rp._replay.watch(stem, t0, t1);
+      }, 80);
+    }
+    function highlight(k) {  // k: index into shown, or -1 for none
+      if (!shown.length) return;
+      const idx = shown.flatMap(x => x.traces);
+      const op = shown.flatMap((x, i) => x.traces.map(() => (k < 0 || i === k ? 1 : 0.15)));
+      Plotly.restyle(plot, { opacity: op }, idx);
+    }
+    function draw() {
+      const mark = (sel, v) => el.querySelectorAll(sel + ' button').forEach(b => b.setAttribute('aria-pressed', Number(b.dataset.i) === v));
+      mark('.pm-races', ri); mark('.pm-legs', li); mark('.pm-pairs', pi);
+      const races = ri < 0 ? FLEET.races : [FLEET.races[ri]];
+      const labels = ri >= 0 && plot.clientWidth >= 420;
+      const traces = [], ink2 = css('--ink2');
+      for (const r of races) {
+        const n = (r.race.match(/\d+/) || [''])[0];
+        for (const c of r.course) {
+          if (ri < 0 && c.type === 'FinishLine') continue;
+          traces.push({ x: c.pts.map(p => p[0]), y: c.pts.map(p => p[1]), mode: c.pts.length > 1 ? 'lines+markers' : 'markers',
+            marker: { size: ri < 0 ? 6 : 9, color: ink2, symbol: c.type === 'Offset' ? 'circle-open' : 'diamond' },
+            line: { color: ink2, dash: 'dot', width: 1 }, opacity: ri < 0 ? 0.45 : 1,
+            hovertext: (ri < 0 ? 'Race ' + n + ' ' : '') + c.type.replace('Line', ' line'), hoverinfo: 'text', showlegend: false });
+        }
+        if (ri >= 0) for (const id of IDS.filter(id => r.boats[id])) {
+          const b = r.boats[id];
+          traces.push({ x: b.series.x, y: b.series.y, mode: 'lines', line: { color: col(b), width: 1 }, opacity: 0.2,
+            hoverinfo: 'skip', showlegend: false });
+        }
+      }
+      shown = [];
+      for (const r of races) for (const p of r.pairs || []) {
+        if (pi >= 0 && !(p.a === pairs[pi][0] && p.b === pairs[pi][1])) continue;
+        if (legs[li][1] && p.leg_type !== legs[li][1]) continue;
+        const win = p.gain_m >= 0 ? p.a : p.b, lose = win === p.a ? p.b : p.a;
+        const where = p.where ? p.where.label + ' of the ' + (p.leg_type === 'upwind' ? 'beat' : 'run') : '';
+        const tip = '<b>' + p.id + '</b> · ' + r.race + ', ' + p.leg_name + ', ' + p.side +
+          '<br>' + mmss(p.t0) + '–' + mmss(p.t1) + ' after the gun (' + mmss(p.duration_s) + ')' +
+          (where ? '<br>' + where : '') +
+          '<br><b>' + name(win) + ' gained ' + Math.abs(p.gain_m) + ' m</b> on ' + name(lose) +
+          '<br>SOG ' + name(p.a) + ' ' + p.boats[p.a].sog + ' · ' + name(p.b) + ' ' + p.boats[p.b].sog + ' kt' +
+          '<br>angle ' + name(p.a) + ' ' + Math.round(p.boats[p.a].angle) + '° · ' + name(p.b) + ' ' + Math.round(p.boats[p.b].angle) + '°' +
+          '<br><i>Click to watch</i>';
+        const item = { r, p, win, lose, where, traces: [] };
+        let mx = 0, my = 0, k = 0;
+        for (const id of [lose, win]) {
+          const [xs, ys] = seg(r.boats[id].series, p.t0, p.t1);
+          xs.forEach((v, i) => { mx += v; my += ys[i]; k++; });
+          item.traces.push(traces.length);
+          traces.push({ x: xs, y: ys, mode: 'lines', line: { color: col(r.boats[id]), width: id === win ? 6 : 2.5,
+            dash: p.leg_type === 'upwind' ? 'solid' : 'dot' },
+            hovertext: tip, hoverinfo: 'text', showlegend: false, customdata: xs.map(() => [r.stem, p.t0, p.t1]) });
+        }
+        if (labels && k) {
+          item.traces.push(traces.length);
+          traces.push({ x: [mx / k], y: [my / k], mode: 'text', text: [p.id.split('-')[1]], textposition: 'middle right',
+            textfont: { size: 11, color: ink2 }, hovertext: tip, hoverinfo: 'text', showlegend: false,
+            customdata: [[r.stem, p.t0, p.t1]] });
+        }
+        shown.push(item);
+      }
+      for (const id of IDS) traces.push({ x: [null], y: [null], mode: 'lines', name: name(id),
+        line: { color: col(FLEET.day[id]), width: 4 }, hoverinfo: 'skip' });
+      traces.push({ x: [null], y: [null], mode: 'lines', name: 'run (dotted)', line: { color: ink2, width: 3, dash: 'dot' }, hoverinfo: 'skip' });
+      const title = (ri < 0 ? 'All races' : FLEET.races[ri].race) + ': ' + shown.length + ' stretches side by side';
+      const narrow = el.clientWidth < 560;
+      const lay = base(title, narrow ? 520 : 640, plot);
+      lay.xaxis.scaleanchor = 'y'; lay.xaxis.title = 'm, looking upwind (left −, right +)'; lay.yaxis.title = 'm up the course';
+      lay.hovermode = 'closest'; lay.uirevision = 'pm' + ri + '-' + pi + '-' + li;
+      lay.margin.r = 8; lay.legend.y = narrow ? -0.18 : -0.12;
+      Plotly.react(plot, traces, lay, CONFIG);
+      list.innerHTML = shown.length ? shown.map((x, i) =>
+        '<button type="button" class="pm-row" data-k="' + i + '" style="--w:' + col(FLEET.day[x.win]) + ';--l:' + col(FLEET.day[x.lose]) + '">' +
+        '<span><span class="pm-id">' + x.p.id + '</span> <span class="pm-leg">· ' + x.r.race + ', ' + x.p.leg_name + ', ' + x.p.side.split(' ')[0] + '</span></span>' +
+        (x.where ? '<span class="pm-where">' + x.where + '</span>' : '') +
+        '<span class="pm-gain"><b>' + name(x.win) + ' +' + Math.abs(x.p.gain_m) + ' m</b> on ' + name(x.lose) + ' · ' + mmss(x.p.duration_s) + '</span>' +
+        '</button>').join('') : '<p class="rp-note">No stretches for this choice.</p>';
+      list.querySelectorAll('.pm-row').forEach(bt => {
+        const k = Number(bt.dataset.k), x = shown[k];
+        bt.addEventListener('mouseenter', () => highlight(k));
+        bt.addEventListener('focus', () => highlight(k));
+        bt.addEventListener('mouseleave', () => highlight(-1));
+        bt.addEventListener('blur', () => highlight(-1));
+        bt.addEventListener('click', () => watch(x.r.stem, x.p.t0, x.p.t1));
+      });
+    }
+    el.querySelectorAll('.pm-races button').forEach(b => b.addEventListener('click', () => { ri = Number(b.dataset.i); draw(); }));
+    el.querySelectorAll('.pm-legs button').forEach(b => b.addEventListener('click', () => { li = Number(b.dataset.i); draw(); }));
+    el.querySelectorAll('.pm-pairs button').forEach(b => b.addEventListener('click', () => { pi = Number(b.dataset.i); draw(); }));
+    draw();
+    plot.on('plotly_click', ev => {
+      const d = ev.points && ev.points[0] && ev.points[0].customdata;
+      if (d) watch(d[0], d[1], d[2]);
+    });
+  }
   // "Watch" links on the side-by-side page jump to that race's replay and play the stretch
   document.addEventListener('click', e => {
     const a = e.target.closest('a[data-watch]');
@@ -1183,6 +1371,10 @@ FLEET_JS = r"""
       });
       return;
     }
+    root.querySelectorAll('.pairmap:not([data-done])').forEach(el => {
+      el.dataset.done = '1';
+      try { pairmap(el); } catch (e) { el.textContent = 'Map failed: ' + e.message; }
+    });
     root.querySelectorAll('.replay:not([data-done])').forEach(el => {
       el.dataset.done = '1';
       try { replay(el); } catch (e) { el.textContent = 'Replay failed: ' + e.message; }
@@ -1235,10 +1427,24 @@ REPLAY_CSS = """
 .rp-time { font-variant-numeric: tabular-nums; color: var(--ink2); min-width: 9.5em; font-size: 0.9rem; }
 .rp-play { min-width: 44px; }
 .gain { font-weight: 600; }
+.pm-legs button, .pm-pairs button { font-size: 0.82rem; }
+.pm-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+@media (min-width: 760px) { .pm-body { grid-template-columns: minmax(0, 1fr) 270px; } }
+.pm-list { display: flex; flex-direction: column; gap: 6px; max-height: 640px; overflow-y: auto; }
+@media (max-width: 759px) { .pm-list { max-height: 360px; } }
+.pm-row { font: inherit; font-size: 0.82rem; text-align: left; color: var(--ink); background: var(--card);
+  border: 1px solid var(--line); border-left: 5px solid var(--w); border-radius: 8px; padding: 5px 9px;
+  cursor: pointer; display: grid; gap: 1px; }
+.pm-row:hover, .pm-row:focus-visible { border-color: var(--w); }
+.pm-id { font-weight: 600; font-variant-numeric: tabular-nums; }
+.pm-leg, .pm-where { color: var(--ink2); }
+.pm-gain { font-variant-numeric: tabular-nums; }
+td.where { text-align: left; }
 """
 
 # Day-level charts a fleet debrief can place with a line of its own: [[chart:split]].
-# [[chart:replay]] puts the race replay there, with a button for each race.
+# [[chart:replay]] puts the race replay there, with a button for each race; [[chart:pairmap]]
+# the map of where the boats sailed side by side.
 TAKEAWAY_CHARTS = ("places", "split", "beats", "angles", "sides", "heel", "exits", "tacks")
 CHART_LINE = re.compile(r"^\[\[chart:(\w+)\]\]\s*$")
 
@@ -1255,6 +1461,8 @@ def debrief_html(md: str) -> str:
         chunk = []
         if m.group(1) == "replay":
             out.append(_replay())
+        elif m.group(1) == "pairmap":
+            out.append('<div class="pairmap"></div>')
         elif m.group(1) in TAKEAWAY_CHARTS:
             out.append(_chart(m.group(1)))
     out.append(H.md_to_html("\n".join(chunk)))
@@ -1305,10 +1513,10 @@ def pairs_md(fa: dict) -> list[str]:
         L.append("")
     L += [
         (
-            "| Race | Leg | Tack | From | Length | Boats | Apart (m) | Gain (m) | "
+            "| # | Race | Leg | Tack | Where | From | Length | Boats | Apart (m) | Gain (m) | "
             "Speed / angle (m) | SOG (kt) | Angle (°) | Heel (°) |"
         ),
-        "|---|---|---|---|---|---|---|---|---|---|---|---|",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     for r in fa["races"]:
         for p in r.get("pairs", []):
@@ -1316,7 +1524,8 @@ def pairs_md(fa: dict) -> list[str]:
             ba, bb = p["boats"][p["a"]], p["boats"][p["b"]]
             win = na if p["gain_m"] >= 0 else nb
             L.append(
-                f"| {r['race']} | {p['leg_name']} | {p['side']} | {_mmss(p['t0'])} | "
+                f"| {p['id']} | {r['race']} | {p['leg_name']} | {p['side']} | "
+                f"{p['where']['label'] if p.get('where') else '–'} | {_mmss(p['t0'])} | "
                 f"{_mmss(p['duration_s'])} | {na} / {nb} | {p['apart_m'][0]}→{p['apart_m'][1]} | "
                 f"{win} +{abs(p['gain_m'])} | {p['gain_speed_m']:+} / {p['gain_angle_m']:+} | "
                 f"{ba['sog']} / {bb['sog']} | {ba['angle']} / {bb['angle']} | "
@@ -1331,7 +1540,63 @@ def pairs_md(fa: dict) -> list[str]:
         ),
         "",
     ]
+    rows = where_summary(fa)
+    if rows:
+        L += [
+            "**Where the stretches were** (count, minutes)",
+            "",
+            "| Leg | Along | Left | Middle | Right |",
+            "|---|---|---|---|---|",
+        ]
+        for t in ("upwind", "downwind"):
+            for al in ("first third", "middle third", "last third"):
+                cells = {x["side"]: x for x in rows if x["leg_type"] == t and x["along"] == al}
+                if cells:
+                    L.append(
+                        f"| {'Beat' if t == 'upwind' else 'Run'} | {al} | "
+                        + " | ".join(
+                            f"{c['n']} ({round(c['duration_s'] / 60)} min)"
+                            if (c := cells.get(sd))
+                            else "–"
+                            for sd in ("left", "middle", "right")
+                        )
+                        + " |"
+                    )
+        L += ["", f"*{WHERE_NOTE}*", ""]
     return L
+
+
+WHERE_NOTE = (
+    "Along the leg: thirds from the last mark (the offset, after a windward mark) to the next. "
+    f"Across it: within {PAIR_MIDDLE_M} m of the rhumb line is the middle; left and right are "
+    "looking at the next mark (upwind on a beat, downwind on a run)."
+)
+
+
+def where_html(fa: dict) -> str:
+    rows = where_summary(fa)
+    if not rows:
+        return ""
+    out = ["<h3>How many stretches, and where</h3>"]
+    for t, title in (("upwind", "Beats"), ("downwind", "Runs")):
+        cells = {(x["along"], x["side"]): x for x in rows if x["leg_type"] == t}
+        if not cells:
+            continue
+        head = "".join(f"<th>{s.capitalize()}</th>" for s in ("left", "middle", "right"))
+        body = ""
+        for a in ("first third", "middle third", "last third"):
+            tds = "".join(
+                f"<td>{c['n']} ({round(c['duration_s'] / 60)} min)</td>"
+                if (c := cells.get((a, sd)))
+                else "<td>–</td>"
+                for sd in ("left", "middle", "right")
+            )
+            body += f"<tr><td>{a.capitalize()}</td>{tds}</tr>"
+        out.append(
+            f'<div class="scroll"><table><tr><th>{title}</th>{head}</tr>{body}</table></div>'
+        )
+    out.append(f'<p class="chart-hint">Stretches (minutes side by side). {WHERE_NOTE}</p>')
+    return "".join(out)
 
 
 def pairs_html(fa: dict) -> str:
@@ -1350,7 +1615,15 @@ def pairs_html(fa: dict) -> str:
             "tracks. The split into speed and angle is from each boat's average SOG and track "
             "angle.</li>"
             "<li><strong>Watch</strong> plays the stretch on that race's replay.</li></ul>"
-        )
+        ),
+        H.card(
+            "<h2>Where on the course</h2>"
+            '<p class="chart-hint">Each stretch is drawn where it happened, both boats in their '
+            "colours; the thick line is the boat that gained. Pick a race, or all races overlaid "
+            "(each in its own course frame: start line at 0, upwind up). Hover for the numbers; "
+            "click a stretch to watch it on the replay.</p>"
+            '<div class="pairmap"></div>' + where_html(fa)
+        ),
     ]
     for row in fa["pairs"]:
         a, b = row["a"], row["b"]
@@ -1359,6 +1632,7 @@ def pairs_html(fa: dict) -> str:
         body = f"<h2>{html.escape(na)} vs {html.escape(nb)}</h2><ul>"
         body += "".join(f"<li>{H.inline(x)}</li>" for x in lines) + "</ul>"
         body += f'<div class="chart" data-fleet="pair" data-a="{a}" data-b="{b}"></div>'
+        body += f'<div class="pairmap" data-a="{a}" data-b="{b}"></div>'
         rows = []
         for r in fa["races"]:
             for p in r.get("pairs", []):
@@ -1373,8 +1647,12 @@ def pairs_html(fa: dict) -> str:
                 )
                 rows.append(
                     {
+                        "#": p["id"],
                         "Race": r["race"],
                         "Leg": f"{p['leg_name']}, {p['side']}",
+                        "Where": f'<span class="where">{p["where"]["label"]}</span>'
+                        if p.get("where")
+                        else "–",
                         "From": _mmss(p["t0"]),
                         "Length": _mmss(p["duration_s"]),
                         f"{na} at the start": where,

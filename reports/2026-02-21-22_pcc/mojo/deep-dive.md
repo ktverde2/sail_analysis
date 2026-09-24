@@ -5,7 +5,7 @@ Times are from each race's gun, so you can find them on the fleet report's repla
 - **Upwind, side by side: Mojo is fast but low against 1044, and high against Chomp.**
   - Against 1044 (25 min, 9 stretches): 1044 gained 83 m. Mojo was quicker (+81 m from speed) but 1044 made 164 m from height.
   - It's the same stretch after stretch. Race 2 beat 2: Mojo 5.80 kt at 35° to the course, 1044 5.65 kt at 30°. Race 4 beat 2: 5.79 kt at 52° against 5.48 kt at 46°.
-  - Against Chomp (13 min): Mojo gained 144 m, almost all from height. In the stretches where it gained most, Chomp was 7–20° lower.
+  - Against Chomp (13 min): Mojo gained 144 m, almost all from height. In the stretches where it gained most, Chomp was 7–20° lower. 92 m of it came in the last third of the beats, approaching the windward mark.
   - In the Saturday stretches where 1044 gained, it heeled 2–4° more than Mojo (18–23° against 15–19°).
 - **Downwind, side by side: the fastest boat, but the highest angle.**
   - Against 1044 (16 min): Mojo gained 32 m, +96 m from speed and −64 m from depth.

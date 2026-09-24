@@ -7,6 +7,7 @@ Times are from each race's gun, so you can find them on the fleet report's repla
   - Against Chomp (32 min, 9 stretches): 1044 gained 131 m, with 164 m from height and 33 m lost on speed.
   - Typical: race 2 beat 2 on port, 1044 at 5.65 kt and 30° to the course, Mojo at 5.80 kt and 35°, with 1044 at 21° of heel against 18.5°.
   - The one stretch 1044 lost clearly: race 4 at 10:56 (Chomp pointed 6° higher, +21 m).
+  - **Where:** the gains came in open water. In the first two-thirds of the beats 1044 gained 134 m on Chomp and 105 m on Mojo; in the last third, approaching the windward mark, nothing (−3 m and −22 m). With the late layline calls below, the approach is where the height edge goes missing.
 - **Downwind, side by side: small losses to both.**
   - Against Mojo (16 min): Mojo gained 32 m. 1044 sailed deeper (+64 m), but Mojo was faster (+96 m).
   - Against Chomp (29 min): Chomp gained 25 m. 1044 was faster (+19 m), but Chomp sailed deeper (+44 m).

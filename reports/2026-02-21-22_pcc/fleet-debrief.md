@@ -45,6 +45,15 @@
    - Saturday: right of the rhumb line 78–91% of the time on four beats; on three of them the left or middle paid (44–56 s each).
    - **Next time:** line sights and a bow call in the last 30 s. If in doubt at the gun, dip back at once. Stay between the other boats and the mark unless the side is clear.
 
+**Where the boats sailed side by side**
+- Upwind, most of it came early: 12 of 27 stretches were in the first third of a beat, off the start and the leeward gates, while the boats were still close.
+- **1044's height paid in open water.** In the first two-thirds of the beats it gained 134 m on Chomp and 105 m on Mojo; in the last third, approaching the windward mark, it gained nothing (−3 m and −22 m).
+- **Mojo beat Chomp near the windward mark:** 92 m of its 144 m came in the last third of the beats.
+- Runs were down the middle (13 of 23 stretches) or right of the rhumb line looking downwind (10).
+- Thick lines are the boat that gained; dotted lines are runs. Hover a stretch in the list to find it on the map, and click to watch it on the replay.
+
+[[chart:pairmap]]
+
 **Replay any race**
 - Press play or drag the slider. The panel beside the chart shows each boat's leg, speed, heel, distance to the next mark and gap at the last mark at that moment.
 - Worth watching: race 5 (1044 and Mojo both go back to restart, Chomp leads for three marks, then Mojo comes through on the last beat), and race 3 beat 1 (Chomp's right-hand corner).
