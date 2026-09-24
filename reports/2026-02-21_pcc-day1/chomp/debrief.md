@@ -1,6 +1,8 @@
 ## Chomp — PCC 2026, Day 1 (Feb 21, San Diego)
 - Three windward-leewards with an offset at the top and a gate at the bottom, northwest breeze (about 285–316°).
-- Second of the three tracked boats in every race: 5:23 behind 1044 over the day (2:28, 0:42, 2:13) and 3:09 ahead of Mojo. (Only these three had data; the rest of the fleet isn't in Njord.)
+- **Official: 29th, 22nd and 29th of 42, 29th on the day** (30th overall after day 2; 9th of 13 Corinthian teams).
+- Second of the three tracked boats in every race: 5:23 behind 1044 over the day (2:28, 0:42, 2:13) and 3:09 ahead of Mojo.
+- In this fleet a place was worth about 10 s. Race 3's right-hand corner (2:24) cost around 14 places.
 - All of the gap to 1044 came upwind: 5:41 lost to 1044 on the beats, 18 s gained on the runs, and level at the starts overall.
 - The fastest of the three downwind and out of the leeward marks. Upwind it gave up time on angle, on tacks, and once on a corner.
 
@@ -59,6 +61,7 @@
 | 3 | 2 | +2:13 | 0 s | +155 s | −22 s |
 
 **Data notes**
+- Official places are from YachtScoring (event 50508, 42 boats). Its finish times aren't used (some are data-entry artifacts); gaps come from the GPS tracks.
 - Speeds are over ground.
 - Chomp logs no wind, and the wind on the other boats is a smoothed model feed, so there are no speed targets. 1044 is the benchmark.
 - Only three boats had data. "Fastest", "order" and "which side paid" are among these three, not the whole fleet.

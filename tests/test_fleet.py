@@ -131,3 +131,26 @@ def test_debrief_chart_placeholders(pcc, tmp_path):
         for b in r["boats"].values():
             beats = [lg for lg in b["legs"] if lg["type"] == "upwind"]
             assert all(lg["ta_cog"] >= lg["ta_heading"] - 1 for lg in beats if "ta_cog" in lg)
+
+
+def test_official_results(pcc):
+    reports, _ = pcc
+    fa = fleet.fleet_analysis(fleet.load_fleet(PCC, reports))
+    official = json.loads((PCC / "official.json").read_text())
+    fleet.add_official(fa, official, {"1044": "1044", "chomp": "905", "mojo": "1315"})
+    off = fa["official"]
+    assert off["fleet_size"] == 42 and off["race_numbers"] == [1, 2, 3]
+    assert off["race_winners"] == ["Lifted", "DanEgerous", "Bayou Hustler"]
+    assert off["boats"]["mojo"]["places"] == [31, 29, 38]
+    assert off["boats"]["chomp"]["places"] == [29, 22, 29] and off["boats"]["chomp"]["corinthian"]
+    assert off["boats"]["1044"]["day_total"] == 45
+    # the official order matches the order in the tracks in every race
+    for r, n in zip(fa["races"], off["race_numbers"], strict=True):
+        by_gps = sorted(r["boats"], key=lambda k: r["boats"][k]["finish_s"])
+        by_official = sorted(r["boats"], key=lambda k: off["boats"][k]["all_places"][n - 1])
+        assert by_gps == by_official
+    assert 5 <= off["s_per_place"][len(off["s_per_place"]) // 2] <= 15
+    md = fleet.write_md(fa, Path(reports), "PCC")
+    assert (
+        "## Official results (42 boats, YachtScoring)" in md and "| 12 | 16 | 17 | 45 | 14 |" in md
+    )

@@ -1,0 +1,1121 @@
+{
+ "event": "2026 Etchells West Coast Spring Series - Etchells Pacific Coast Championship",
+ "event_id": 50508,
+ "source": "https://www.yachtscoring.com/event_results_cumulative/50508",
+ "races": [
+  {
+   "number": 1,
+   "start_local": "2026-02-21 11:49:00"
+  },
+  {
+   "number": 2,
+   "start_local": "2026-02-21 13:11:00"
+  },
+  {
+   "number": 3,
+   "start_local": "2026-02-21 14:21:00"
+  },
+  {
+   "number": 4,
+   "start_local": "2026-02-22 11:30:00"
+  },
+  {
+   "number": 5,
+   "start_local": "2026-02-22 12:45:00"
+  }
+ ],
+ "boats": [
+  {
+   "class": "Etchells",
+   "overall_place": 1,
+   "sail": "1454",
+   "name": "Bayou Hustler",
+   "skipper": "Austin Sperry Rod Hagebols",
+   "corinthian": false,
+   "points": [
+    3,
+    7,
+    1,
+    6,
+    3
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 13,
+   "drops": [
+    7
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 2,
+   "sail": "1477",
+   "name": "Stark Raving Mad",
+   "skipper": "Jim Madden Skip Dieball",
+   "corinthian": false,
+   "points": [
+    17,
+    4,
+    4,
+    1,
+    4
+   ],
+   "status": [
+    "SCP",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 13,
+   "drops": [
+    17
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 3,
+   "sail": "1526",
+   "name": "Magpie",
+   "skipper": "James Mayo Peter Merrington",
+   "corinthian": false,
+   "points": [
+    2,
+    10,
+    3,
+    2,
+    6
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 13,
+   "drops": [
+    10
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 4,
+   "sail": "1504",
+   "name": "Lifted",
+   "skipper": "Jim Cunningham",
+   "corinthian": false,
+   "points": [
+    1,
+    9,
+    15,
+    5,
+    1
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "SCP",
+    "AOK",
+    "AOK"
+   ],
+   "net": 16,
+   "drops": [
+    15
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 5,
+   "sail": "904",
+   "name": "GoodEnergy",
+   "skipper": "George Hershman",
+   "corinthian": false,
+   "points": [
+    6,
+    3,
+    7,
+    15,
+    5
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 21,
+   "drops": [
+    15
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 6,
+   "sail": "969",
+   "name": "Buschido",
+   "skipper": "Chris Busch",
+   "corinthian": false,
+   "points": [
+    4,
+    8,
+    5,
+    9,
+    11
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 26,
+   "drops": [
+    11
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 7,
+   "sail": "1427",
+   "name": "DanEgerous",
+   "skipper": "John Dane III",
+   "corinthian": false,
+   "points": [
+    5,
+    1,
+    9,
+    13,
+    13
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 28,
+   "drops": [
+    13
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 8,
+   "sail": "1481",
+   "name": "Warpath",
+   "skipper": "Lauren & Faith Howe Matt Reynolds",
+   "corinthian": false,
+   "points": [
+    10,
+    5,
+    8,
+    8,
+    19
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 31,
+   "drops": [
+    19
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 9,
+   "sail": "1456",
+   "name": "Freedom",
+   "skipper": "D Craig Mense",
+   "corinthian": false,
+   "points": [
+    8,
+    2,
+    14,
+    10,
+    15
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 34,
+   "drops": [
+    15
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 10,
+   "sail": "1509",
+   "name": "Rock On",
+   "skipper": "Argyle Campbell",
+   "corinthian": false,
+   "points": [
+    11,
+    6,
+    12,
+    11,
+    9
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 37,
+   "drops": [
+    12
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 11,
+   "sail": "1429",
+   "name": "Viva",
+   "skipper": "Don Jesberg",
+   "corinthian": true,
+   "points": [
+    9,
+    18,
+    27,
+    4,
+    8
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 39,
+   "drops": [
+    27
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 12,
+   "sail": "985",
+   "name": "Second Wind",
+   "skipper": "Will La Dow",
+   "corinthian": true,
+   "points": [
+    7,
+    14,
+    18,
+    19,
+    2
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 41,
+   "drops": [
+    19
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 13,
+   "sail": "1494",
+   "name": "A Mac",
+   "skipper": "Jack Jakosky",
+   "corinthian": false,
+   "points": [
+    17,
+    15,
+    6,
+    7,
+    14
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 42,
+   "drops": [
+    17
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 14,
+   "sail": "1515",
+   "name": "Martian^2",
+   "skipper": "Marvin Beckmann",
+   "corinthian": false,
+   "points": [
+    23,
+    12,
+    19,
+    3,
+    12
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 46,
+   "drops": [
+    23
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 15,
+   "sail": "986",
+   "name": "Rhino",
+   "skipper": "Bruce Nelson",
+   "corinthian": false,
+   "points": [
+    15,
+    25,
+    10,
+    12,
+    10
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 47,
+   "drops": [
+    25
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 16,
+   "sail": "1151",
+   "name": "Spot",
+   "skipper": "George Szabo",
+   "corinthian": false,
+   "points": [
+    22,
+    11,
+    11,
+    16,
+    17
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 55,
+   "drops": [
+    22
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 17,
+   "sail": "1452",
+   "name": "Team Shred",
+   "skipper": "Oliver Toole",
+   "corinthian": true,
+   "points": [
+    12,
+    24,
+    15,
+    23,
+    7
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 57,
+   "drops": [
+    24
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 18,
+   "sail": "1044",
+   "name": "Flash",
+   "skipper": "Dale Gordon",
+   "corinthian": false,
+   "points": [
+    12,
+    16,
+    17,
+    18,
+    26
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 63,
+   "drops": [
+    26
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 19,
+   "sail": "1428",
+   "name": "Alarm",
+   "skipper": "John Hele",
+   "corinthian": false,
+   "points": [
+    18,
+    17,
+    13,
+    24,
+    18
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 66,
+   "drops": [
+    24
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 20,
+   "sail": "1234",
+   "name": "Pelikaan",
+   "skipper": "Xavier Sheid",
+   "corinthian": true,
+   "points": [
+    14,
+    21,
+    16,
+    35,
+    20
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 71,
+   "drops": [
+    35
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 21,
+   "sail": "1210",
+   "name": "Que Bella",
+   "skipper": "Judge Ryan",
+   "corinthian": false,
+   "points": [
+    13,
+    28,
+    20,
+    26,
+    16
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 75,
+   "drops": [
+    28
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 22,
+   "sail": "1525",
+   "name": "Otto",
+   "skipper": "Bent Christian Wilhelmsen",
+   "corinthian": false,
+   "points": [
+    21,
+    19,
+    28,
+    14,
+    25
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 79,
+   "drops": [
+    28
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 23,
+   "sail": "1138",
+   "name": "Jack",
+   "skipper": "JC Langlois Bill Jenkins",
+   "corinthian": true,
+   "points": [
+    16,
+    32,
+    23,
+    20,
+    27
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 86,
+   "drops": [
+    32
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 24,
+   "sail": "1341",
+   "name": "Encore",
+   "skipper": "Richard Rinehart",
+   "corinthian": true,
+   "points": [
+    19,
+    27,
+    21,
+    28,
+    24
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 91,
+   "drops": [
+    28
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 25,
+   "sail": "1313",
+   "name": "D4",
+   "skipper": "Mark Surber Scott Harris",
+   "corinthian": true,
+   "points": [
+    20,
+    26,
+    26,
+    27,
+    21
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 93,
+   "drops": [
+    27
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 26,
+   "sail": "1214",
+   "name": "Valhalla",
+   "skipper": "John Brynjolfsson",
+   "corinthian": false,
+   "points": [
+    30,
+    13,
+    31,
+    25,
+    38
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 99,
+   "drops": [
+    38
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 27,
+   "sail": "946",
+   "name": "D2X",
+   "skipper": "Dave Lysinger",
+   "corinthian": false,
+   "points": [
+    24,
+    33,
+    22,
+    38,
+    23
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 102,
+   "drops": [
+    38
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 28,
+   "sail": "1371",
+   "name": "Flying Colors",
+   "skipper": "Ken Womack",
+   "corinthian": false,
+   "points": [
+    25,
+    36,
+    37,
+    22,
+    22
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 105,
+   "drops": [
+    37
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 29,
+   "sail": "1092",
+   "name": "Coyote",
+   "skipper": "Grace Yakutis",
+   "corinthian": true,
+   "points": [
+    35,
+    39,
+    25,
+    17,
+    30
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 107,
+   "drops": [
+    39
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 30,
+   "sail": "905",
+   "name": "Chomp!!",
+   "skipper": "David Janinis",
+   "corinthian": true,
+   "points": [
+    29,
+    22,
+    29,
+    31,
+    31
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 111,
+   "drops": [
+    31
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 31,
+   "sail": "981",
+   "name": "Ahui Hou",
+   "skipper": "Mickey Ryan",
+   "corinthian": false,
+   "points": [
+    27,
+    20,
+    32,
+    39,
+    34
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 113,
+   "drops": [
+    39
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 32,
+   "sail": "909",
+   "name": "Mostly Harmless",
+   "skipper": "Summer Greene",
+   "corinthian": false,
+   "points": [
+    34,
+    23,
+    24,
+    36,
+    33
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 114,
+   "drops": [
+    36
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 33,
+   "sail": "1315",
+   "name": "Mojo",
+   "skipper": "David Whisenhunt",
+   "corinthian": true,
+   "points": [
+    31,
+    29,
+    38,
+    30,
+    29
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 119,
+   "drops": [
+    38
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 34,
+   "sail": "1263",
+   "name": "Blue Fin",
+   "skipper": "Michael Terry",
+   "corinthian": true,
+   "points": [
+    28,
+    34,
+    34,
+    34,
+    28
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 124,
+   "drops": [
+    34
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 35,
+   "sail": "1000",
+   "name": "Bungle",
+   "skipper": "Scott Gordon Danny North",
+   "corinthian": false,
+   "points": [
+    33,
+    31,
+    30,
+    32,
+    32
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 125,
+   "drops": [
+    33
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 36,
+   "sail": "1216",
+   "name": "Zero Gravity 2",
+   "skipper": "Ivan Batanov",
+   "corinthian": true,
+   "points": [
+    26,
+    43,
+    43,
+    29,
+    36
+   ],
+   "status": [
+    "AOK",
+    "DNS",
+    "DNS",
+    "AOK",
+    "AOK"
+   ],
+   "net": 134,
+   "drops": [
+    43
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 37,
+   "sail": "1066",
+   "name": "Four Strands",
+   "skipper": "Bill Pascoe",
+   "corinthian": false,
+   "points": [
+    37,
+    30,
+    33,
+    37,
+    40
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 137,
+   "drops": [
+    40
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 38,
+   "sail": "971",
+   "name": "Miss Murphy",
+   "skipper": "Kjeld Hestehave",
+   "corinthian": false,
+   "points": [
+    43,
+    43,
+    43,
+    21,
+    35
+   ],
+   "status": [
+    "DNS",
+    "DNS",
+    "DNS",
+    "AOK",
+    "AOK"
+   ],
+   "net": 142,
+   "drops": [
+    43
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 39,
+   "sail": "1002",
+   "name": "Holy Toledo!",
+   "skipper": "Timothy Forderer",
+   "corinthian": false,
+   "points": [
+    36,
+    38,
+    36,
+    33,
+    37
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 142,
+   "drops": [
+    38
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 40,
+   "sail": "1217",
+   "name": "Passenger Princess",
+   "skipper": "Claire Maco Kyle Pippi",
+   "corinthian": true,
+   "points": [
+    32,
+    35,
+    35,
+    41,
+    41
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 143,
+   "drops": [
+    41
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 41,
+   "sail": "1242",
+   "name": "Safety Sweep",
+   "skipper": "Louis Tuey",
+   "corinthian": false,
+   "points": [
+    38,
+    37,
+    39,
+    40,
+    39
+   ],
+   "status": [
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK",
+    "AOK"
+   ],
+   "net": 153,
+   "drops": [
+    40
+   ]
+  },
+  {
+   "class": "Etchells",
+   "overall_place": 42,
+   "sail": "1438",
+   "name": "Adjudicator",
+   "skipper": "Paul Dorsey",
+   "corinthian": false,
+   "points": [
+    43,
+    43,
+    43,
+    43,
+    43
+   ],
+   "status": [
+    "DNF",
+    "DNS",
+    "DNS",
+    "DNC",
+    "DNC"
+   ],
+   "net": 172,
+   "drops": [
+    43
+   ]
+  }
+ ]
+}

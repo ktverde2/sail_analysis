@@ -1,6 +1,8 @@
 ## 1044 — PCC 2026, Day 1 (Feb 21, San Diego)
 - Three windward-leewards with an offset at the top and a gate at the bottom, northwest breeze (about 285–316°).
-- First of the three tracked boats in every race: ahead of Chomp by 2:28, 0:42 and 2:13, and of Mojo by 3:17, 1:35 and 3:40. (Only these three had data; the rest of the fleet isn't in Njord.)
+- **Official: 12th, 16th and 17th of 42, 14th on the day** (18th overall after day 2).
+- First of the three tracked boats in every race: ahead of Chomp by 2:28, 0:42 and 2:13, and of Mojo by 3:17, 1:35 and 3:40.
+- In this fleet a place was worth about 10 s, so the leeward-mark and first-run losses below are several places a race.
 - The gap came upwind: fastest of the three on 5 of 7 beats, on the shortest path, and usually on the side that paid.
 - The time 1044 gave away was at the starts, on the first runs, and out of the leeward marks. That's where the next minute is.
 
@@ -56,6 +58,7 @@
 | 3 | 1 | 2:13 | 2 of 3 | 1 of 2 |
 
 **Data notes**
+- Official places are from YachtScoring (event 50508, 42 boats). Its finish times aren't used (some are data-entry artifacts); gaps come from the GPS tracks.
 - Speeds are over ground.
 - The logged wind is a smoothed weather-model feed (identical on 1044 and Mojo, and it changes only every few minutes), so there are no speed targets. The other two boats are the benchmark.
 - Only three boats had data. "Fastest", "order" and "which side paid" are among these three, not the whole fleet.

@@ -10,6 +10,19 @@
 
 Order and gaps among the boats with data only, from each boat's finish-line crossing (mark passages from the course geometry, the same way for every boat). These are not race results unless every boat in the fleet was tracked.
 
+
+## Official results (42 boats, YachtScoring)
+
+| Boat | Sail | Skipper | R1 | R2 | R3 | Day total | Day rank of 42 | Event place (all races) |
+|---|---|---|---|---|---|---|---|---|
+| 1044 (Flash) | 1044 | Dale Gordon | 12 | 16 | 17 | 45 | 14 | 18 (63 net) |
+| Chomp | 905 | David Janinis | 29 | 22 | 29 | 80 | 29 | 30 (111 net); Corinthian 9 of 13 |
+| Mojo | 1315 | David Whisenhunt | 31 | 29 | 38 | 98 | 33 | 33 (119 net); Corinthian 10 of 13 |
+
+Race winners: R1 Lifted, R2 DanEgerous, R3 Bayou Hustler.
+
+What a place was worth: between the tracked boats, each official place was 7–24 s of GPS time (median 10 s). Places and points are official; YachtScoring's finish times aren't used (some are data-entry artifacts), so gaps come from the GPS tracks.
+
 ## Where the time went (day total, seconds behind the first tracked boat in each race)
 
 Against the first tracked boat in each race, so the three parts add up to the gap. Start: crossing the line later than that boat. Upwind and downwind: time lost (or gained, negative) on those legs, counting leg 1 from each boat's own line crossing; roundings sit inside the legs.

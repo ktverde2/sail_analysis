@@ -1,8 +1,16 @@
 ## PCC 2026, Day 1 — tracked-boat comparison (Feb 21, San Diego)
-- Only 3 of the boats racing had data in Njord (1044, Chomp and Mojo), so this compares those three with each other; it isn't the race results. Three windward-leewards with an offset at the top and a gate at the bottom, northwest breeze (about 285–316°).
-- Among the three: 1044 was ahead of both in every race, Chomp next, then Mojo.
+- 42 boats raced; 3 had data in Njord (1044 "Flash", Chomp!! and Mojo). The official results come from YachtScoring; everything else compares those three with each other. Three windward-leewards with an offset at the top and a gate at the bottom, northwest breeze (about 285–316°).
+- **Official places on day 1 (of 42):**
+  - 1044 12-16-17, 14th on the day.
+  - Chomp!! 29-22-29, 29th.
+  - Mojo 31-29-38, 33rd.
+  - Race winners: Lifted, DanEgerous and Bayou Hustler.
+- Among the three: 1044 was ahead of both in every race, Chomp next, then Mojo. That matches the official order.
 - Over the day, Chomp finished 5:23 behind 1044 in total and Mojo 8:32.
+- **A place was worth about 10 s.** Between the tracked boats, each official place was 7–24 s of GPS time (median 10 s). The 2:28 between 1044 and Chomp in race 1 was 17 places.
 - The gaps opened upwind. Against 1044, Chomp lost 5:41 on the beats and Mojo 6:39. Starts were close to even, and downwind Chomp gained 18 s while Mojo lost 2:00.
+
+[[chart:places]]
 
 [[chart:split]]
 
@@ -87,7 +95,8 @@
   - In race 2, Mojo's right-hand first beat put it 56 s behind at the first mark.
 
 **Data notes**
-- Only 1044, Chomp and Mojo had data; the other boats racing aren't in Njord. Order, gaps, "fastest" and "which side paid" are among these three only, and none of it is the official result.
+- Official places and points are from YachtScoring (event 50508, 42 boats). YachtScoring's finish times aren't used: some are data-entry artifacts (race 1's last "finish" is the next morning, and others fall after the next race's start). Gaps come from the GPS tracks.
+- Only 1044, Chomp and Mojo had data. Gaps, "fastest" and "which side paid" are among these three only.
 - Speeds are over ground, from GPS.
 - The logged wind on Mojo and 1044 is the same smoothed model feed (it changes only every few minutes). Chomp logs no wind. So there are no speed targets, and the comparisons are boat against boat.
 - Mark passages and finishes come from the course marks for every boat. Njord's own fleet table has no legs for Chomp after race 1, and would put Mojo ahead of Chomp in races 2 and 3.
@@ -95,4 +104,4 @@
 - Shift calls come from each boat's own headings and are soft with few tacks. Which side paid is judged from how the boats on each side did.
 
 **Question**
-- Do you have the official results for the day? With them, each boat's real place can go alongside the gaps here, and the three boats' losses can be put in context of the whole fleet.
+- Day 2 (races 4–5) is in the official results but not in this report. Is there Njord data for Sunday to add?

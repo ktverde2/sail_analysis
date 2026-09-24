@@ -1,6 +1,8 @@
 ## Mojo — PCC 2026, Day 1 (Feb 21, San Diego)
 - Three windward-leewards with an offset at the top and a gate at the bottom, northwest breeze (about 285–316°).
-- Third of the three tracked boats in every race: 8:32 behind 1044 over the day and 3:09 behind Chomp (49, 53 and 87 s). (Only these three had data; the rest of the fleet isn't in Njord.)
+- **Official: 31st, 29th and 38th of 42, 33rd on the day** (33rd overall after day 2; 10th of 13 Corinthian teams).
+- Third of the three tracked boats in every race: 8:32 behind 1044 over the day and 3:09 behind Chomp (49, 53 and 87 s).
+- In this fleet a place was worth about 10 s. Race 3's first leeward mark (about a minute) cost around 6 places, and each wrong-side beat (44–56 s) around 5.
 - The gap came upwind: 6:39 lost to 1044 on the beats, 2:00 on the runs, and 7 s gained at the starts.
 - Two causes, about equal: the side we picked on three beats, and a mode that points high but doesn't make ground.
 
@@ -62,6 +64,7 @@
 | 3 | 3 | +3:40 | −8 s | +154 s | +74 s |
 
 **Data notes**
+- Official places are from YachtScoring (event 50508, 42 boats). Its finish times aren't used (some are data-entry artifacts); gaps come from the GPS tracks.
 - Speeds are over ground; no paddlewheel.
 - The logged wind is a smoothed weather-model feed (identical on Mojo and 1044, and it changes only every few minutes), so there are no speed targets or % of target. 1044 is the benchmark.
 - Only three boats had data. "Fastest", "order" and "which side paid" are among these three, not the whole fleet.

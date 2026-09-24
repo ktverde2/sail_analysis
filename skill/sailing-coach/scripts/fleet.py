@@ -310,6 +310,73 @@ def fleet_analysis(boats: list[dict]) -> dict:
     return {"races": races, "day": day}
 
 
+def _label(ours: str, official: str) -> str:
+    """'1044 (Flash)', but just 'Mojo' when the official name is the same."""
+    same = official.lower().strip("!").startswith(ours.lower())
+    return ours if same else f"{ours} ({official})"
+
+
+def add_official(fa: dict, official: dict, sails: dict[str, str]) -> None:
+    """Put the official results (yachtscoring.py) next to the tracked-boat comparison.
+
+    sails maps our boat folder ids to sail numbers. Races are matched by start time."""
+    fleet_boats = official["boats"]
+    n_fleet = sum(1 for b in fleet_boats if any(s == "AOK" for s in b["status"]))
+    starts = {r["start_local"][:16]: r["number"] for r in official["races"]}
+    numbers = [starts.get((r.get("gun_local") or "")[:16]) for r in fa["races"]]
+    idx = [n - 1 for n in numbers if n]
+
+    def day_total(b):
+        return sum(b["points"][i] or 0 for i in idx)
+
+    by_day = sorted(fleet_boats, key=day_total)
+    corinthian = [b for b in fleet_boats if b["corinthian"]]
+    out = {
+        "event": official["event"],
+        "source": official["source"],
+        "fleet_size": len(fleet_boats),
+        "finishers": n_fleet,
+        "race_numbers": numbers,
+        "race_winners": [
+            next((b["name"] for b in fleet_boats if b["points"][i] == 1), None) for i in idx
+        ],
+        "corinthian_size": len(corinthian),
+        "boats": {},
+    }
+    for bid, sail in sails.items():
+        b = next((x for x in fleet_boats if x["sail"] == str(sail)), None)
+        if b is None or bid not in fa["day"]:
+            continue
+        total = day_total(b)
+        out["boats"][bid] = {
+            "name": b["name"],
+            "sail": b["sail"],
+            "skipper": b["skipper"],
+            "corinthian": b["corinthian"],
+            "places": [b["points"][i] for i in idx],
+            "day_total": total,
+            "day_rank": 1 + sum(day_total(x) < total for x in by_day),
+            "overall_place": b["overall_place"],
+            "net": b["net"],
+            "all_places": b["points"],
+            "corinthian_place": corinthian.index(b) + 1 if b["corinthian"] else None,
+        }
+    # what a place was worth: GPS gap between two tracked boats over the official places between them
+    per_place = []
+    for r, n in zip(fa["races"], numbers, strict=False):
+        if not n:
+            continue
+        ids = [i for i in r["boats"] if i in out["boats"]]
+        for i in ids:
+            for j in ids:
+                pi, pj = out["boats"][i]["all_places"][n - 1], out["boats"][j]["all_places"][n - 1]
+                if pj > pi:
+                    gap = r["boats"][j]["finish_s"] - r["boats"][i]["finish_s"]
+                    per_place.append(round(gap / (pj - pi), 1))
+    out["s_per_place"] = sorted(per_place)
+    fa["official"] = out
+
+
 # ---------------------------------------------------------------- markdown
 
 
@@ -350,6 +417,51 @@ def write_md(fa: dict, out: Path, title: str) -> str:
             "(mark passages from the course geometry, the same way for every boat). These are not "
             "race results unless every boat in the fleet was tracked."
         ),
+        "",
+    ]
+    off = fa.get("official")
+    if off:
+        rn = [f"R{n}" for n in off["race_numbers"] if n]
+        L += [
+            "",
+            f"## Official results ({off['fleet_size']} boats, YachtScoring)",
+            "",
+            "| Boat | Sail | Skipper | "
+            + " | ".join(rn)
+            + f" | Day total | Day rank of {off['fleet_size']} | Event place (all races) |",
+            "|---|---|---|" + "---|" * len(rn) + "---|---|---|",
+        ]
+        for k in sorted(off["boats"], key=lambda k: off["boats"][k]["day_total"]):
+            o = off["boats"][k]
+            event = f"{o['overall_place']} ({o['net']} net)"
+            if o["corinthian"]:
+                event += f"; Corinthian {o['corinthian_place']} of {off['corinthian_size']}"
+            L.append(
+                f"| {_label(fa['day'][k]['name'], o['name'])} | {o['sail']} | {o['skipper']} | "
+                + " | ".join(str(p) for p in o["places"])
+                + f" | {o['day_total']} | {o['day_rank']} | {event} |"
+            )
+        spp = off["s_per_place"]
+        L += [
+            "",
+            "Race winners: "
+            + ", ".join(
+                f"R{n} {w}" for n, w in zip(off["race_numbers"], off["race_winners"], strict=False)
+            )
+            + ".",
+        ]
+        if spp:
+            mid = spp[len(spp) // 2]
+            L += [
+                "",
+                (
+                    f"What a place was worth: between the tracked boats, each official place was "
+                    f"{spp[0]:.0f}–{spp[-1]:.0f} s of GPS time (median {mid:.0f} s). Places and "
+                    "points are official; YachtScoring's finish times aren't used (some are "
+                    "data-entry artifacts), so gaps come from the GPS tracks."
+                ),
+            ]
+    L += [
         "",
         "## Where the time went (day total, seconds behind the first tracked boat in each race)",
         "",
@@ -560,6 +672,22 @@ FLEET_JS = r"""
       lay.yaxis.autorange = 'reversed'; lay.yaxis.title = 's behind';
       Plotly.newPlot(el, traces, lay, CONFIG);
     },
+    // Official places in each race, out of the whole fleet
+    places(el) {
+      const off = FLEET.official;
+      if (!off) { el.textContent = 'No official results loaded (fleet.py --official).'; return; }
+      const labels = off.race_numbers.map(n => 'Race ' + n);
+      const traces = IDS.filter(id => off.boats[id]).map(id => {
+        const o = off.boats[id], d = FLEET.day[id];
+        return { type: 'scatter', mode: 'lines+markers', name: o.name.toLowerCase().replace(/!+$/, '').startsWith(d.name.toLowerCase()) ? d.name : d.name + ' (' + o.name + ')', x: labels, y: o.places,
+          line: { color: col(d), width: 2 }, marker: { size: 10, color: col(d), line: { color: css('--card'), width: 2 } },
+          hovertemplate: '<b>' + d.name + '</b> · %{x}<br>%{y} of ' + off.fleet_size + '<extra></extra>' };
+      });
+      const lay = base('Official place in each race, out of ' + off.fleet_size + ' boats', 340, el);
+      lay.yaxis.autorange = false; lay.yaxis.range = [off.fleet_size + 1, 0];
+      lay.yaxis.title = 'place (1 = race win)';
+      Plotly.newPlot(el, traces, lay, CONFIG);
+    },
     // Takeaway 1: where the time went
     split(el) {
       const parts = [['start', 'Start'], ['upwind', 'Upwind legs'], ['downwind', 'Downwind legs']];
@@ -704,7 +832,7 @@ def _chart(kind: str, stem: str | None = None) -> str:
 
 
 # Day-level charts a fleet debrief can place with a line of its own: [[chart:split]]
-TAKEAWAY_CHARTS = ("split", "beats", "angles", "sides", "heel", "exits", "tacks")
+TAKEAWAY_CHARTS = ("places", "split", "beats", "angles", "sides", "heel", "exits", "tacks")
 CHART_LINE = re.compile(r"^\[\[chart:(\w+)\]\]\s*$")
 
 
@@ -750,7 +878,11 @@ def write_html(
 ) -> Path:
     sections = md.split("\n## ")
     rest = ["## " + s for s in sections[1:]]
-    results = [s for s in rest if s.startswith(("## Order among", "## Where the time"))]
+    results = [
+        s
+        for s in rest
+        if s.startswith(("## Order among", "## Official results", "## Where the time"))
+    ]
     per_race = [s for s in rest if s not in results]
     summary = (H.coach_card(debrief) if debrief else "") + H.card(H.md_to_html("\n".join(results)))
     pages = [
@@ -854,10 +986,20 @@ def main():
     ap.add_argument("--html", action="store_true")
     ap.add_argument("--debrief", type=Path, help="fleet debrief (Markdown) for the HTML")
     ap.add_argument("--cdn", action="store_true", help="load Plotly online instead of inlining it")
+    ap.add_argument("--official", type=Path, help="official results from yachtscoring.py")
+    ap.add_argument(
+        "--sail",
+        action="append",
+        default=[],
+        metavar="BOAT=SAIL",
+        help="which sail number each boat folder is, e.g. --sail mojo=1315 (repeat per boat)",
+    )
     a = ap.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
     boats = load_fleet(a.data, a.reports, a.tz)
     fa = fleet_analysis(boats)
+    if a.official:
+        add_official(fa, json.loads(a.official.read_text()), dict(x.split("=", 1) for x in a.sail))
     (a.out / "fleet.json").write_text(json.dumps(fa, indent=1))
     md = write_md(fa, a.out, a.title)
     print(md)

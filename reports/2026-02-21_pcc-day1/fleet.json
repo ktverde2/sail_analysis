@@ -63258,5 +63258,104 @@
     "downwind": 120
    }
   }
+ },
+ "official": {
+  "event": "2026 Etchells West Coast Spring Series - Etchells Pacific Coast Championship",
+  "source": "https://www.yachtscoring.com/event_results_cumulative/50508",
+  "fleet_size": 42,
+  "finishers": 41,
+  "race_numbers": [
+   1,
+   2,
+   3
+  ],
+  "race_winners": [
+   "Lifted",
+   "DanEgerous",
+   "Bayou Hustler"
+  ],
+  "corinthian_size": 13,
+  "boats": {
+   "1044": {
+    "name": "Flash",
+    "sail": "1044",
+    "skipper": "Dale Gordon",
+    "corinthian": false,
+    "places": [
+     12,
+     16,
+     17
+    ],
+    "day_total": 45,
+    "day_rank": 14,
+    "overall_place": 18,
+    "net": 63,
+    "all_places": [
+     12,
+     16,
+     17,
+     18,
+     26
+    ],
+    "corinthian_place": null
+   },
+   "chomp": {
+    "name": "Chomp!!",
+    "sail": "905",
+    "skipper": "David Janinis",
+    "corinthian": true,
+    "places": [
+     29,
+     22,
+     29
+    ],
+    "day_total": 80,
+    "day_rank": 29,
+    "overall_place": 30,
+    "net": 111,
+    "all_places": [
+     29,
+     22,
+     29,
+     31,
+     31
+    ],
+    "corinthian_place": 9
+   },
+   "mojo": {
+    "name": "Mojo",
+    "sail": "1315",
+    "skipper": "David Whisenhunt",
+    "corinthian": true,
+    "places": [
+     31,
+     29,
+     38
+    ],
+    "day_total": 98,
+    "day_rank": 33,
+    "overall_place": 33,
+    "net": 119,
+    "all_places": [
+     31,
+     29,
+     38,
+     30,
+     29
+    ],
+    "corinthian_place": 10
+   }
+  },
+  "s_per_place": [
+   7.0,
+   7.3,
+   7.6,
+   8.7,
+   9.7,
+   10.4,
+   10.5,
+   11.1,
+   24.5
+  ]
  }
 }
