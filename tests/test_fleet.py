@@ -97,7 +97,11 @@ def test_fleet_outputs(pcc, tmp_path):
     boats = fleet.load_fleet(PCC, reports)
     fa = fleet.fleet_analysis(boats)
     md = fleet.write_md(fa, tmp_path, "PCC")
-    assert "## Where the time went" in md and "| 1044 | 1 | 1 | 1 | 3 |" in md
+    assert (
+        "## Where the time went" in md
+        and "| 1044 | 1 | 1 | 1 | 3 |" in md
+        and "## Order among the tracked boats" in md
+    )
     debrief = "**What went well**\n- **1044: fast**\n\n**Top 3 to work on**\n1. **Mojo: sides**\n   - **Next time:** stay central.\n"
     page = fleet.write_html(fa, md, tmp_path, "PCC", debrief, reports, boats, cdn=True).read_text()
     assert 'data-fleet="tracks"' in page and 'data-fleet="gaps"' in page

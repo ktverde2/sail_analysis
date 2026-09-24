@@ -1,18 +1,18 @@
-# PCC 2026 · Day 1 · Fleet: fleet comparison
+# PCC 2026 · Day 1 · Tracked boats
 
-## Results
+## Order among the tracked boats
 
-| Boat | Race 1 | Race 2 | Race 3 | Points | Time behind the winner |
+| Boat | Race 1 | Race 2 | Race 3 | Total | Time behind the first tracked boat |
 |---|---|---|---|---|---|
 | 1044 | 1 | 1 | 1 | 3 | 0 |
 | Chomp | 2 | 2 | 2 | 6 | +5:23 |
 | Mojo | 3 | 3 | 3 | 9 | +8:32 |
 
-Places and gaps from each boat's finish-line crossing (mark passages from the course geometry, the same way for every boat).
+Order and gaps among the boats with data only, from each boat's finish-line crossing (mark passages from the course geometry, the same way for every boat). These are not race results unless every boat in the fleet was tracked.
 
-## Where the time went (day total, seconds behind each race's winner)
+## Where the time went (day total, seconds behind the first tracked boat in each race)
 
-Against each race's winner, so the three parts add up to the finishing gap. Start: crossing the line later than the winner. Upwind and downwind: time lost (or gained, negative) on those legs, counting leg 1 from each boat's own line crossing; roundings sit inside the legs.
+Against the first tracked boat in each race, so the three parts add up to the gap. Start: crossing the line later than that boat. Upwind and downwind: time lost (or gained, negative) on those legs, counting leg 1 from each boat's own line crossing; roundings sit inside the legs.
 
 | Boat | Start | Upwind legs | Downwind legs | Total |
 |---|---|---|---|---|
@@ -22,7 +22,7 @@ Against each race's winner, so the three parts add up to the finishing gap. Star
 
 ## Race 1 (11:49)
 
-**Gap to the leader at each mark**
+**Gap to the first tracked boat at each mark**
 
 | Boat | Windward 1 | Leeward 1 | Windward 2 | Finish |
 |---|---|---|---|---|
@@ -30,7 +30,7 @@ Against each race's winner, so the three parts add up to the finishing gap. Star
 | Chomp | +1:32 (3) | +1:32 (3) | +2:20 (2) | +2:28 (2) |
 | Mojo | +0:58 (2) | +1:08 (2) | +2:42 (3) | +3:17 (3) |
 
-Gap in min:s, place at that mark in brackets.
+Gap in min:s; order among the tracked boats at that mark in brackets.
 
 **Start**
 
@@ -67,7 +67,7 @@ Gap in min:s, place at that mark in brackets.
 
 ## Race 2 (13:11)
 
-**Gap to the leader at each mark**
+**Gap to the first tracked boat at each mark**
 
 | Boat | Windward 1 | Leeward 1 | Windward 2 | Finish |
 |---|---|---|---|---|
@@ -75,7 +75,7 @@ Gap in min:s, place at that mark in brackets.
 | Chomp | 0 (1) | 0 (1) | +0:17 (2) | +0:42 (2) |
 | Mojo | +0:56 (3) | +1:32 (3) | +1:41 (3) | +1:35 (3) |
 
-Gap in min:s, place at that mark in brackets.
+Gap in min:s; order among the tracked boats at that mark in brackets.
 
 **Start**
 
@@ -112,7 +112,7 @@ Gap in min:s, place at that mark in brackets.
 
 ## Race 3 (14:21)
 
-**Gap to the leader at each mark**
+**Gap to the first tracked boat at each mark**
 
 | Boat | Windward 1 | Leeward 1 | Windward 2 | Leeward 2 | Finish |
 |---|---|---|---|---|---|
@@ -120,7 +120,7 @@ Gap in min:s, place at that mark in brackets.
 | Chomp | +2:24 (3) | +1:57 (3) | +1:47 (2) | +1:52 (2) | +2:13 (2) |
 | Mojo | +0:44 (2) | +1:56 (2) | +2:33 (3) | +2:35 (3) | +3:40 (3) |
 
-Gap in min:s, place at that mark in brackets.
+Gap in min:s; order among the tracked boats at that mark in brackets.
 
 **Start**
 

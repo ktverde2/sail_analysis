@@ -113,6 +113,7 @@ When the event has more than one boat in Njord (`event.boats`), and Kevin asks h
 
 Checks that matter with several boats:
 
+- **Usually only some of the fleet is tracked.** Say so in every report. Order, gaps, "fastest" and "which side paid" are among the tracked boats only, and never the race results. Write "first of the three tracked boats", not "won"; "ahead of Chomp", not "2nd". `fleet.py` labels its tables that way. If Kevin has the official results, put the real places alongside.
 - **Don't trust Njord's fleet table blindly.** `fleetRaceInfo` depends on Njord detecting each rounding; for a boat without wind or maneuver events it can stop after the first leg, which silently re-ranks everyone. `fleet.py` takes mark passages from the course for every boat. Cross-check the finish order against the tracks.
 - **Compare angles over the ground, not by compass.** Heading sensors differ between boats (one can read 5° off). The tacking angle from GPS course is compass-free; the gap between the heading angle and the COG angle is leeway, and big symmetric leeway (both tacks alike) suggests pinching.
 - **Say which side paid by the boats, not by the shift calls.** Each boat's wind estimate comes from its own few tacks and they disagree. The fleet's gains by side are the firmer evidence.

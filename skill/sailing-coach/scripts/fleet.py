@@ -218,8 +218,8 @@ def race_fleet(stem: str, entries: list[tuple[dict, dict]]) -> dict:
         b["place"] = b["ranks"][-1]
         b["finish_s"] = b["passes_s"][n - 1]
         b["gap_s"] = b["gaps_s"][-1]
-    # where the time went, against the race winner so the parts add up to the finishing gap:
-    # start = line crossing later than the winner's; leg 1 runs from each boat's own crossing
+    # where the time went, against the first tracked boat so the parts add up to its gap:
+    # start = line crossing later than that boat's; leg 1 runs from each boat's own crossing
     win = min(boats.values(), key=lambda b: b["finish_s"])
     for b in boats.values():
         cross = b["start"].get("late_s") or 0.0
@@ -282,13 +282,13 @@ def _plus(s):
 def write_md(fa: dict, out: Path, title: str) -> str:
     day = fa["day"]
     order = sorted(day, key=lambda k: (day[k]["points"], day[k]["total_gap_s"]))
-    L = [f"# {title}: fleet comparison", ""]
+    L = [f"# {title}", ""]
     L += [
-        "## Results",
+        "## Order among the tracked boats",
         "",
         "| Boat | "
         + " | ".join(r["race"] for r in fa["races"])
-        + " | Points | Time behind the winner |",
+        + " | Total | Time behind the first tracked boat |",
         "|---|" + "---|" * len(fa["races"]) + "---|---|",
     ]
     for k in order:
@@ -301,15 +301,16 @@ def write_md(fa: dict, out: Path, title: str) -> str:
     L += [
         "",
         (
-            "Places and gaps from each boat's finish-line crossing (mark passages from the course "
-            "geometry, the same way for every boat)."
+            "Order and gaps among the boats with data only, from each boat's finish-line crossing "
+            "(mark passages from the course geometry, the same way for every boat). These are not "
+            "race results unless every boat in the fleet was tracked."
         ),
         "",
-        "## Where the time went (day total, seconds behind each race's winner)",
+        "## Where the time went (day total, seconds behind the first tracked boat in each race)",
         "",
         (
-            "Against each race's winner, so the three parts add up to the finishing gap. Start: "
-            "crossing the line later than the winner. Upwind and downwind: time lost (or gained, "
+            "Against the first tracked boat in each race, so the three parts add up to the gap. "
+            "Start: crossing the line later than that boat. Upwind and downwind: time lost (or gained, "
             "negative) on those legs, counting leg 1 from each boat's own line crossing; "
             "roundings sit inside the legs."
         ),
@@ -328,7 +329,7 @@ def write_md(fa: dict, out: Path, title: str) -> str:
         ids = sorted(bs, key=lambda k: bs[k]["place"])
         L += ["", f"## {r['race']} ({(r['gun_local'] or '')[11:16]})", ""]
         L += [
-            "**Gap to the leader at each mark**",
+            "**Gap to the first tracked boat at each mark**",
             "",
             "| Boat | " + " | ".join(r["marks"]) + " |",
             "|---|" + "---|" * len(r["marks"]) + "",
@@ -342,7 +343,7 @@ def write_md(fa: dict, out: Path, title: str) -> str:
                 )
                 + " |"
             )
-        L += ["", "Gap in min:s, place at that mark in brackets.", ""]
+        L += ["", "Gap in min:s; order among the tracked boats at that mark in brackets.", ""]
         L += [
             "**Start**",
             "",
@@ -457,9 +458,9 @@ FLEET_JS = """
         return { x: r.marks, y: b.gaps_s, mode: 'lines+markers', name: b.name,
           line: { color: b.color, width: 2 }, marker: { size: 8 },
           customdata: b.gaps_s.map((g, i) => [clock(g).replace('+', ''), b.ranks[i]]),
-          hovertemplate: '<b>' + b.name + '</b> %{x}<br>%{customdata[0]} behind, place %{customdata[1]}<extra></extra>' };
+          hovertemplate: '<b>' + b.name + '</b> %{x}<br>%{customdata[0]} behind, order %{customdata[1]}<extra></extra>' };
       });
-      const lay = base(r.race + ': seconds behind the leader at each mark');
+      const lay = base(r.race + ': seconds behind the first tracked boat at each mark');
       lay.yaxis.autorange = 'reversed'; lay.yaxis.title = 's behind'; lay.height = 340;
       Plotly.newPlot(el, traces, lay, CONFIG);
     },
@@ -512,10 +513,17 @@ def write_html(
 ) -> Path:
     sections = md.split("\n## ")
     rest = ["## " + s for s in sections[1:]]
-    results = [s for s in rest if s.startswith(("## Results", "## Where the time"))]
+    results = [s for s in rest if s.startswith(("## Order among", "## Where the time"))]
     per_race = [s for s in rest if s not in results]
     summary = (H.coach_card(debrief) if debrief else "") + H.card(H.md_to_html("\n".join(results)))
-    pages = [H.page("summary", "Summary", "Results, and where each boat gained and lost.", summary)]
+    pages = [
+        H.page(
+            "summary",
+            "Summary",
+            "Order among the tracked boats, and where each gained and lost against the others.",
+            summary,
+        )
+    ]
     if debrief:
         pages.append(
             H.page(
