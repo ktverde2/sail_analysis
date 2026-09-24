@@ -22,6 +22,7 @@ import argparse
 import html
 import json
 import math
+import re
 from pathlib import Path
 
 import analyze as A
@@ -29,7 +30,18 @@ import html_report as H
 import numpy as np
 import pandas as pd
 
-BOAT_COLORS = ["#2a78d6", "#eb6834", "#1f9d74", "#8a5cd1", "#c7a100", "#d6336c"]
+# Categorical slots in fixed order (light, dark), validated for colour-vision separation.
+# Scatter-style charts compare every pair, which only the first three slots pass.
+BOAT_COLORS = [
+    ("#2a78d6", "#3987e5"),
+    ("#eb6834", "#d95926"),
+    ("#1baf7a", "#199e70"),
+    ("#eda100", "#c98500"),
+    ("#e87ba4", "#d55181"),
+    ("#008300", "#008300"),
+    ("#4a3aa7", "#9085e9"),
+    ("#e34948", "#e66767"),
+]
 SERIES_STEP_S = 2  # track overlay resolution
 
 
@@ -52,7 +64,7 @@ def load_fleet(data_dir: Path, reports_dir: Path, tz: str | None = None) -> list
             name = next(iter(races.values()))["summary"].get("boat") or d.name
             boats.append({"id": d.name, "name": name, "races": races})
     for i, b in enumerate(boats):
-        b["color"] = BOAT_COLORS[i % len(BOAT_COLORS)]
+        b["color"], b["color_dark"] = BOAT_COLORS[i % len(BOAT_COLORS)]
     return boats
 
 
@@ -109,6 +121,35 @@ def side_of_rhumb(g: pd.DataFrame, a: tuple, b: tuple, xy) -> dict:
     }
 
 
+def _circ_mean(deg) -> float:
+    return float(np.degrees(np.angle(np.mean(np.exp(1j * np.radians(np.asarray(deg)))))))
+
+
+def tacking_angles(g: pd.DataFrame, leg_start) -> dict:
+    """Tacking angle by compass (heading) and over the ground (GPS course) on a beat.
+
+    Tacks are split by heel side (Njord heel is negative on starboard), so a compass offset
+    doesn't move a sample to the wrong tack. The heading angle minus the ground angle is the
+    slip on both tacks together; the ground angle doesn't depend on the compass at all."""
+    if not {"Heading", "COG", "Heel"} <= set(g.columns):
+        return {}
+    g = g[(g.t >= leg_start + pd.Timedelta(seconds=30)) & (g.SOG > 3)]
+    stbd, port = g[g.Heel < -8], g[g.Heel > 8]
+    if len(stbd) < 30 or len(port) < 30:
+        return {}
+
+    def between(a, b):
+        return round(abs((a - b + 180) % 360 - 180), 1)
+
+    ta_hdg = between(_circ_mean(stbd.Heading), _circ_mean(port.Heading))
+    ta_cog = between(_circ_mean(stbd.COG), _circ_mean(port.COG))
+    return {
+        "ta_heading": ta_hdg,
+        "ta_cog": ta_cog,
+        "slip_per_tack": round((ta_cog - ta_hdg) / 2, 1),
+    }
+
+
 # ---------------------------------------------------------------- per race
 
 
@@ -156,6 +197,8 @@ def race_fleet(stem: str, entries: list[tuple[dict, dict]]) -> dict:
             }
             if i < len(targets):
                 row.update(side_of_rhumb(g, origin[i], targets[i], xy))
+            if lg["type"] == "upwind":
+                row.update(tacking_angles(g, lg["start"]))
             leg_rows.append(row)
         # summary legs (steady speed, tacking angle, heel) in beat/run order
         by_type = {"upwind": [], "downwind": []}
@@ -179,6 +222,7 @@ def race_fleet(stem: str, entries: list[tuple[dict, dict]]) -> dict:
         boats[boat["id"]] = {
             "name": boat["name"],
             "color": boat["color"],
+            "color_dark": boat["color_dark"],
             "passes_s": [r["end_s"] for r in leg_rows],
             "legs": leg_rows,
             "start": summ.get("start") or {},
@@ -255,6 +299,7 @@ def fleet_analysis(boats: list[dict]) -> dict:
         day[b["id"]] = {
             "name": b["name"],
             "color": b["color"],
+            "color_dark": b["color_dark"],
             "places": [x["place"] for x in rs],
             "points": sum(x["place"] for x in rs),
             "total_gap_s": sum(x["gap_s"] for x in rs),
@@ -414,24 +459,75 @@ def write_md(fa: dict, out: Path, title: str) -> str:
 # ---------------------------------------------------------------- html
 
 
-FLEET_JS = """
+FLEET_JS = r"""
 (function () {
   function css(n) { return getComputedStyle(document.documentElement).getPropertyValue(n).trim(); }
-  function clock(t) {
-    const a = Math.abs(Math.round(t)), s = Math.floor(a / 60) + ':' + String(a % 60).padStart(2, '0');
-    return t < 0 ? '−' + s + ' to gun' : '+' + s;
+  function dark() {
+    const t = document.documentElement.dataset.theme;
+    return t ? t === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
   }
+  function col(b) { return dark() ? b.color_dark : b.color; }
+  function mmss(t) {
+    const a = Math.abs(Math.round(t));
+    return Math.floor(a / 60) + ':' + String(a % 60).padStart(2, '0');
+  }
+  function clock(t) { return t < 0 ? '−' + mmss(t) + ' to gun' : '+' + mmss(t); }
+  function signed(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v) + ' s'; }
   const FLEET = JSON.parse(document.getElementById('fleet-data').textContent);
+  const IDS = Object.keys(FLEET.day);  // fixed boat order: colour follows the boat
   const CONFIG = { responsive: true, displaylogo: false, modeBarButtonsToRemove: ['toImage', 'lasso2d', 'select2d'] };
-  function base(title) {
-    const ink = css('--ink'), line = css('--line');
+  // long titles break onto two lines on a phone instead of running off the chart
+  function wrap(title, el) {
+    if (!el || el.clientWidth >= 560 || title.length < 40) return title;
+    const mid = Math.floor(title.length / 2);
+    let cut = title.lastIndexOf(' ', mid);
+    if (cut < 10) cut = title.indexOf(' ', mid);
+    return cut > 0 ? title.slice(0, cut) + '<br>' + title.slice(cut + 1) : title;
+  }
+  function base(title, h, el) {
+    const ink = css('--ink'), line = css('--line'), muted = css('--ink2');
+    const narrow = el && el.clientWidth < 560;
     return {
-      title: { text: title, font: { size: 14, color: ink } },
+      title: { text: wrap(title, el), font: { size: narrow ? 12 : 14, color: ink } }, height: h || 340,
       paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
-      font: { color: ink, size: 12 }, margin: { l: 50, r: 10, t: 36, b: 40 },
-      legend: { orientation: 'h', y: -0.15 },
-      xaxis: { gridcolor: line, zerolinecolor: line }, yaxis: { gridcolor: line, zerolinecolor: line },
+      font: { color: muted, size: 12 }, margin: { l: 56, r: 12, t: narrow ? 48 : 40, b: narrow ? 64 : 48 },
+      legend: { orientation: 'h', y: narrow ? -0.32 : -0.2, font: { color: ink } },
+      hoverlabel: { font: { size: 12 } },
+      xaxis: { gridcolor: line, zerolinecolor: line, linecolor: line },
+      yaxis: { gridcolor: line, zerolinecolor: muted, zerolinewidth: 1, linecolor: line },
     };
+  }
+  // every beat of the day, in order: label, race, and each boat's leg row
+  function beats() {
+    const out = [];
+    for (const r of FLEET.races) {
+      const n = (r.race.match(/\d+/) || [''])[0];
+      let k = 0;
+      r.leg_types.forEach((t, j) => {
+        if (t !== 'upwind') return;
+        k += 1;
+        const legs = {};
+        for (const id of Object.keys(r.boats)) legs[id] = r.boats[id].legs[j];
+        out.push({ label: 'R' + n + ' B' + k, name: r.race + ' beat ' + k, legs });
+      });
+    }
+    return out;
+  }
+  function leewards() {
+    const out = [];
+    for (const r of FLEET.races) {
+      const n = (r.race.match(/\d+/) || [''])[0];
+      const any = r.boats[Object.keys(r.boats)[0]];
+      let k = 0;
+      any.roundings.forEach((x, i) => {
+        if (x.type !== 'leeward') return;
+        k += 1;
+        const rs = {};
+        for (const id of Object.keys(r.boats)) rs[id] = r.boats[id].roundings[i];
+        out.push({ label: 'R' + n + ' L' + k, name: r.race + ' leeward ' + k, rs });
+      });
+    }
+    return out;
   }
   const CHARTS = {
     tracks(el, r) {
@@ -444,24 +540,143 @@ FLEET_JS = """
       }
       for (const id of Object.keys(r.boats)) {
         const b = r.boats[id], s = b.series;
-        traces.push({ x: s.x, y: s.y, mode: 'lines', name: b.name, line: { color: b.color, width: 2 },
+        traces.push({ x: s.x, y: s.y, mode: 'lines', name: b.name, line: { color: col(b), width: 2 },
           customdata: s.t.map((t, i) => [clock(t), s.sog[i]]),
           hovertemplate: '<b>' + b.name + '</b> %{customdata[0]}<br>SOG %{customdata[1]} kt<extra></extra>' });
       }
-      const lay = base(r.race + ': tracks (upwind is up)');
-      lay.xaxis.scaleanchor = 'y'; lay.xaxis.title = 'm'; lay.yaxis.title = 'm'; lay.height = 560;
+      const lay = base(r.race + ': tracks (upwind is up)', 560, el);
+      lay.xaxis.scaleanchor = 'y'; lay.xaxis.title = 'm'; lay.yaxis.title = 'm';
       Plotly.newPlot(el, traces, lay, CONFIG);
     },
     gaps(el, r) {
       const traces = Object.keys(r.boats).map(id => {
         const b = r.boats[id];
         return { x: r.marks, y: b.gaps_s, mode: 'lines+markers', name: b.name,
-          line: { color: b.color, width: 2 }, marker: { size: 8 },
-          customdata: b.gaps_s.map((g, i) => [clock(g).replace('+', ''), b.ranks[i]]),
+          line: { color: col(b), width: 2 }, marker: { size: 8 },
+          customdata: b.gaps_s.map((g, i) => [mmss(g), b.ranks[i]]),
           hovertemplate: '<b>' + b.name + '</b> %{x}<br>%{customdata[0]} behind, order %{customdata[1]}<extra></extra>' };
       });
-      const lay = base(r.race + ': seconds behind the first tracked boat at each mark');
-      lay.yaxis.autorange = 'reversed'; lay.yaxis.title = 's behind'; lay.height = 340;
+      const lay = base(r.race + ': seconds behind the first tracked boat at each mark', 340, el);
+      lay.yaxis.autorange = 'reversed'; lay.yaxis.title = 's behind';
+      Plotly.newPlot(el, traces, lay, CONFIG);
+    },
+    // Takeaway 1: where the time went
+    split(el) {
+      const parts = [['start', 'Start'], ['upwind', 'Upwind legs'], ['downwind', 'Downwind legs']];
+      const traces = IDS.map(id => {
+        const d = FLEET.day[id];
+        const ref = parts.every(p => d.split_s[p[0]] === 0);
+        return { type: 'bar', name: d.name + (ref ? ' (the reference: 0)' : ''), x: parts.map(p => p[1]),
+          y: parts.map(p => d.split_s[p[0]]), marker: { color: col(d) },
+          text: parts.map(p => d.split_s[p[0]] === 0 ? '' : signed(d.split_s[p[0]])),
+          textposition: 'outside', textfont: { color: css('--ink2'), size: 11 }, cliponaxis: false,
+          customdata: parts.map(p => signed(d.split_s[p[0]])),
+          hovertemplate: '<b>' + d.name + '</b> · %{x}<br>%{customdata} against the first tracked boat<extra></extra>' };
+      });
+      const lay = base('Where the time went: seconds behind the first tracked boat, day total', 360, el);
+      lay.barmode = 'group'; lay.bargap = 0.3; lay.bargroupgap = 0.08; lay.yaxis.title = 's (negative = gained)';
+      Plotly.newPlot(el, traces, lay, CONFIG);
+    },
+    // Takeaway 2: which boat was fastest on each beat
+    beats(el) {
+      const bs = beats();
+      const traces = IDS.map(id => ({
+        type: 'bar', name: FLEET.day[id].name, x: bs.map(b => b.label),
+        y: bs.map(b => b.legs[id] ? b.legs[id].vs_best_s : null), marker: { color: col(FLEET.day[id]) },
+        text: bs.map(b => b.legs[id] && b.legs[id].vs_best_s === 0 ? 'fastest' : ''),
+        textposition: 'outside', textfont: { color: col(FLEET.day[id]), size: 10 }, cliponaxis: false,
+        customdata: bs.map(b => b.legs[id] ? [b.name, mmss(b.legs[id].duration_s), b.legs[id].pct_right] : ['', '', '']),
+        hovertemplate: '<b>' + FLEET.day[id].name + '</b> · %{customdata[0]}<br>+%{y} s on the fastest of the three' +
+          '<br>leg %{customdata[1]}, %{customdata[2]}% right of the rhumb line<extra></extra>' }));
+      const lay = base('Time lost on each beat to the fastest of the three (0 = fastest)', 340, el);
+      lay.barmode = 'group'; lay.bargap = 0.25; lay.bargroupgap = 0.08; lay.yaxis.title = 's behind';
+      Plotly.newPlot(el, traces, lay, CONFIG);
+    },
+    // Takeaway 3: pointing by compass vs angle made over the ground
+    angles(el) {
+      const bs = beats(), traces = [];
+      const mean = xs => xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : null;
+      IDS.forEach((id, i) => {
+        const d = FLEET.day[id];
+        const rows = bs.map(b => b.legs[id]).filter(l => l && l.ta_cog != null);
+        const hdg = mean(rows.map(l => l.ta_heading)), cog = mean(rows.map(l => l.ta_cog));
+        if (hdg == null) return;
+        traces.push({ x: [hdg, cog], y: [d.name, d.name], mode: 'lines+markers', showlegend: false,
+          line: { color: col(d), width: 3 },
+          marker: { size: 13, color: [css('--card'), col(d)], line: { color: col(d), width: 2 } },
+          customdata: [['by compass', ''], ['over the ground', ' · slip ' + ((cog - hdg) / 2).toFixed(1) + '° a tack']],
+          hovertemplate: '<b>' + d.name + '</b> %{customdata[0]}: %{x:.0f}°%{customdata[1]}<extra></extra>' });
+      });
+      // key: hollow = compass, filled = ground (neutral ink so it isn't read as a boat)
+      const ink = css('--ink2');
+      traces.push({ x: [null], y: [null], mode: 'markers', name: 'By compass (heading)',
+        marker: { size: 11, color: css('--card'), line: { color: ink, width: 2 } } });
+      traces.push({ x: [null], y: [null], mode: 'markers', name: 'Over the ground (GPS)',
+        marker: { size: 11, color: ink } });
+      const lay = base('Upwind tacking angle, day average: by compass vs over the ground', 320, el);
+      lay.xaxis.title = 'tacking angle (°) · smaller = higher';
+      lay.yaxis.type = 'category'; lay.yaxis.autorange = 'reversed';
+      lay.margin.l = 70; lay.margin.b = 90; lay.legend.y = -0.42;
+      Plotly.newPlot(el, traces, lay, CONFIG);
+    },
+    // Takeaway 4: side of the course against time lost, every beat
+    sides(el) {
+      const bs = beats();
+      const traces = IDS.map(id => {
+        const d = FLEET.day[id], rows = bs.filter(b => b.legs[id]);
+        return { type: 'scatter', mode: 'markers', name: d.name,
+          x: rows.map(b => b.legs[id].pct_right), y: rows.map(b => b.legs[id].vs_best_s),
+          marker: { size: 12, color: col(d), line: { color: css('--card'), width: 2 } },
+          customdata: rows.map(b => b.name),
+          hovertemplate: '<b>' + d.name + '</b> · %{customdata}<br>%{x}% right of the rhumb line<br>+%{y} s on the fastest<extra></extra>' };
+      });
+      const lay = base('Side of the course vs time lost, every beat', 360, el);
+      lay.xaxis.title = '% of the beat right of the rhumb line'; lay.xaxis.range = [-5, 105];
+      lay.yaxis.title = 's behind the fastest';
+      lay.shapes = [{ type: 'line', x0: 50, x1: 50, yref: 'paper', y0: 0, y1: 1, line: { color: css('--line'), dash: 'dot' } }];
+      Plotly.newPlot(el, traces, lay, CONFIG);
+    },
+    // Takeaway 5: heel upwind by beat
+    heel(el) {
+      const bs = beats(), n = IDS.length;
+      const traces = IDS.map((id, i) => ({
+        type: 'scatter', mode: 'markers', name: FLEET.day[id].name,
+        x: bs.map((b, j) => j + (i - (n - 1) / 2) * 0.16),  // dodge so equal values don't hide
+        y: bs.map(b => b.legs[id] ? b.legs[id].heel_abs_avg : null),
+        marker: { size: 11, color: col(FLEET.day[id]), line: { color: css('--card'), width: 2 } },
+        customdata: bs.map(b => b.legs[id] ? [b.name, b.legs[id].vs_best_s] : ['', '']),
+        hovertemplate: '<b>' + FLEET.day[id].name + '</b> · %{customdata[0]}<br>heel %{y}°, +%{customdata[1]} s on the fastest<extra></extra>' }));
+      const lay = base('Average heel upwind, by beat', 340, el);
+      lay.yaxis.title = 'heel (°)';
+      lay.xaxis.tickvals = bs.map((b, j) => j); lay.xaxis.ticktext = bs.map(b => b.label);
+      lay.xaxis.showgrid = false;
+      Plotly.newPlot(el, traces, lay, CONFIG);
+    },
+    // Takeaway 6: speed out of the leeward marks
+    exits(el) {
+      const ls = leewards();
+      const traces = IDS.map(id => ({
+        type: 'bar', name: FLEET.day[id].name, x: ls.map(l => l.label),
+        y: ls.map(l => l.rs[id] ? l.rs[id].sog_exit : null), marker: { color: col(FLEET.day[id]) },
+        customdata: ls.map(l => l.rs[id] ? [l.name, l.rs[id].settle_s, Math.round(l.rs[id].metres_lost)] : ['', '', '']),
+        hovertemplate: '<b>' + FLEET.day[id].name + '</b> · %{customdata[0]}<br>%{y} kt out of the mark' +
+          '<br>%{customdata[1]} s to get back to speed, %{customdata[2]} m lost<extra></extra>' }));
+      const lay = base('Speed out of the leeward mark (20–30 s after it)', 340, el);
+      lay.barmode = 'group'; lay.bargap = 0.3; lay.bargroupgap = 0.08; lay.yaxis.title = 'kt';
+      Plotly.newPlot(el, traces, lay, CONFIG);
+    },
+    // Takeaway 7: tack recovery
+    tacks(el) {
+      const races = FLEET.races.map(r => r.race);
+      const traces = IDS.map(id => ({
+        type: 'bar', name: FLEET.day[id].name, x: races,
+        y: FLEET.races.map(r => { const t = r.boats[id] && r.boats[id].maneuver_summary.Tack; return t ? t.recovery_avg_s : null; }),
+        marker: { color: col(FLEET.day[id]) },
+        customdata: FLEET.races.map(r => { const t = r.boats[id] && r.boats[id].maneuver_summary.Tack; return t ? [t.count, t.speed_loss_avg_pct] : ['', '']; }),
+        hovertemplate: '<b>' + FLEET.day[id].name + '</b> · %{x}<br>%{y} s back to speed on average' +
+          '<br>%{customdata[0]} tacks, %{customdata[1]}% speed loss<extra></extra>' }));
+      const lay = base('Time to get back to speed after a tack (average per race)', 340, el);
+      lay.barmode = 'group'; lay.bargap = 0.3; lay.bargroupgap = 0.08; lay.yaxis.title = 's';
       Plotly.newPlot(el, traces, lay, CONFIG);
     },
   };
@@ -474,7 +689,7 @@ FLEET_JS = """
     }
     root.querySelectorAll('.chart[data-fleet]:not([data-done])').forEach(el => {
       el.dataset.done = '1';
-      const r = FLEET.races.find(x => x.stem === el.dataset.race);
+      const r = el.dataset.race ? FLEET.races.find(x => x.stem === el.dataset.race) : null;
       try { CHARTS[el.dataset.fleet](el, r); } catch (e) { el.textContent = 'Chart failed: ' + e.message; }
     });
   }
@@ -483,8 +698,30 @@ FLEET_JS = """
 """
 
 
-def _chart(kind: str, stem: str) -> str:
-    return f'<div class="chart" data-fleet="{kind}" data-race="{stem}"></div>'
+def _chart(kind: str, stem: str | None = None) -> str:
+    race = f' data-race="{stem}"' if stem else ""
+    return f'<div class="chart" data-fleet="{kind}"{race}></div>'
+
+
+# Day-level charts a fleet debrief can place with a line of its own: [[chart:split]]
+TAKEAWAY_CHARTS = ("split", "beats", "angles", "sides", "heel", "exits", "tacks")
+CHART_LINE = re.compile(r"^\[\[chart:(\w+)\]\]\s*$")
+
+
+def debrief_html(md: str) -> str:
+    """The debrief as HTML, with each [[chart:name]] line replaced by that interactive chart."""
+    out, chunk = [], []
+    for line in md.splitlines():
+        m = CHART_LINE.match(line)
+        if not m:
+            chunk.append(line)
+            continue
+        out.append(H.md_to_html("\n".join(chunk)))
+        chunk = []
+        if m.group(1) in TAKEAWAY_CHARTS:
+            out.append(_chart(m.group(1)))
+    out.append(H.md_to_html("\n".join(chunk)))
+    return "".join(out)
 
 
 def boat_cards(reports_dir: Path, boats: list[dict]) -> str:
@@ -530,7 +767,11 @@ def write_html(
                 "debrief",
                 "Fleet debrief",
                 "How the boats compared, and what each can improve.",
-                H.card(H.md_to_html(debrief), "debrief"),
+                H.card(
+                    '<p class="chart-hint">Hover any chart for the numbers behind it; drag to '
+                    "zoom, double-click to reset.</p>" + debrief_html(debrief),
+                    "debrief",
+                ),
             )
         )
     race_body = ""

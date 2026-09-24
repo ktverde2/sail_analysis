@@ -108,3 +108,26 @@ def test_fleet_outputs(pcc, tmp_path):
     assert "Next time:</strong> Stay central." in page
     data = json.loads(page.split('id="fleet-data">')[1].split("</script>")[0].replace("<\\/", "</"))
     assert len(data["races"]) == 3
+
+
+def test_debrief_chart_placeholders(pcc, tmp_path):
+    reports, _ = pcc
+    boats = fleet.load_fleet(PCC, reports)
+    fa = fleet.fleet_analysis(boats)
+    md = fleet.write_md(fa, tmp_path, "PCC")
+    debrief = (
+        "**What went well**\n- **1044: fast**\n\n[[chart:split]]\n\n"
+        "**Top 3 to work on**\n1. **Mojo: sides**\n   - **Next time:** stay central.\n\n"
+        "[[chart:angles]]\n[[chart:nonsense]]\n"
+    )
+    page = fleet.write_html(fa, md, tmp_path, "PCC", debrief, reports, boats, cdn=True).read_text()
+    debrief_page = page[page.index('id="debrief"') :]
+    assert '<div class="chart" data-fleet="split"></div>' in debrief_page
+    assert '<div class="chart" data-fleet="angles"></div>' in debrief_page
+    assert "nonsense" not in debrief_page and "[[chart:" not in page
+    # the coach's summary still finds both sections around the chart line
+    assert "Next time:</strong> Stay central." in page
+    for r in fa["races"]:
+        for b in r["boats"].values():
+            beats = [lg for lg in b["legs"] if lg["type"] == "upwind"]
+            assert all(lg["ta_cog"] >= lg["ta_heading"] - 1 for lg in beats if "ta_cog" in lg)

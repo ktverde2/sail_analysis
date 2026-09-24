@@ -202,7 +202,7 @@ def debrief_points(debrief: str) -> dict[str, list[tuple[str, str]]]:
     blocks: dict[str, list[str]] = {"well": [], "work": []}
     section = None
     for line in debrief.splitlines():
-        if not line.strip():
+        if not line.strip() or line.startswith("[[chart:"):  # chart placeholders (fleet.py)
             continue
         if not line[0].isspace() and not LIST_ITEM.match(line):  # a header or paragraph
             title = line.lower()

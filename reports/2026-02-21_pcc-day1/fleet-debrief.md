@@ -4,6 +4,8 @@
 - Over the day, Chomp finished 5:23 behind 1044 in total and Mojo 8:32.
 - The gaps opened upwind. Against 1044, Chomp lost 5:41 on the beats and Mojo 6:39. Starts were close to even, and downwind Chomp gained 18 s while Mojo lost 2:00.
 
+[[chart:split]]
+
 **What went well**
 - **1044: best upwind of the three by a distance (fastest on 5 of 7 beats)**
   - The best angle over the ground (about 81° tacking angle, against 88–89°) at the same speed, on the shortest path (35% over the straight line, against 43%), and usually on the paying side.
@@ -26,6 +28,32 @@
    - Right of the rhumb line 78–91% of the time on four beats; on three of them the left or middle paid among the three (56, 44 and 47 s lost).
    - By compass it points highest of the three (67–70° tacking angle) but over the ground it tacks through 88°, the same as Chomp. About 9–10° of slip a tack, against 5.5–6° in July: a sign of pinching.
    - **Next time:** "speed before height": ease the jib off the inner mark and the inhaul off a notch until speed is back. Stay between the other boats and the mark unless the side is clear.
+
+**The takeaways in charts**
+
+**1044 was fastest of the three on 5 of 7 beats.** Chomp was fastest on the other two (race 2 beat 1 by 4 s, race 3 beat 2 by 10 s); Mojo on none.
+
+[[chart:beats]]
+
+**1044 sails the tightest angle over the ground; Mojo's high pointing doesn't reach the ground.** Hollow dot: tacking angle by compass. Filled dot: the angle actually made over the ground. The gap between them is slip. Mojo's is the widest by far, the pinching signal.
+
+[[chart:angles]]
+
+**Chomp is the flattest upwind, and its two fastest beats were its most heeled.** Race 2 beat 1 and race 3 beat 2, at 17–18°.
+
+[[chart:heel]]
+
+**Chomp's tacks take the longest to recover.** 17–27 s back to full speed in every race; 1044 and Mojo 10–16 s.
+
+[[chart:tacks]]
+
+**1044 is the slowest out of the leeward marks; Chomp the fastest.** Hover for the time to get back to speed and the metres lost.
+
+[[chart:exits]]
+
+**Side of the course against time lost on each beat.** Points on the zero line are the fastest beats. Mojo's four beats far to the right (78–91%) each cost 42–56 s. 1044's right-hand beats (81–87%) were the fastest: on race 2 beat 2 both went right, and Mojo still lost 42 s on distance and speed. Chomp's point at 100% right is race 3 beat 1, the 2:24 corner.
+
+[[chart:sides]]
 
 *The pattern of the day (as seen by the three tracked boats):*
 - **Among the three, the left paid on 4 of 7 beats, the right on 2, and the middle on 1**
