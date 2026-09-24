@@ -4,7 +4,7 @@ starts, upwind and downwind speed, sides of the course, and roundings.
 
 Usage:
   python fleet.py --data <dir> --reports <dir> --out <dir> [--html] [--debrief fleet.md]
-                  [--title "PCC 2026 · Day 1"] [--cdn]
+                  [--title "PCC 2026"] [--cdn]
 
 --data holds one folder per boat with Njord exports (raceN.csv plus raceN-race.json with the
 course); --reports holds the matching analyze.py output per boat (same folder names). Races are
@@ -19,6 +19,7 @@ overlays and gap charts, the fleet debrief, and each boat's coach's summary from
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import html
 import json
 import math
@@ -310,6 +311,12 @@ def fleet_analysis(boats: list[dict]) -> dict:
     return {"races": races, "day": day}
 
 
+def _dayname(date: str) -> str:
+    """'2026-02-21' -> 'Sat 21 Feb'."""
+    d = dt.date.fromisoformat(date)
+    return f"{d:%a} {d.day} {d:%b}"
+
+
 def _label(ours: str, official: str) -> str:
     """'1044 (Flash)', but just 'Mojo' when the official name is the same."""
     same = official.lower().strip("!").startswith(ours.lower())
@@ -326,10 +333,15 @@ def add_official(fa: dict, official: dict, sails: dict[str, str]) -> None:
     numbers = [starts.get((r.get("gun_local") or "")[:16]) for r in fa["races"]]
     idx = [n - 1 for n in numbers if n]
 
-    def day_total(b):
-        return sum(b["points"][i] or 0 for i in idx)
+    def day_total(b, races=idx):
+        return sum(b["points"][i] or 0 for i in races)
 
     by_day = sorted(fleet_boats, key=day_total)
+    # the same, day by day (races grouped by their start date)
+    days: dict[str, list[int]] = {}
+    for n in numbers:
+        if n:
+            days.setdefault(official["races"][n - 1]["start_local"][:10], []).append(n - 1)
     corinthian = [b for b in fleet_boats if b["corinthian"]]
     out = {
         "event": official["event"],
@@ -341,6 +353,7 @@ def add_official(fa: dict, official: dict, sails: dict[str, str]) -> None:
             next((b["name"] for b in fleet_boats if b["points"][i] == 1), None) for i in idx
         ],
         "corinthian_size": len(corinthian),
+        "days": list(days),
         "boats": {},
     }
     for bid, sail in sails.items():
@@ -356,6 +369,13 @@ def add_official(fa: dict, official: dict, sails: dict[str, str]) -> None:
             "places": [b["points"][i] for i in idx],
             "day_total": total,
             "day_rank": 1 + sum(day_total(x) < total for x in by_day),
+            "days": {
+                d: {
+                    "total": day_total(b, rs),
+                    "rank": 1 + sum(day_total(x, rs) < day_total(b, rs) for x in fleet_boats),
+                }
+                for d, rs in days.items()
+            },
             "overall_place": b["overall_place"],
             "net": b["net"],
             "all_places": b["points"],
@@ -370,8 +390,8 @@ def add_official(fa: dict, official: dict, sails: dict[str, str]) -> None:
         for i in ids:
             for j in ids:
                 pi, pj = out["boats"][i]["all_places"][n - 1], out["boats"][j]["all_places"][n - 1]
-                if pj > pi:
-                    gap = r["boats"][j]["finish_s"] - r["boats"][i]["finish_s"]
+                gap = r["boats"][j]["finish_s"] - r["boats"][i]["finish_s"]
+                if pj > pi and gap >= 5:  # skip photo finishes the GPS can't resolve
                     per_place.append(round(gap / (pj - pi), 1))
     out["s_per_place"] = sorted(per_place)
     fa["official"] = out
@@ -428,8 +448,10 @@ def write_md(fa: dict, out: Path, title: str) -> str:
             "",
             "| Boat | Sail | Skipper | "
             + " | ".join(rn)
-            + f" | Day total | Day rank of {off['fleet_size']} | Event place (all races) |",
-            "|---|---|---|" + "---|" * len(rn) + "---|---|---|",
+            + " | "
+            + " | ".join(f"{_dayname(d)} total (rank of {off['fleet_size']})" for d in off["days"])
+            + " | Event place (all races) |",
+            "|---|---|---|" + "---|" * len(rn) + "---|" * len(off["days"]) + "---|",
         ]
         for k in sorted(off["boats"], key=lambda k: off["boats"][k]["day_total"]):
             o = off["boats"][k]
@@ -439,7 +461,11 @@ def write_md(fa: dict, out: Path, title: str) -> str:
             L.append(
                 f"| {_label(fa['day'][k]['name'], o['name'])} | {o['sail']} | {o['skipper']} | "
                 + " | ".join(str(p) for p in o["places"])
-                + f" | {o['day_total']} | {o['day_rank']} | {event} |"
+                + " | "
+                + " | ".join(
+                    f"{o['days'][d]['total']} ({o['days'][d]['rank']})" for d in off["days"]
+                )
+                + f" | {event} |"
             )
         spp = off["s_per_place"]
         L += [
@@ -463,7 +489,7 @@ def write_md(fa: dict, out: Path, title: str) -> str:
             ]
     L += [
         "",
-        "## Where the time went (day total, seconds behind the first tracked boat in each race)",
+        "## Where the time went (total over these races, seconds behind the first tracked boat in each race)",
         "",
         (
             "Against the first tracked boat in each race, so the three parts add up to the gap. "
@@ -609,7 +635,7 @@ FLEET_JS = r"""
       yaxis: { gridcolor: line, zerolinecolor: muted, zerolinewidth: 1, linecolor: line },
     };
   }
-  // every beat of the day, in order: label, race, and each boat's leg row
+  // every beat, race by race, in order: label, race, and each boat's leg row
   function beats() {
     const out = [];
     for (const r of FLEET.races) {
@@ -701,7 +727,7 @@ FLEET_JS = r"""
           customdata: parts.map(p => signed(d.split_s[p[0]])),
           hovertemplate: '<b>' + d.name + '</b> · %{x}<br>%{customdata} against the first tracked boat<extra></extra>' };
       });
-      const lay = base('Where the time went: seconds behind the first tracked boat, day total', 360, el);
+      const lay = base('Where the time went: seconds behind the first tracked boat, all races', 360, el);
       lay.barmode = 'group'; lay.bargap = 0.3; lay.bargroupgap = 0.08; lay.yaxis.title = 's (negative = gained)';
       Plotly.newPlot(el, traces, lay, CONFIG);
     },

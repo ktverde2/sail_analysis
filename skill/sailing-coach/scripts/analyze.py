@@ -593,17 +593,26 @@ def _course_points(el: dict) -> list[tuple[float, float]]:
     return pts
 
 
+LINE_END_MARGIN_M = (
+    20  # a crossing this far beyond either end still counts (GPS, boats at the ends)
+)
+
+
 def _line_crossing(df, el, after) -> pd.Timestamp | None:
-    """First time after `after` that the track crosses the segment between el's two points."""
+    """First time after `after` that the track crosses the line between el's two points."""
     (alat, alon), (blat, blon) = _course_points(el)
     bx, by = local_xy(blat, blon, alat, alon)
     g = df[(df.t > after) & df.Lat.notna()]
     px, py = local_xy(g.Lat.to_numpy(), g.Lon.to_numpy(), alat, alon)
     side = np.sign(bx * py - by * px)  # which side of the line each fix is on
-    L2 = bx * bx + by * by
-    along = (px * bx + py * by) / L2  # 0..1 = between the ends
+    L = math.hypot(bx, by)
+    along = (px * bx + py * by) / L  # metres along the line from its first end
     for i in range(1, len(g)):
-        if side[i] != side[i - 1] and side[i - 1] != 0 and -0.1 <= along[i] <= 1.1:
+        if (
+            side[i] != side[i - 1]
+            and side[i - 1] != 0
+            and -LINE_END_MARGIN_M <= along[i] <= L + LINE_END_MARGIN_M
+        ):
             return g.t.iloc[i]
     return None
 

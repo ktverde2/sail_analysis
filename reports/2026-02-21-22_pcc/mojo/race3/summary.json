@@ -643,13 +643,13 @@
       "offset_s": null,
       "mark_dist_m": 16.4,
       "gate_side": "right-hand mark (looking downwind)",
-      "vs_best_m": 91.6,
-      "best_ref": "Race 1 #2",
-      "best_m": 58.6,
+      "vs_best_m": 100.3,
+      "best_ref": "Race 5 #2",
+      "best_m": 49.9,
       "is_best": false,
       "tips": [
-        "Came out at 67\u00b0 to the wind, low and wide (your best exited at 50\u00b0). Finish the turn close to close-hauled; the wide entry is what makes a tight exit possible.",
-        "Took 91 s to settle upwind (best 43 s). Trim main and jib on through the turn, then speed before height.",
+        "Came out at 67\u00b0 to the wind, low and wide (your best exited at 15\u00b0). Finish the turn close to close-hauled; the wide entry is what makes a tight exit possible.",
+        "Took 91 s to settle upwind (best 21 s). Trim main and jib on through the turn, then speed before height.",
         "Passed 16 m from the mark. Wide in, tight out: leave it about a boat length (3 m) away on the exit."
       ]
     },
@@ -708,12 +708,13 @@
       "offset_s": null,
       "mark_dist_m": 4.7,
       "gate_side": "left-hand mark (looking downwind)",
-      "vs_best_m": 12.0,
-      "best_ref": "Race 1 #2",
-      "best_m": 58.6,
+      "vs_best_m": 20.7,
+      "best_ref": "Race 5 #2",
+      "best_m": 49.9,
       "is_best": false,
       "tips": [
-        "Came out pinching at 37\u00b0 to the wind (your best exited at 50\u00b0). Foot at your normal upwind angle until speed is back, then point.",
+        "Took 56 s to settle upwind (best 21 s). Trim main and jib on through the turn, then speed before height.",
+        "Speed dropped 43% through the turn (3.91 \u2192 2.23 kt; best 29%). A smoother, rounder turn with trim in step with the helm keeps more of it.",
         "Lost 22 m on the way in. Drop earlier and set up wide so the turn starts before the mark, not at it."
       ]
     }

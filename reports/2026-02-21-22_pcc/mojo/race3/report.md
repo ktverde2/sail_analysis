@@ -80,16 +80,16 @@ Metres lost: VMG from 30 s before to 60 s after the rounding against the steady 
 | # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | m lost | Closest to mark m | Gate | vs best m |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | windward | 16:19 | layline tack 96 s out, overstood 17° | 6.36 | 6.05 | 7.01 | 13 | 67.4 | 3.7 | – | 25.1 |
-| 2 | leeward | 25:51 | no gybe on the run | 4.56 | 3.11 | 2.63 | 91 | 150.2 | 16.4 | right-hand mark (looking downwind) | 91.6 |
+| 2 | leeward | 25:51 | no gybe on the run | 4.56 | 3.11 | 2.63 | 91 | 150.2 | 16.4 | right-hand mark (looking downwind) | 100.3 |
 | 3 | windward | 38:26 | layline tack 45 s out, overstood 17° | 6.05 | 5.42 | 5.93 | 11 | 42.3 | 6.1 | – | 0.0 |
-| 4 | leeward | 46:45 | last gybe 16 s out | 3.91 | 2.23 | 3.08 | 56 | 70.6 | 4.7 | left-hand mark (looking downwind) | 12.0 |
+| 4 | leeward | 46:45 | last gybe 16 s out | 3.91 | 2.23 | 3.08 | 56 | 70.6 | 4.7 | left-hand mark (looking downwind) | 20.7 |
 
 vs best: metres more than the best rounding of the same type in this analysis. The goal is zero lost; the best is the next milestone.
 
 - #1 windward: Overstood the layline by ~17°. Tack onto it a little sooner and sail the last 100 m at full upwind speed.
-- #2 leeward: Came out at 67° to the wind, low and wide (your best exited at 50°). Finish the turn close to close-hauled; the wide entry is what makes a tight exit possible. Took 91 s to settle upwind (best 43 s). Trim main and jib on through the turn, then speed before height. Passed 16 m from the mark. Wide in, tight out: leave it about a boat length (3 m) away on the exit.
+- #2 leeward: Came out at 67° to the wind, low and wide (your best exited at 15°). Finish the turn close to close-hauled; the wide entry is what makes a tight exit possible. Took 91 s to settle upwind (best 21 s). Trim main and jib on through the turn, then speed before height. Passed 16 m from the mark. Wide in, tight out: leave it about a boat length (3 m) away on the exit.
 - #3 windward: Your best of this type so far: the benchmark to beat. The goal is still zero. Overstood the layline by ~17°. Tack onto it a little sooner and sail the last 100 m at full upwind speed.
-- #4 leeward: Came out pinching at 37° to the wind (your best exited at 50°). Foot at your normal upwind angle until speed is back, then point. Lost 22 m on the way in. Drop earlier and set up wide so the turn starts before the mark, not at it.
+- #4 leeward: Took 56 s to settle upwind (best 21 s). Trim main and jib on through the turn, then speed before height. Speed dropped 43% through the turn (3.91 → 2.23 kt; best 29%). A smoother, rounder turn with trim in step with the helm keeps more of it. Lost 22 m on the way in. Drop earlier and set up wide so the turn starts before the mark, not at it.
 
 ## Upwind vs. targets
 Not computed: wind speed not trustworthy (TWS changes by under 0.02 kt a second 100% of the time (a smoothed model feed, not measured on board)); pass --tws, e.g. --tws 8-10.

@@ -65,13 +65,13 @@ Metres lost: VMG from 30 s before to 60 s after the rounding against the steady 
 | # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | m lost | Closest to mark m | Gate | vs best m |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | windward | 16:06 | – | 7.17 | 5.98 | 6.66 | 16 | 91.4 | 19.1 | – | 49.1 |
-| 2 | leeward | 26:56 | no gybe on the run | 5.76 | 3.41 | 4.33 | 48 | 59.1 | 7.0 | right-hand mark (looking downwind) | 0.5 |
+| 2 | leeward | 26:56 | no gybe on the run | 5.76 | 3.41 | 4.33 | 48 | 59.1 | 7.0 | right-hand mark (looking downwind) | 9.2 |
 | 3 | windward | 41:37 | layline tack 149 s out, overstood 10° | 7.35 | 5.8 | 6.31 | 27 | 112.9 | 3.6 | – | 70.6 |
 
 vs best: metres more than the best rounding of the same type in this analysis. The goal is zero lost; the best is the next milestone.
 
 - #1 windward: Reached off at 151° to the wind for the first 15–40 s after the mark (your best exited at 157°). Bear away all the way to the run angle first, then set. Gave away 16 m in the 30 s before the mark. Keep target speed on the layline; don't pinch up to the mark.
-- #2 leeward: Came out pinching at 23° to the wind (your best exited at 50°). Foot at your normal upwind angle until speed is back, then point. Passed 7 m from the mark. Wide in, tight out: leave it about a boat length (3 m) away on the exit.
+- #2 leeward: Took 48 s to settle upwind (best 21 s). Trim main and jib on through the turn, then speed before height. Speed dropped 41% through the turn (5.76 → 3.41 kt; best 29%). A smoother, rounder turn with trim in step with the helm keeps more of it. Passed 7 m from the mark. Wide in, tight out: leave it about a boat length (3 m) away on the exit.
 - #3 windward: Took 27 s to settle on the run (best 11 s). Pole and halyard ready on the layline, so the set happens as you bear away. Speed dropped 21% through the turn (7.35 → 5.8 kt; best 10%). A smoother, rounder turn with trim in step with the helm keeps more of it. Overstood the layline by ~10°. Tack onto it a little sooner and sail the last 100 m at full upwind speed.
 
 ## Upwind vs. targets

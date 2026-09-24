@@ -1,77 +1,79 @@
-## Mojo — PCC 2026, Day 1 (Feb 21, San Diego)
-- Three windward-leewards with an offset at the top and a gate at the bottom, northwest breeze (about 285–316°).
-- **Official: 31st, 29th and 38th of 42, 33rd on the day** (33rd overall after day 2; 10th of 13 Corinthian teams).
-- Third of the three tracked boats in every race: 8:32 behind 1044 over the day and 3:09 behind Chomp (49, 53 and 87 s).
-- In this fleet a place was worth about 10 s. Race 3's first leeward mark (about a minute) cost around 6 places, and each wrong-side beat (44–56 s) around 5.
-- The gap came upwind: 6:39 lost to 1044 on the beats, 2:00 on the runs, and 7 s gained at the starts.
-- Two causes, about equal: the side we picked on three beats, and a mode that points high but doesn't make ground.
+## Mojo — PCC 2026 (Feb 21–22, San Diego)
+- **Official: 31-29-38-30-29, 33rd of 42 overall (119 net), 10th of 13 Corinthian teams.**
+  - Saturday 33rd on the day; Sunday 29th.
+- Five windward-leewards on Coronado Roads, northwest breeze, 42 boats. Only Mojo, Chomp and 1044 had data, so gaps below are among those three.
+- **The two days were different.**
+  - Saturday: slow upwind and on the wrong side, 3rd of the three tracked boats in all three races.
+  - Sunday: the fastest of the three on 3 of 4 runs and 2 of 5 beats, but over the line at both starts.
+- In this fleet a place was worth about 10 s (median of the gaps between the tracked boats).
 
 **What went well**
-- **Starts: the best of the three boats over the day (7 s ahead of 1044 in total)**
-  - Race 3: 2 s late, mid-line, 5.6 kt at the gun, and ahead of Chomp at the first mark.
-  - Race 1: 5 s late, mid-line, 5.6 kt at the gun, and ahead of Chomp at the first mark.
-  - Race 2: 2.5 m over at the gun, but back and restarted within 10 s, so it cost little.
-- **Clean tacks: the cheapest of the three**
-  - 28–35% speed loss, back to speed in 10–16 s, 2–5 m lost a tack. Chomp's tacks took 17–27 s to recover.
-- **Ahead of Chomp at the first mark twice**
-  - 58 s behind 1044 in race 1 and 44 s in race 3, both ahead of Chomp.
+- **Sunday speed: on the pace of 1044, and faster downwind**
+  - Fastest of the three on 3 of 4 Sunday runs and 2 of 5 beats; downwind lost only 16 s all day (182 s on Saturday).
+  - From its restart, Mojo sailed race 5 36 s faster than 1044: 44 s gained upwind, 8 s lost downwind. It finished 16 s behind despite a 52 s-late start.
+  - Upwind heel came up from 16.6° on Saturday to 19.2° on Sunday. The angle made over the ground went from 89° to 85°, closer to 1044's 80°.
+- **Saturday starts: the best of the three**
+  - Race 1: 5 s late, 5.6 kt at the gun. Race 3: 2 s late, 5.6 kt at the gun, and 2nd of the three at the first mark.
+- **Clean tacks all regatta**
+  - 28–35% speed loss and 10–16 s back to speed, the quickest of the three. Chomp took 16–27 s.
 
 **Top 3 to work on**
-1. **Side choice: right when the left paid, on three beats**
-   - Among the three boats, the left paid on 4 of the 7 beats. We were right of the rhumb line 78–91% of the time on four beats; on three of them, the left or middle paid.
-   - Race 2 beat 1: 90% right, up to 709 m out, while 1044 and Chomp both went left (21–24% right). We sailed 1.62 nm to their 1.44–1.47 and lost 56 s.
-   - Race 3 beat 2: 78% right while both others went left (11–13%). Both our and 1044's headings show the wind going left about 10° over that beat. Lost 47 s.
-   - Race 3 beat 1: 85% right, lost 44 s to 1044, which stayed near the middle (60% right, 7 tacks). Chomp went all the way right and lost more.
+1. **Starts: over the line and back, twice on Sunday**
+   - Race 4: 8 m over at the gun (pin end). Mojo sailed on for about 15 s to 25 m over, was back behind the line at +30 s and restarted at +44 s.
+   - Race 5: 1.3 m over. It sailed on to 27 m over, was back at +35 s and restarted at +52 s.
+   - Both times the turn back came 10–15 s after the gun, which looks like waiting for the recall signal. At about 10 s a place, each restart cost 4–5 places; together they're most of the 88 s Mojo lost to the others at the starts over the regatta.
+   - Race 1 on Saturday is the template: 5 s late, full speed, clean.
+   - **Next time:** line sights before every start and a distance call from the bow in the last 30 s. If there's any doubt at the gun, dip back at once instead of waiting for the flag; a 5 s dip beats a 45 s restart.
+2. **Side choice: right when the left paid (Saturday)**
+   - Among the three boats, the left paid on 4 of Saturday's 7 beats. Mojo was right of the rhumb line 78–91% of the time on four beats; on three of them, the left or middle paid (56, 44 and 47 s lost).
+   - Race 2 beat 1 was the clearest: 90% right, up to 709 m out, while both others went left.
    - Splitting from both other tracked boats is a big bet each time. We can't see where the rest of the fleet went.
    - **Next time:** decide oscillating or trending before each start. On a beat, go with the side the boats ahead are gaining on; if unsure, stay between the boats around you and the mark.
-2. **Upwind mode: pointing high, but not making ground**
-   - By compass, Mojo tacks through 67–70° on 6 of 7 beats, the narrowest of the three (1044 averaged 79°, Chomp 78°).
-   - Over the ground (GPS track), Mojo tacks through 83–96° (average 88°), the same as Chomp and about 7° wider than 1044 (81°).
-   - The difference is sideways slip: about 9–10° a tack, both tacks alike, against 5.5–6° in our July data. That looks like pinching, with the keel not working, rather than a compass error.
-   - It shows as lost speed on two beats: race 1 beat 2 (5.13 kt against 1044's 5.43, same side, lost 1:34) and race 3's last beat (4.61 kt against 5.11, lost 1:05). On both, 1044 opened its angles to 89–93° and sailed lower and faster.
-   - **Next time:** "speed before height": bow down a touch, jib eased off the inner spreader mark and inhaul off a notch, until speed is back. Then squeeze. Check the heel number: we were 1–2° flatter than 1044 on the slow beats.
-   - **Drill:** a tune-up with 1044 or Chomp, lined up upwind for 3-minute runs, trying jib lead, inhaul and backstay against their speed and height.
-3. **Race 3's first leeward mark: one rounding cost about a minute**
-   - The run was on pace for 9 minutes (5.7–6.6 kt; 1044 ran 5.8–6.8), then the last 2 minutes averaged 4.3 and 2.9 kt.
-   - We came in reaching at 129° to the wind, rounded 16 m wide, and left at 67° to the wind doing 2.6 kt. That cost 150 m, the worst rounding of the day for any boat, and took 91 s to settle.
-   - The leg lost 1:39 to Chomp. Our other five runs were within 36 s of the best.
-   - **Next time:** set up for the gate early: pick the gate side a minute out, come in on a run (not a reach), drop in time, go wide in and tight out, and foot to 5.5 kt before pointing.
+3. **Upwind mode: make Sunday's setup the default**
+   - Saturday: by compass Mojo pointed highest of the three (67–70° tacking angle), but over the ground it tacked through 89°, 7–9° wider than 1044. The slip was about 9–10° a tack, against 5.5–6° in July, which looks like pinching. It was 6–10% slower than 1044 on race 1's second beat and race 3's last beat.
+   - Sunday, with 19° of heel, Mojo was the fastest of the three on 2 of 5 beats (race 5 beats 2 and 3).
+   - **Next time:** whatever changed between Saturday and Sunday (settings, jib lead, how hard the jib was sheeted, who was steering), write it down and start there. "Speed before height": ease the jib off the inner mark until speed is up, then squeeze.
 
 *Also worth a look:*
-- **Windward roundings cost the most of the three**
-  - 91 m on average, against 80–81 m for 1044 and Chomp (these include the offset reach, which every boat sails).
-- **Right side on race 2 beat 2 was right, but we still lost 42 s**
-  - Same side as 1044 (91% vs 87% right), but we sailed 1.42 nm to its 1.31.
-- **Run speed on race 1**
-  - Lost 10 s and 35 s on the runs. The second run was 4.89 kt against 5.09 for 1044.
+- **Race 3's first leeward mark cost about a minute**
+  - Came in reaching at 129° to the wind, rounded 16 m wide and left at 67° to the wind doing 2.6 kt. That cost 150 m, about 6 places.
+- **Windward roundings**
+  - 98 m on average on Sunday and 91 m on Saturday (these include the offset reach). Race 4's second windward mark cost 130 m.
 
 **Race by race**
-- **Race 1 (3rd of 3, 3:17 behind 1044):**
-  - 5 s late mid-line; ahead of Chomp at the first mark (+0:58 on 1044).
-  - Beat 2 was slow on the same side as 1044 (5.13 vs 5.43 kt): +1:34, and Chomp passed.
-- **Race 2 (3rd of 3, 1:35 behind 1044):**
+- **Race 1 (31st; 3rd of the three tracked boats):**
+  - 5 s late mid-line; ahead of Chomp at the first mark.
+  - Slow on beat 2 on the same side as 1044 (5.13 against 5.43 kt): +1:34.
+- **Race 2 (29th):**
   - Over and restarted (+10 s).
-  - Went right on beat 1 while both others went left: +0:56 at the first mark, never recovered. Fastest of the three on the last run.
-- **Race 3 (3rd of 3, 3:40 behind 1044):**
-  - Best start of the three (2 s, 5.6 kt); ahead of Chomp at the first mark (+0:44 on 1044).
-  - The first leeward mark cost 1:39 on the leg, then the right on beat 2 (+0:47) and a slow last beat (+1:05).
+  - Went right on beat 1 while both others went left: +0:56 at the first mark.
+- **Race 3 (38th):**
+  - Best start of the three (2 s); ahead of Chomp at the first mark.
+  - The leeward mark (+1:39 on that leg), then the right on beat 2 and a slow last beat.
+- **Race 4 (30th):**
+  - 8 m over at the gun, restarted at +44 s.
+  - Then the fastest of the three on both runs; finished 1:00 behind 1044 and in a photo finish with Chomp (2 s by GPS, Mojo ahead officially).
+- **Race 5 (29th; 2nd of the three):**
+  - Over, restarted at +52 s, 1:29 behind at the first mark.
+  - Fastest on beats 2 and 3 and the second run; passed Chomp on the last beat and finished 16 s behind 1044.
 
 **Against the other tracked boats (the first of the three in each race is the reference)**
-| Race | Order of 3 | Gap | Start | Upwind legs | Downwind legs |
-|---|---|---|---|---|---|
-| 1 | 3 | +3:17 | +1 s | +151 s | +45 s |
-| 2 | 3 | +1:35 | 0 s | +94 s | +1 s |
-| 3 | 3 | +3:40 | −8 s | +154 s | +74 s |
+| Race | Official | Order of 3 | Gap | Start | Upwind legs | Downwind legs |
+|---|---|---|---|---|---|---|
+| 1 | 31 | 3 | +3:17 | +1 s | +151 s | +45 s |
+| 2 | 29 | 3 | +1:35 | 0 s | +94 s | +1 s |
+| 3 | 38 | 3 | +3:40 | −8 s | +154 s | +74 s |
+| 4 | 30 | 3 | +1:00 | +43 s | +47 s | −30 s |
+| 5 | 29 | 2 | +0:16 | +52 s | −44 s | +8 s |
 
 **Data notes**
 - Official places are from YachtScoring (event 50508, 42 boats). Its finish times aren't used (some are data-entry artifacts); gaps come from the GPS tracks.
 - Speeds are over ground; no paddlewheel.
-- The logged wind is a smoothed weather-model feed (identical on Mojo and 1044, and it changes only every few minutes), so there are no speed targets or % of target. 1044 is the benchmark.
-- Only three boats had data. "Fastest", "order" and "which side paid" are among these three, not the whole fleet.
-- Wind direction comes from each boat's own tacking headings. With 3–6 tacks a race, single shift calls are soft; the fleet's gains and losses by side are the firmer evidence.
-- Tacking angle "over the ground" is from GPS course and doesn't depend on the compass. The slip figure uses Mojo's heading sensor; it matched on both tacks, so a sensor offset is unlikely.
-- Mark passages and finish times come from the course marks for all three boats. Njord's fleet table misses Chomp's legs after race 1 and so puts Mojo ahead of Chomp in races 2 and 3.
+- The logged wind is a smoothed weather-model feed (identical on Mojo and 1044), so there are no speed targets. The other two boats are the benchmark. All three heeled more on Sunday, which suggests more breeze.
+- Tacking angle over the ground is from GPS course and doesn't depend on the compass.
+- Race 4's finish between Mojo and Chomp was 2 s by GPS, less than a boat length and within the antenna-to-bow difference. The official order stands.
+- Mark passages and finishes come from the course marks for every boat.
 
 **Two questions**
-- What were the jib lead, inhaul and backstay settings upwind? Compared with July, the extra 3–4° of slip points at the jib being sheeted too hard, or the boat pinned high.
-- On race 2 beat 1, what made the right look good: pressure, a shift you saw, or getting clear after the restart?
+- What changed between Saturday and Sunday upwind? The heel, the speed and the angle made over the ground all improved, and that's worth keeping.
+- On the two Sunday starts, did anyone on board know the boat was over before the recall signal?

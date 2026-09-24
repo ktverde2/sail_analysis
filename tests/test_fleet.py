@@ -74,9 +74,9 @@ def test_fleet_results_and_time_split(pcc):
     reports, _ = pcc
     fa = fleet.fleet_analysis(fleet.load_fleet(PCC, reports))
     day = {d["name"]: d for d in fa["day"].values()}
-    assert day["1044"]["places"] == [1, 1, 1]
-    assert day["Chomp"]["places"] == [2, 2, 2]
-    assert day["Mojo"]["places"] == [3, 3, 3]
+    assert day["1044"]["places"] == [1, 1, 1, 1, 1]
+    assert day["Chomp"]["places"] == [2, 2, 2, 2, 3]  # race 4: 2 s ahead of Mojo by GPS
+    assert day["Mojo"]["places"] == [3, 3, 3, 3, 2]
     for r in fa["races"]:
         assert r["marks"][-1] == "Finish"
         for b in r["boats"].values():
@@ -99,7 +99,7 @@ def test_fleet_outputs(pcc, tmp_path):
     md = fleet.write_md(fa, tmp_path, "PCC")
     assert (
         "## Where the time went" in md
-        and "| 1044 | 1 | 1 | 1 | 3 |" in md
+        and "| 1044 | 1 | 1 | 1 | 1 | 1 | 5 |" in md
         and "## Order among the tracked boats" in md
     )
     debrief = "**What went well**\n- **1044: fast**\n\n**Top 3 to work on**\n1. **Mojo: sides**\n   - **Next time:** stay central.\n"
@@ -107,7 +107,7 @@ def test_fleet_outputs(pcc, tmp_path):
     assert 'data-fleet="tracks"' in page and 'data-fleet="gaps"' in page
     assert "Next time:</strong> Stay central." in page
     data = json.loads(page.split('id="fleet-data">')[1].split("</script>")[0].replace("<\\/", "</"))
-    assert len(data["races"]) == 3
+    assert len(data["races"]) == 5
 
 
 def test_debrief_chart_placeholders(pcc, tmp_path):
@@ -139,18 +139,29 @@ def test_official_results(pcc):
     official = json.loads((PCC / "official.json").read_text())
     fleet.add_official(fa, official, {"1044": "1044", "chomp": "905", "mojo": "1315"})
     off = fa["official"]
-    assert off["fleet_size"] == 42 and off["race_numbers"] == [1, 2, 3]
-    assert off["race_winners"] == ["Lifted", "DanEgerous", "Bayou Hustler"]
-    assert off["boats"]["mojo"]["places"] == [31, 29, 38]
-    assert off["boats"]["chomp"]["places"] == [29, 22, 29] and off["boats"]["chomp"]["corinthian"]
-    assert off["boats"]["1044"]["day_total"] == 45
-    # the official order matches the order in the tracks in every race
+    assert off["fleet_size"] == 42 and off["race_numbers"] == [1, 2, 3, 4, 5]
+    assert off["race_winners"] == [
+        "Lifted",
+        "DanEgerous",
+        "Bayou Hustler",
+        "Stark Raving Mad",
+        "Lifted",
+    ]
+    assert off["boats"]["mojo"]["places"] == [31, 29, 38, 30, 29]
+    assert off["boats"]["chomp"]["places"] == [29, 22, 29, 31, 31]
+    assert off["boats"]["chomp"]["corinthian"]
+    assert off["boats"]["1044"]["days"]["2026-02-21"] == {"total": 45, "rank": 14}
+    # the official order matches the GPS finish order, except near-ties (under 5 s)
     for r, n in zip(fa["races"], off["race_numbers"], strict=True):
-        by_gps = sorted(r["boats"], key=lambda k: r["boats"][k]["finish_s"])
-        by_official = sorted(r["boats"], key=lambda k: off["boats"][k]["all_places"][n - 1])
-        assert by_gps == by_official
+        bs = r["boats"]
+        for i in bs:
+            for j in bs:
+                pi, pj = off["boats"][i]["all_places"][n - 1], off["boats"][j]["all_places"][n - 1]
+                if pi < pj:
+                    assert bs[i]["finish_s"] < bs[j]["finish_s"] + 5
     assert 5 <= off["s_per_place"][len(off["s_per_place"]) // 2] <= 15
     md = fleet.write_md(fa, Path(reports), "PCC")
     assert (
-        "## Official results (42 boats, YachtScoring)" in md and "| 12 | 16 | 17 | 45 | 14 |" in md
+        "## Official results (42 boats, YachtScoring)" in md
+        and "| 12 | 16 | 17 | 18 | 26 | 45 (14) | 44 (" in md
     )

@@ -66,13 +66,13 @@ Metres lost: VMG from 30 s before to 60 s after the rounding against the steady 
 | # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | m lost | Closest to mark m | Gate | vs best m |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | windward | 14:12 | layline tack 58 s out, overstood 11° | 7.17 | 6.07 | 6.53 | 33 | 104.1 | 13.3 | – | 61.8 |
-| 2 | leeward | 24:37 | no gybe on the run | 5.64 | 3.27 | 4.57 | 43 | 58.6 | 6.6 | right-hand mark (looking downwind) | 0.0 |
+| 2 | leeward | 24:37 | no gybe on the run | 5.64 | 3.27 | 4.57 | 43 | 58.6 | 6.6 | right-hand mark (looking downwind) | 8.7 |
 | 3 | windward | 40:31 | – | 3.8 | 3.68 | 3.87 | 56 | 125.4 | 7.5 | – | 83.1 |
 
 vs best: metres more than the best rounding of the same type in this analysis. The goal is zero lost; the best is the next milestone.
 
 - #1 windward: Reached off at 130° to the wind for the first 15–40 s after the mark (your best exited at 157°). Bear away all the way to the run angle first, then set. Took 33 s to settle on the run (best 11 s). Pole and halyard ready on the layline, so the set happens as you bear away. Overstood the layline by ~11°. Tack onto it a little sooner and sail the last 100 m at full upwind speed.
-- #2 leeward: Your best of this type so far: the benchmark to beat. The goal is still zero. Passed 7 m from the mark. Wide in, tight out: leave it about a boat length (3 m) away on the exit.
+- #2 leeward: Came out at 50° to the wind, low and wide (your best exited at 15°). Finish the turn close to close-hauled; the wide entry is what makes a tight exit possible. Took 43 s to settle upwind (best 21 s). Trim main and jib on through the turn, then speed before height. Speed dropped 42% through the turn (5.64 → 3.27 kt; best 29%). A smoother, rounder turn with trim in step with the helm keeps more of it.
 - #3 windward: Reached off at 148° to the wind for the first 15–40 s after the mark (your best exited at 157°). Bear away all the way to the run angle first, then set. Took 56 s to settle on the run (best 11 s). Pole and halyard ready on the layline, so the set happens as you bear away. Gave away 28 m in the 30 s before the mark. Keep target speed on the layline; don't pinch up to the mark.
 
 ## Upwind vs. targets

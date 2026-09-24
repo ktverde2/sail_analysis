@@ -431,12 +431,13 @@
       "offset_s": null,
       "mark_dist_m": 7.0,
       "gate_side": "right-hand mark (looking downwind)",
-      "vs_best_m": 0.5,
-      "best_ref": "Race 1 #2",
-      "best_m": 58.6,
+      "vs_best_m": 9.2,
+      "best_ref": "Race 5 #2",
+      "best_m": 49.9,
       "is_best": false,
       "tips": [
-        "Came out pinching at 23\u00b0 to the wind (your best exited at 50\u00b0). Foot at your normal upwind angle until speed is back, then point.",
+        "Took 48 s to settle upwind (best 21 s). Trim main and jib on through the turn, then speed before height.",
+        "Speed dropped 41% through the turn (5.76 \u2192 3.41 kt; best 29%). A smoother, rounder turn with trim in step with the helm keeps more of it.",
         "Passed 7 m from the mark. Wide in, tight out: leave it about a boat length (3 m) away on the exit."
       ]
     },
