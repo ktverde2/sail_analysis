@@ -128,6 +128,7 @@ def test_fleet_outputs(pcc, tmp_path):
     n = sum(len(r["pairs"]) for r in fa["races"])
     assert page.count('<details class="stretch"') == n == page.count('data-fleet="stretch"')
     assert page.count('href="#stretch-R') == n and 'id="stretch-R1-1"' in page
+    assert page.count('<aside class="st-panel"') == n  # readout beside each stretch chart
     assert "### Why, stretch by stretch" in md and "- **R1-1** (Race 1," in md
     assert "Next time:</strong> Stay central." in page
     data = json.loads(page.split('id="fleet-data">')[1].split("</script>")[0].replace("<\\/", "</"))

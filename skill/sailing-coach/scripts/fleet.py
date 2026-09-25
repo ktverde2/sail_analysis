@@ -1185,8 +1185,15 @@ FLEET_JS = r"""
       const tf = d.t[d.t.length - 1] >= 3600 ? '%-H:%M:%S' : '%-M:%S';
       const ink = css('--ink'), ink2 = css('--ink2'), line = css('--line');
       const win = p.gain_m >= 0 ? A : B;
-      const hov = (name, unit) => '<b>' + name + '</b> %{y}' + unit + '<extra></extra>';
+      const hov = () => undefined;  // no hover label: the panel beside the chart shows the values
       const tr = [];
+      const trimChange = {};
+      for (const id of [p.a, p.b]) {
+        const s = d.boats[id].trim;
+        if (!s) continue;
+        const v = s.filter(t => t != null), m = v.reduce((a, b) => a + b, 0) / (v.length || 1);
+        trimChange[id] = s.map(t => t == null ? null : Math.round((t - m) * 10) / 10);
+      }
       const panels = [
         'Metres ' + A.name + ' gained on ' + B.name,
         'SOG (kt)',
@@ -1208,11 +1215,11 @@ FLEET_JS = r"""
           line: { color: c, width: 1, dash: 'dot' }, hovertemplate: hov(bt.name + ' compass', '°') });
         if (s.heel) tr.push({ x, y: s.heel, yaxis: 'y4', mode: 'lines', name: bt.name + ' heel', legendgroup: id, showlegend: false, line: { color: c, width: 2 }, hovertemplate: hov(bt.name + ' heel', '°') });
         if (s.trim) {  // each boat's trim sensor is zeroed differently: show change from its own average
-          const v = s.trim.filter(t => t != null), m = v.reduce((a, b) => a + b, 0) / (v.length || 1);
-          tr.push({ x, y: s.trim.map(t => t == null ? null : Math.round((t - m) * 10) / 10), yaxis: 'y5', mode: 'lines',
+          tr.push({ x, y: trimChange[id], yaxis: 'y5', mode: 'lines',
             name: bt.name + ' trim', legendgroup: id, showlegend: false, line: { color: c, width: 2 }, hovertemplate: hov(bt.name + ' trim', '°') });
         }
       }
+      tr.forEach(t => { t.hoverinfo = 'none'; delete t.hovertemplate; });
       const narrow = el.clientWidth < 560;
       const lay = base(p.id + ': ' + A.name + ' and ' + B.name + ', second by second', narrow ? 860 : 960, el);
       const doms = [[0.80, 0.97], [0.60, 0.76], [0.40, 0.56], [0.20, 0.36], [0.0, 0.16]];
@@ -1221,8 +1228,8 @@ FLEET_JS = r"""
       for (let n = 1; n < 5; n++) lay['yaxis' + (n + 1)] = ax(n);
       lay.xaxis = { type: 'date', gridcolor: line, linecolor: line, anchor: 'y5', title: narrow ? '' : 'time after the gun',
         tickformat: tf, hoverformat: tf };
-      lay.hovermode = 'x unified';
-      lay.hoversubplots = 'axis';  // one hover lists every panel at that second
+      lay.hovermode = 'x';
+      lay.hoversubplots = 'axis';  // hovering any panel reads that second from all of them
       lay.margin = { l: 52, r: 12, t: narrow ? 56 : 72, b: narrow ? 110 : 44 };
       lay.legend = narrow
         ? { orientation: 'h', y: -0.06, yanchor: 'top', x: 0, font: { color: ink, size: 11 } }
@@ -1239,7 +1246,67 @@ FLEET_JS = r"""
         lay.shapes.push({ type: 'rect', xref: 'x', yref: 'paper', x0: x[j0], x1: x[i - 1], y0: 0, y1: 0.97,
           fillcolor: col(v > 0 ? A : B), opacity: 0.08, line: { width: 0 } });
       }
+      // a cursor line across all five panels, moved on hover
+      const cur = lay.shapes.length;
+      lay.shapes.push({ type: 'line', xref: 'x', yref: 'paper', x0: x[0], x1: x[0], y0: 0, y1: 0.97,
+        line: { color: ink2, width: 1 }, visible: false });
       Plotly.newPlot(el, tr, lay, CONFIG);
+      // ---- the readout panel beside the chart
+      const panel = el.parentElement.querySelector('.st-panel');
+      if (!panel) return;
+      const aw = up ? 'height' : 'depth';
+      const f = (v, nd) => v == null ? '–' : Number(v).toFixed(nd);
+      const signed = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(Math.round(v)) + ' m';
+      const rows = [  // key, label (long|short), unit, decimals, better (+1 higher, -1 lower)
+        ['sog', 'SOG|SOG', ' kt', 2, 1], ['vmg', 'VMG|VMG', ' kt', 2, 1], ['angle', 'Track angle|Track', '°', 1, -1],
+        ['hdg_angle', 'Compass angle|Compass', '°', 1, 0], ['heel', 'Heel|Heel', '°', 1, 0], ['trim', 'Trim change|Trim Δ', '°', 1, 0],
+      ];
+      function boats(val) {
+        return [[p.a, A], [p.b, B]].map(([id, bt], k) => {
+          const other = k ? p.a : p.b;
+          const items = rows.map(([key, label, unit, nd, better]) => {
+            const v = val(id, key), o = val(other, key);
+            if (v == null) return '';
+            const best = better && o != null && Math.abs(v - o) >= Math.pow(10, -nd) && (better > 0 ? v > o : v < o);
+            const [lg, sm] = label.split('|');
+            return '<dt><span class="lg">' + lg + '</span><span class="sm">' + sm + '</span></dt><dd>' +
+              (best ? '<b>' : '') + f(v, nd) + unit + (best ? '</b>' : '') + '</dd>';
+          }).join('');
+          return '<div class="rp-boat" style="--c:' + col(bt) + '"><div class="rp-name"><span class="rp-dot"></span>' +
+            bt.name + '</div><dl>' + items + '</dl></div>';
+        }).join('');
+      }
+      function gainLine(g, gs, ga) {
+        if (Math.abs(g) < 0.5) return '<p class="st-gain">Level so far</p>';
+        const lead = g >= 0 ? A : B, lag = g >= 0 ? B : A, sg = g >= 0 ? 1 : -1;
+        return '<p class="st-gain"><b style="color:' + col(lead) + '">' + lead.name + ' ' + signed(Math.abs(g)) + '</b> on ' + lag.name +
+          '<br><span>' + signed(sg * gs) + ' from speed · ' + signed(sg * ga) + ' from ' + aw + '</span></p>';
+      }
+      function average() {
+        const st = p.why.stats;
+        const val = (id, key) => key === 'trim' ? null : (st[id][key] == null ? null : (Array.isArray(st[id][key]) ? st[id][key][0] : st[id][key]));
+        panel.innerHTML = '<p class="st-head">Whole stretch (averages)</p>' +
+          gainLine(p.gain_m, p.gain_speed_m, p.gain_angle_m) + boats(val) +
+          '<p class="rp-note">Move along the chart to read any second. <b>Bold</b>: faster, or closer to straight ' +
+          (up ? 'up' : 'down') + ' the course.</p>';
+      }
+      function readAt(i) {
+        const val = (id, key) => key === 'trim' ? (trimChange[id] ? trimChange[id][i] : null) : (d.boats[id][key] ? d.boats[id][key][i] : null);
+        const ah = d.ahead[i], ww = d.windward[i];
+        let pos = A.name + ' ' + Math.abs(ah) + ' m ' + (ah >= 0 ? 'ahead' : 'behind') + ', ' + Math.abs(ww) + ' m ' +
+          (ww >= 0 ? 'to windward' : 'to leeward') + ' of ' + B.name;
+        if (d.shadow[i]) pos += '<br>' + (d.shadow[i] > 0 ? B.name + ' possibly in ' + A.name : A.name + ' possibly in ' + B.name) + '\'s wind shadow';
+        panel.innerHTML = '<p class="st-head">At ' + mmss(d.t[i]) + ' after the gun</p>' +
+          gainLine(d.gain[i], d.gain_speed[i], d.gain_angle[i]) + boats(val) + '<p class="st-pos">' + pos + '</p>';
+      }
+      average();
+      el.on('plotly_hover', ev => {
+        const pt = ev.points && ev.points[0];
+        if (!pt) return;
+        const i = pt.pointIndex;
+        readAt(i);
+        Plotly.relayout(el, { ['shapes[' + cur + '].x0']: x[i], ['shapes[' + cur + '].x1']: x[i], ['shapes[' + cur + '].visible']: true });
+      });
     },
     pair(el) {
       const a = el.dataset.a, b = el.dataset.b, A = FLEET.day[a], B = FLEET.day[b];
@@ -1638,6 +1705,26 @@ details.stretch[open] > summary { border-bottom: 1px solid var(--line); }
 .stretch-body { padding: 4px 12px 8px; }
 p.why { margin: 8px 0; }
 .stretch-body td:not(:first-child), .stretch-body th:not(:first-child) { text-align: right; }
+.st-body { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.st-panel { font-size: 0.84rem; display: grid; gap: 6px; align-content: start; }
+.st-panel p { margin: 0; }
+.st-head { font-weight: 600; font-variant-numeric: tabular-nums; }
+.st-gain span, .st-pos { color: var(--ink2); }
+.st-gain, .st-pos { font-variant-numeric: tabular-nums; }
+.st-panel dd { white-space: nowrap; }
+.st-panel .sm { display: none; }
+@media (min-width: 760px) {
+  .st-body { grid-template-columns: minmax(0, 1fr) 230px; }
+  .st-panel { position: sticky; top: 8px; align-self: start; margin-top: 8px; }
+}
+@media (max-width: 759px) {
+  .st-panel { order: -1; position: sticky; top: 0; z-index: 2; background: var(--card); padding: 6px 0;
+    grid-template-columns: 1fr 1fr; font-size: 0.78rem; border-bottom: 1px solid var(--line); }
+  .st-panel .st-head, .st-panel .st-gain, .st-panel .st-pos, .st-panel .rp-note { grid-column: 1 / -1; }
+  .st-panel .rp-boat { padding: 4px 7px; }
+  .st-panel .lg { display: none; } .st-panel .sm { display: inline; }
+  .st-panel .rp-boat dl { gap: 0 6px; }
+}
 """
 
 # Day-level charts a fleet debrief can place with a line of its own: [[chart:split]].
@@ -2034,8 +2121,9 @@ def stretch_html(fa: dict, r: dict, p: dict) -> str:
         "to straight up (beat) or down (run) the course. Wind shadow: within "
         f"{SHADOW_M} m and {SHADOW_DEG}° of straight downwind of the other boat, taking the "
         "course axis as the wind.</p>"
+        '<div class="st-body">'
         f'<div class="chart" data-fleet="stretch" data-race="{r["stem"]}" data-id="{p["id"]}">'
-        "</div></div></details>"
+        '</div><aside class="st-panel" aria-live="polite"></aside></div></div></details>'
     )
 
 
