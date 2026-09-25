@@ -53,6 +53,10 @@ PAIR_RADIUS_M = 200
 PAIR_MIN_S = 60  # shortest stretch worth comparing
 PAIR_SETTLE_S = 20  # skip this long after a mark or a tack/gybe (either boat)
 PAIR_MIDDLE_M = 100  # within this of the rhumb line counts as the middle of the course
+# Wind shadow, roughly: within this distance and this angle of straight downwind of the other
+# boat (the course axis stands in for the wind). A flag for "possibly in bad air", not a fact.
+SHADOW_M = 75
+SHADOW_DEG = 25
 KT = 1852 / 3600  # m/s per knot
 
 
@@ -188,6 +192,8 @@ def _per_second(race: A.Race, df: pd.DataFrame, legs: list[dict], xy, summ: dict
     g["s"] = (g.t - race.gun).dt.total_seconds().round().astype(int)
     g = g.drop_duplicates("s").set_index("s")
     g["x"], g["y"] = xy(g.Lat.to_numpy(), g.Lon.to_numpy())
+    if "Heading" in g:  # heading against the course axis (compass, so boats can differ)
+        g["hdg_rel"] = A.adiff(A.upwind_axis(race) or 0.0, g.Heading.to_numpy())
     ends = np.array([(lg["end"] - race.gun).total_seconds() for lg in legs])
     starts = np.concatenate([[0.0], ends[:-1]])
     late = (summ.get("start") or {}).get("late_s") or 0.0
@@ -326,6 +332,7 @@ def _pair_row(a, b, pa, pb, leg_types, names) -> dict:
         dx, dy = pa.x.iloc[k] - pb.x.iloc[k], pa.y.iloc[k] - pb.y.iloc[k]
         return {"ahead_m": round(dx * ux + dy * uy), "windward_m": round(dx * nx + dy * ny)}
 
+    detail, why = _pair_detail(a, b, pa, pb, sign, cos, ra, rb, up)
     return {
         "a": a,
         "b": b,
@@ -346,7 +353,118 @@ def _pair_row(a, b, pa, pb, leg_types, names) -> dict:
         "gain_speed_m": round(speed),
         "gain_angle_m": round(gain - speed),
         "gain_m_per_min": round(gain / dur * 60, 1),
+        "detail": detail,
+        "why": why,
     }
+
+
+def _smooth(v: pd.Series, n: int = 5) -> pd.Series:
+    return v.rolling(n, center=True, min_periods=1).mean()
+
+
+def _r(v, nd=1):
+    return [None if pd.isna(x) else round(float(x), nd) for x in v]
+
+
+def _pair_detail(a, b, pa, pb, sign, cos, ra, rb, up) -> tuple[dict, dict]:
+    """Second by second through a side-by-side stretch, and the numbers behind the gain.
+
+    detail: per boat SOG, track angle to the course, heading angle (compass), heel, trim and
+    VMG along the course; the metres A gained on B so far, split into speed and angle the same
+    way as the stretch totals; where A was relative to B; and seconds in a wind shadow."""
+    t0, t1 = int(pa.index[0]), int(pa.index[-1])
+    idx = pd.RangeIndex(t0, t1 + 1)
+    cols = ["x", "y", "SOG", "COG", "Heel", "Trim", "hdg_rel"]
+
+    def fill(p):
+        p = p[[c for c in cols if c in p]].reindex(idx)
+        return p.interpolate(limit_direction="both")
+
+    A_, B_ = fill(pa), fill(pb)
+
+    def series(p):
+        vx = (p.x.shift(-5) - p.x.shift(5)).bfill().ffill()  # 10 s of track, centred
+        vy = (p.y.shift(-5) - p.y.shift(5)).bfill().ffill()
+        angle = np.degrees(np.arctan2(np.abs(vx), sign * vy))
+        out = {
+            "sog": _smooth(p.SOG),
+            "angle": pd.Series(angle, index=p.index),
+            "vmg": _smooth(sign * p.y.diff().bfill() / KT),
+        }
+        if "hdg_rel" in p:
+            h = np.abs(p.hdg_rel)
+            out["hdg_angle"] = _smooth(h if up else 180 - h)
+        if "Heel" in p:
+            out["heel"] = _smooth(p.Heel.abs())
+        if "Trim" in p:
+            out["trim"] = _smooth(p.Trim)
+        return out
+
+    sa, sb = series(A_), series(B_)
+    step = sign * A_.y.diff().fillna(0) - sign * B_.y.diff().fillna(0)
+    gain = step.cumsum()
+    dsog = ((A_.SOG + A_.SOG.shift()) / 2 - (B_.SOG + B_.SOG.shift()) / 2).fillna(0)
+    speed = (dsog * KT * cos).cumsum()
+    # A relative to B, along the direction both sailed and across it (+ = to windward)
+    vx = A_.x.iloc[-1] - A_.x.iloc[0] + B_.x.iloc[-1] - B_.x.iloc[0]
+    vy = A_.y.iloc[-1] - A_.y.iloc[0] + B_.y.iloc[-1] - B_.y.iloc[0]
+    L = math.hypot(vx, vy) or 1.0
+    ux, uy = vx / L, vy / L
+    nx, ny = (-uy, ux) if ux > 0 else (uy, -ux)
+    dx, dy = A_.x - B_.x, A_.y - B_.y
+    ahead, windward = dx * ux + dy * uy, dx * nx + dy * ny
+    dist = np.hypot(dx, dy)
+    # wind from +y: straight downwind of a boat is -y. B in A's shadow if B lies in that cone
+    down = lambda ex, ey: np.degrees(
+        np.arccos(np.clip(-ey / np.maximum(np.hypot(ex, ey), 1e-9), -1, 1))
+    )
+    b_in_a = (dist < SHADOW_M) & (down(-dx, -dy) < SHADOW_DEG)
+    a_in_b = (dist < SHADOW_M) & (down(dx, dy) < SHADOW_DEG)
+    shadow = np.where(b_in_a, 1, np.where(a_in_b, -1, 0))  # 1: B in A's wind, -1: A in B's
+
+    detail = {
+        "t": list(range(t0, t1 + 1)),
+        "boats": {
+            k: {m: _r(v, 2 if m in ("sog", "vmg") else 1) for m, v in sv.items()}
+            for k, sv in ((a, sa), (b, sb))
+        },
+        "gain": _r(gain),
+        "gain_speed": _r(speed),
+        "gain_angle": _r(gain - speed),
+        "ahead": _r(ahead, 0),
+        "windward": _r(windward, 0),
+        "shadow": [int(v) for v in shadow],
+    }
+
+    def stats(sv, p):
+        d = {m: (round(float(v.mean()), 2), round(float(v.std()), 2)) for m, v in sv.items()}
+        d["sailed_m"] = round(float(np.nansum(np.hypot(p.x.diff(), p.y.diff()))))
+        if "hdg_angle" in sv:
+            d["slip"] = round(float((sv["angle"] - sv["hdg_angle"]).mean()), 1)
+        return d
+
+    n = len(idx)
+    total = float(gain.iloc[-1])
+    win_sign = 1 if total >= 0 else -1
+    blocks = [float(gain.iloc[min(i + 10, n - 1)] - gain.iloc[i]) for i in range(0, n - 1, 10)]
+    steady = sum(1 for g in blocks if g * win_sign > 0) / max(len(blocks), 1)
+    w = min(30, n - 1)
+    run = (gain.shift(-w) - gain).dropna() * win_sign
+    best_i = int(run.idxmax()) if len(run) else t0
+    why = {
+        "stats": {a: stats(sa, A_), b: stats(sb, B_)},
+        "shadow_pct": {
+            b: round(100 * float(b_in_a.mean())),  # b in a's wind
+            a: round(100 * float(a_in_b.mean())),
+        },
+        "steady_pct": round(100 * steady),
+        "best_30s": {
+            "t0": best_i,
+            "t1": best_i + w,
+            "m": round(float(run.max()) if len(run) else 0),
+        },
+    }
+    return detail, why
 
 
 def pair_summary(races: list[dict]) -> list[dict]:
@@ -1057,6 +1175,72 @@ FLEET_JS = r"""
       lay.barmode = 'group'; lay.bargap = 0.3; lay.bargroupgap = 0.08; lay.yaxis.title = 's';
       Plotly.newPlot(el, traces, lay, CONFIG);
     },
+    // one side-by-side stretch, second by second: the gain, then every channel for both boats
+    stretch(el, r) {
+      const p = r.pairs.find(x => x.id === el.dataset.id), d = p.detail;
+      const A = FLEET.day[p.a], B = FLEET.day[p.b], up = p.leg_type === 'upwind';
+      // time after the gun on a date axis, so ticks and the hover read m:ss (h:mm:ss past an hour)
+      const pad = v => String(v).padStart(2, '0');
+      const x = d.t.map(t => '1970-01-01 ' + pad(Math.floor(t / 3600)) + ':' + pad(Math.floor(t / 60) % 60) + ':' + pad(t % 60));
+      const tf = d.t[d.t.length - 1] >= 3600 ? '%-H:%M:%S' : '%-M:%S';
+      const ink = css('--ink'), ink2 = css('--ink2'), line = css('--line');
+      const win = p.gain_m >= 0 ? A : B;
+      const hov = (name, unit) => '<b>' + name + '</b> %{y}' + unit + '<extra></extra>';
+      const tr = [];
+      const panels = [
+        'Metres ' + A.name + ' gained on ' + B.name,
+        'SOG (kt)',
+        'Pointing: angle to straight ' + (up ? 'up' : 'down') + ' the course (°, lower = ' + (up ? 'higher' : 'deeper') + '; dotted = compass)',
+        'Heel (°)',
+        'Trim, fore-aft: change from each boat\'s own average (°)',
+      ];
+      tr.push({ x, y: d.gain, yaxis: 'y', mode: 'lines', name: 'gained', line: { color: col(win), width: 3 },
+        hovertemplate: hov('gained', '') });
+      tr.push({ x, y: d.gain_speed, yaxis: 'y', mode: 'lines', name: 'from speed', line: { color: ink2, width: 1.5, dash: 'dash' },
+        hovertemplate: hov('from speed', '') });
+      tr.push({ x, y: d.gain_angle, yaxis: 'y', mode: 'lines', name: 'from ' + (up ? 'height' : 'depth'), line: { color: ink2, width: 1.5, dash: 'dot' },
+        hovertemplate: hov('from ' + (up ? 'height' : 'depth'), '') });
+      for (const [id, bt] of [[p.a, A], [p.b, B]]) {
+        const s = d.boats[id], c = col(bt);
+        tr.push({ x, y: s.sog, yaxis: 'y2', mode: 'lines', name: bt.name, legendgroup: id, line: { color: c, width: 2 }, hovertemplate: hov(bt.name + ' SOG', ' kt') });
+        tr.push({ x, y: s.angle, yaxis: 'y3', mode: 'lines', name: bt.name + ' track', legendgroup: id, showlegend: false, line: { color: c, width: 2 }, hovertemplate: hov(bt.name + ' track', '°') });
+        if (s.hdg_angle) tr.push({ x, y: s.hdg_angle, yaxis: 'y3', mode: 'lines', name: bt.name + ' compass', legendgroup: id, showlegend: false,
+          line: { color: c, width: 1, dash: 'dot' }, hovertemplate: hov(bt.name + ' compass', '°') });
+        if (s.heel) tr.push({ x, y: s.heel, yaxis: 'y4', mode: 'lines', name: bt.name + ' heel', legendgroup: id, showlegend: false, line: { color: c, width: 2 }, hovertemplate: hov(bt.name + ' heel', '°') });
+        if (s.trim) {  // each boat's trim sensor is zeroed differently: show change from its own average
+          const v = s.trim.filter(t => t != null), m = v.reduce((a, b) => a + b, 0) / (v.length || 1);
+          tr.push({ x, y: s.trim.map(t => t == null ? null : Math.round((t - m) * 10) / 10), yaxis: 'y5', mode: 'lines',
+            name: bt.name + ' trim', legendgroup: id, showlegend: false, line: { color: c, width: 2 }, hovertemplate: hov(bt.name + ' trim', '°') });
+        }
+      }
+      const narrow = el.clientWidth < 560;
+      const lay = base(p.id + ': ' + A.name + ' and ' + B.name + ', second by second', narrow ? 860 : 960, el);
+      const doms = [[0.80, 0.97], [0.60, 0.76], [0.40, 0.56], [0.20, 0.36], [0.0, 0.16]];
+      const ax = n => ({ gridcolor: line, zerolinecolor: ink2, linecolor: line, domain: doms[n], anchor: 'x' });
+      lay.yaxis = Object.assign(ax(0), { zeroline: true, ticksuffix: ' m' });
+      for (let n = 1; n < 5; n++) lay['yaxis' + (n + 1)] = ax(n);
+      lay.xaxis = { type: 'date', gridcolor: line, linecolor: line, anchor: 'y5', title: narrow ? '' : 'time after the gun',
+        tickformat: tf, hoverformat: tf };
+      lay.hovermode = 'x unified';
+      lay.hoversubplots = 'axis';  // one hover lists every panel at that second
+      lay.margin = { l: 52, r: 12, t: narrow ? 56 : 72, b: narrow ? 110 : 44 };
+      lay.legend = narrow
+        ? { orientation: 'h', y: -0.06, yanchor: 'top', x: 0, font: { color: ink, size: 11 } }
+        : { orientation: 'h', y: 1.0, yanchor: 'bottom', x: 0, font: { color: ink, size: 11 } };
+      lay.annotations = panels.map((t, n) => ({ text: wrap(t, el), xref: 'paper', yref: 'paper', x: 0, y: doms[n][1],
+        xanchor: 'left', yanchor: 'bottom', showarrow: false, font: { size: 11, color: ink2 }, align: 'left' }));
+      // shade the seconds one boat sat in the other's wind shadow (in the colour of the boat making it)
+      lay.shapes = [];
+      let i = 0;
+      while (i < d.shadow.length) {
+        if (!d.shadow[i]) { i++; continue; }
+        const v = d.shadow[i], j0 = i;
+        while (i < d.shadow.length && d.shadow[i] === v) i++;
+        lay.shapes.push({ type: 'rect', xref: 'x', yref: 'paper', x0: x[j0], x1: x[i - 1], y0: 0, y1: 0.97,
+          fillcolor: col(v > 0 ? A : B), opacity: 0.08, line: { width: 0 } });
+      }
+      Plotly.newPlot(el, tr, lay, CONFIG);
+    },
     pair(el) {
       const a = el.dataset.a, b = el.dataset.b, A = FLEET.day[a], B = FLEET.day[b];
       const rows = [];
@@ -1256,13 +1440,6 @@ FLEET_JS = r"""
       const i0 = Math.max(0, at(s.t, t0)), i1 = at(s.t, t1);
       return [s.x.slice(i0, i1 + 1), s.y.slice(i0, i1 + 1)];
     }
-    function watch(stem, t0, t1) {
-      location.hash = '#replay-' + stem;
-      setTimeout(() => {
-        const rp = document.getElementById('replay-' + stem);
-        if (rp && rp._replay) rp._replay.watch(stem, t0, t1);
-      }, 80);
-    }
     function highlight(k) {  // k: index into shown, or -1 for none
       if (!shown.length) return;
       const idx = shown.flatMap(x => x.traces);
@@ -1302,7 +1479,7 @@ FLEET_JS = r"""
           '<br><b>' + name(win) + ' gained ' + Math.abs(p.gain_m) + ' m</b> on ' + name(lose) +
           '<br>SOG ' + name(p.a) + ' ' + p.boats[p.a].sog + ' · ' + name(p.b) + ' ' + p.boats[p.b].sog + ' kt' +
           '<br>angle ' + name(p.a) + ' ' + Math.round(p.boats[p.a].angle) + '° · ' + name(p.b) + ' ' + Math.round(p.boats[p.b].angle) + '°' +
-          '<br><i>Click to watch</i>';
+          '<br><i>Click for why, and to watch it</i>';
         const item = { r, p, win, lose, where, traces: [] };
         let mx = 0, my = 0, k = 0;
         for (const id of [lose, win]) {
@@ -1311,13 +1488,13 @@ FLEET_JS = r"""
           item.traces.push(traces.length);
           traces.push({ x: xs, y: ys, mode: 'lines', line: { color: col(r.boats[id]), width: id === win ? 6 : 2.5,
             dash: p.leg_type === 'upwind' ? 'solid' : 'dot' },
-            hovertext: tip, hoverinfo: 'text', showlegend: false, customdata: xs.map(() => [r.stem, p.t0, p.t1]) });
+            hovertext: tip, hoverinfo: 'text', showlegend: false, customdata: xs.map(() => [r.stem, p.t0, p.t1, p.id]) });
         }
         if (labels && k) {
           item.traces.push(traces.length);
           traces.push({ x: [mx / k], y: [my / k], mode: 'text', text: [p.id.split('-')[1]], textposition: 'middle right',
             textfont: { size: 11, color: ink2 }, hovertext: tip, hoverinfo: 'text', showlegend: false,
-            customdata: [[r.stem, p.t0, p.t1]] });
+            customdata: [[r.stem, p.t0, p.t1, p.id]] });
         }
         shown.push(item);
       }
@@ -1343,7 +1520,7 @@ FLEET_JS = r"""
         bt.addEventListener('focus', () => highlight(k));
         bt.addEventListener('mouseleave', () => highlight(-1));
         bt.addEventListener('blur', () => highlight(-1));
-        bt.addEventListener('click', () => watch(x.r.stem, x.p.t0, x.p.t1));
+        bt.addEventListener('click', () => { location.hash = '#stretch-' + x.p.id; });
       });
     }
     el.querySelectorAll('.pm-races button').forEach(b => b.addEventListener('click', () => { ri = Number(b.dataset.i); draw(); }));
@@ -1352,7 +1529,7 @@ FLEET_JS = r"""
     draw();
     plot.on('plotly_click', ev => {
       const d = ev.points && ev.points[0] && ev.points[0].customdata;
-      if (d) watch(d[0], d[1], d[2]);
+      if (d) location.hash = '#stretch-' + d[3];
     });
   }
   // "Watch" links on the side-by-side page jump to that race's replay and play the stretch
@@ -1380,12 +1557,27 @@ FLEET_JS = r"""
       try { replay(el); } catch (e) { el.textContent = 'Replay failed: ' + e.message; }
     });
     root.querySelectorAll('.chart[data-fleet]:not([data-done])').forEach(el => {
+      if (el.closest('details:not([open])')) return;  // drawn when its section opens
       el.dataset.done = '1';
       const r = el.dataset.race ? FLEET.races.find(x => x.stem === el.dataset.race) : null;
       try { CHARTS[el.dataset.fleet](el, r); } catch (e) { el.textContent = 'Chart failed: ' + e.message; }
     });
   }
   window.renderCharts = render;
+  // a stretch's chart is drawn when its section opens; #stretch-R2-9 links open the section
+  document.addEventListener('toggle', e => {
+    if (e.target.matches && e.target.matches('details.stretch') && e.target.open) render(e.target);
+  }, true);
+  function openStretch() {
+    const id = (location.hash || '').slice(1);
+    if (!id.startsWith('stretch-')) return;
+    setTimeout(() => {
+      const d = document.getElementById(id);
+      if (d) { d.open = true; d.scrollIntoView({ block: 'start' }); }
+    }, 30);
+  }
+  window.addEventListener('hashchange', openStretch);
+  document.addEventListener('DOMContentLoaded', openStretch);
 })();
 """
 
@@ -1440,6 +1632,12 @@ REPLAY_CSS = """
 .pm-leg, .pm-where { color: var(--ink2); }
 .pm-gain { font-variant-numeric: tabular-nums; }
 td.where { text-align: left; }
+details.stretch { border: 1px solid var(--line); border-radius: 10px; margin: 8px 0; background: var(--card); }
+details.stretch > summary { padding: 8px 12px; color: var(--ink); line-height: 1.4; }
+details.stretch[open] > summary { border-bottom: 1px solid var(--line); }
+.stretch-body { padding: 4px 12px 8px; }
+p.why { margin: 8px 0; }
+.stretch-body td:not(:first-child), .stretch-body th:not(:first-child) { text-align: right; }
 """
 
 # Day-level charts a fleet debrief can place with a line of its own: [[chart:split]].
@@ -1492,6 +1690,65 @@ def pair_sentence(fa: dict, row: dict, kind: str) -> str | None:
         f"**{win} gained {abs(t['gain_m'])} m on {lose}** ({abs(t['gain_m_per_min'])} m a minute): "
         f"{part(sp, 'speed')}, {part(an, angle)}."
     )
+
+
+def why_sentence(fa: dict, p: dict) -> str:
+    """Why one boat gained in a side-by-side stretch, in plain words from its numbers."""
+    a, b = p["a"], p["b"]
+    win, lose = (a, b) if p["gain_m"] >= 0 else (b, a)
+    nw, nl = _pair_names(fa, win, lose)
+    g = abs(p["gain_m"])
+    if g < 8:  # a few metres over minutes is within what the tracks and the split can resolve
+        return f"About level: {nw} gained {g} m on {nl}, too little to call."
+    sg = 1 if win == a else -1
+    sp, an = sg * p["gain_speed_m"], sg * p["gain_angle_m"]
+    bw, bl = p["boats"][win], p["boats"][lose]
+    dsog = bw["sog"] - bl["sog"]
+    dang = bl["angle"] - bw["angle"]  # + = winner closer to straight up/down the course
+    up = p["leg_type"] == "upwind"
+    word = "height" if up else "depth"
+
+    def part(v, what, how):
+        return f"{v} m from {what} ({how})" if v >= 0 else f"{-v} m lost on {what} ({how})"
+
+    speed = part(sp, "speed", f"{abs(dsog):.2f} kt {'faster' if dsog >= 0 else 'slower'}")
+    angle = part(
+        an,
+        word,
+        f"track {abs(dang):.1f}° {'closer to' if dang >= 0 else 'further from'} "
+        f"straight {'up' if up else 'down'} the course"
+        if abs(dang) >= 0.1
+        else "the same track angle",
+    )
+    big, small = (speed, angle) if abs(sp) >= abs(an) else (angle, speed)
+    small_v = an if abs(sp) >= abs(an) else sp
+    if abs(small_v) < 3:  # too small to call either way
+        level = word if abs(sp) >= abs(an) else "speed"
+        out = f"{nw} gained {g} m on {nl}: {big}; {level} about level"
+    else:
+        link = " and " if min(sp, an) >= 0 else ", against "
+        out = f"{nw} gained {g} m on {nl}: {big}{link}{small}"
+    out += "."
+    sw, sl = p["why"]["stats"][win], p["why"]["stats"][lose]
+    if "heel" in sw and "heel" in sl and abs(dh := sw["heel"][0] - sl["heel"][0]) >= 1.5:
+        out += f" {nw} carried {abs(dh):.1f}° {'more' if dh > 0 else 'less'} heel."
+    w = p["why"]
+    best = w["best_30s"]
+    if w["steady_pct"] >= 70:
+        out += f" The gain came steadily ({w['steady_pct']}% of 10 s spells)."
+    elif best["m"] >= 0.5 * g:
+        out += (
+            f" Most of it came in a burst: {best['m']} m between {_mmss(best['t0'])} and "
+            f"{_mmss(best['t1'])}."
+        )
+    else:
+        out += f" It came and went (gained in {w['steady_pct']}% of 10 s spells)."
+    for boat, pct in w["shadow_pct"].items():
+        if pct >= 20:
+            other = b if boat == a else a
+            nb_, no_ = _pair_names(fa, boat, other)
+            out += f" {nb_} spent {pct}% of it in {no_}'s wind shadow, possibly in bad air."
+    return out
 
 
 def pairs_md(fa: dict) -> list[str]:
@@ -1563,6 +1820,13 @@ def pairs_md(fa: dict) -> list[str]:
                         + " |"
                     )
         L += ["", f"*{WHERE_NOTE}*", ""]
+    L += ["### Why, stretch by stretch", ""]
+    for r in fa["races"]:
+        for p in r.get("pairs", []):
+            L.append(
+                f"- **{p['id']}** ({r['race']}, {p['leg_name']}, {p['side']}): {why_sentence(fa, p)}"
+            )
+    L.append("")
     return L
 
 
@@ -1663,8 +1927,8 @@ def pairs_html(fa: dict) -> str:
                         "Heel": f"{ba['heel']:.0f}° / {bb['heel']:.0f}°"
                         if ba["heel"] is not None and bb["heel"] is not None
                         else "–",
-                        "": f'<a href="#replay-{r["stem"]}" data-watch="{r["stem"]}" '
-                        f'data-t0="{p["t0"]}" data-t1="{p["t1"]}">Watch</a>',
+                        "": f'<a href="#stretch-{p["id"]}">Details</a> · '
+                        + _watch_link(r["stem"], p),
                     }
                 )
         cols = list(rows[0]) if rows else []
@@ -1677,8 +1941,102 @@ def pairs_html(fa: dict) -> str:
             + "".join("<tr>" + "".join(f"<td>{rw[c]}</td>" for c in cols) + "</tr>" for rw in rows)
             + "</table></div>"
         )
+        body += (
+            '<h3>Stretch by stretch: why the gain</h3><p class="chart-hint">Open a stretch for '
+            "the reason in numbers, a table of both boats, and every channel second by second. "
+            "Pointing is the track (GPS) angle to straight up or down the course; the compass "
+            "heading is dotted, and differs between boats' sensors.</p>"
+            + "".join(stretch_html(fa, r, p) for r, p in stretches(fa, a, b))
+        )
         out.append(H.card(body))
     return "".join(out)
+
+
+def _watch_link(stem: str, p: dict, text: str = "Watch") -> str:
+    return (
+        f'<a href="#replay-{stem}" data-watch="{stem}" data-t0="{p["t0"]}" '
+        f'data-t1="{p["t1"]}">{text}</a>'
+    )
+
+
+def stretches(fa: dict, a: str, b: str):
+    return [(r, p) for r in fa["races"] for p in r.get("pairs", []) if (p["a"], p["b"]) == (a, b)]
+
+
+STRETCH_ROWS = [  # key, label, unit, decimals, better (+1 higher, -1 lower, 0 neither)
+    ("sog", "SOG", "kt", 2, 1),
+    ("vmg", "VMG along the course", "kt", 2, 1),
+    ("angle", "Track angle to the course", "°", 1, -1),
+    ("hdg_angle", "Heading angle to the course*", "°", 1, 0),
+    ("slip", "Slip (track − heading)*", "°", 1, 0),
+    ("heel", "Heel", "°", 1, 0),
+    ("trim", "Trim, fore-aft*", "°", 1, 0),
+    ("sailed_m", "Distance sailed", "m", 0, 0),
+]
+
+
+def stretch_html(fa: dict, r: dict, p: dict) -> str:
+    """One collapsible stretch: the why sentence, a table of both boats, and the chart."""
+    a, b = p["a"], p["b"]
+    na, nb = _pair_names(fa, a, b)
+    win = na if p["gain_m"] >= 0 else nb
+    lose = nb if win == na else na
+    where = f" · {p['where']['label']}" if p.get("where") else ""
+    head = (
+        f"<strong>{p['id']}</strong> · {html.escape(r['race'])}, {p['leg_name']}, {p['side']}"
+        f'{where} · <span class="gain">{html.escape(win)} +{abs(p["gain_m"])} m</span> on '
+        f"{html.escape(lose)} · {_mmss(p['duration_s'])}"
+    )
+    st = p["why"]["stats"]
+    rows = ""
+    for key, label, unit, nd, better in STRETCH_ROWS:
+        va, vb = st[a].get(key), st[b].get(key)
+        if va is None or vb is None:
+            continue
+        va, vb = (va[0], vb[0]) if isinstance(va, tuple | list) else (va, vb)
+        diff = va - vb
+        mark = ""
+        if better and round(diff, nd):
+            mark = na if (diff > 0) == (better > 0) else nb
+        rows += (
+            f"<tr><td>{label}</td><td>{va:.{nd}f} {unit}</td><td>{vb:.{nd}f} {unit}</td>"
+            f"<td>{'+' if diff > 0 else ''}{diff:.{nd}f}</td><td>{html.escape(mark)}</td></tr>"
+        )
+    sh = p["why"]["shadow_pct"]
+    rows += (
+        f"<tr><td>In the other's wind shadow</td><td>{sh[a]}%</td><td>{sh[b]}%</td>"
+        "<td></td><td></td></tr>"
+    )
+    rel0, rel1 = p["rel"]
+
+    def rel(x):
+        return (
+            f"{abs(x['ahead_m'])} m {'ahead' if x['ahead_m'] >= 0 else 'behind'}, "
+            f"{abs(x['windward_m'])} m {'to windward' if x['windward_m'] >= 0 else 'to leeward'}"
+        )
+
+    table = (
+        '<div class="scroll"><table><tr><th></th>'
+        f"<th>{html.escape(na)}</th><th>{html.escape(nb)}</th><th>Difference</th><th>Better</th>"
+        f"</tr>{rows}</table></div>"
+    )
+    return (
+        f'<details class="stretch" id="stretch-{p["id"]}"><summary>{head}</summary>'
+        f'<div class="stretch-body"><p class="why">{H.inline(why_sentence(fa, p))}</p>'
+        f'<p class="chart-hint">{html.escape(na)} was {rel(rel0)} of {html.escape(nb)} at the '
+        f"start and {rel(rel1)} at the end. {_watch_link(r['stem'], p, 'Watch it on the replay')}"
+        "</p>"
+        f"{table}"
+        '<p class="chart-hint">Averages over the stretch. * From each boat\'s own sensors, '
+        "zeroed differently: compare how they change, not the two boats' values (trim differs "
+        "by several degrees between these boats; heel on one tack can carry a degree or two). "
+        "The track angle is from GPS and doesn't depend on them. Better: faster, or closer "
+        "to straight up (beat) or down (run) the course. Wind shadow: within "
+        f"{SHADOW_M} m and {SHADOW_DEG}° of straight downwind of the other boat, taking the "
+        "course axis as the wind.</p>"
+        f'<div class="chart" data-fleet="stretch" data-race="{r["stem"]}" data-id="{p["id"]}">'
+        "</div></div></details>"
+    )
 
 
 def boat_cards(reports_dir: Path, boats: list[dict]) -> str:

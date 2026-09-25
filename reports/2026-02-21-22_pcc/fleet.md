@@ -350,3 +350,56 @@ Both boats had the same wind, so the gain is the boats: speed, and angle (height
 
 *Along the leg: thirds from the last mark (the offset, after a windward mark) to the next. Across it: within 100 m of the rhumb line is the middle; left and right are looking at the next mark (upwind on a beat, downwind on a run).*
 
+### Why, stretch by stretch
+
+- **R1-1** (Race 1, Beat 1, starboard tack): 1044 gained 10 m on Mojo: 24 m from height (track 9.5° closer to straight up the course), against 14 m lost on speed (0.57 kt slower). 1044 carried 3.5° more heel. The gain came steadily (86% of 10 s spells).
+- **R1-2** (Race 1, Beat 1, starboard tack): 1044 gained 31 m on Chomp: 53 m from height (track 8.7° closer to straight up the course), against 22 m lost on speed (0.39 kt slower). 1044 carried 5.8° more heel. It came and went (gained in 69% of 10 s spells).
+- **R1-3** (Race 1, Beat 1, starboard tack): Mojo gained 11 m on Chomp: 12 m from height (track 4.5° closer to straight up the course); speed about level. Mojo carried 3.9° more heel. The gain came steadily (100% of 10 s spells).
+- **R1-4** (Race 1, Beat 1, port tack): 1044 gained 64 m on Chomp: 85 m from height (track 6.6° closer to straight up the course), against 21 m lost on speed (0.12 kt slower). 1044 carried 4.7° more heel. The gain came steadily (83% of 10 s spells).
+- **R1-5** (Race 1, Run 1, port gybe): Chomp gained 64 m on Mojo: 39 m from speed (0.24 kt faster) and 25 m from depth (track 3.9° closer to straight down the course). The gain came steadily (88% of 10 s spells).
+- **R1-6** (Race 1, Beat 2, starboard tack): 1044 gained 38 m on Mojo: 25 m from height (track 1.9° closer to straight up the course) and 13 m from speed (0.09 kt faster). 1044 carried 2.6° more heel. It came and went (gained in 68% of 10 s spells).
+- **R1-7** (Race 1, Beat 2, port tack): Mojo gained 26 m on Chomp: 26 m from height (track 8.9° closer to straight up the course); speed about level. Mojo carried 3.3° more heel. The gain came steadily (100% of 10 s spells).
+- **R1-8** (Race 1, Run 2, port gybe): Chomp gained 26 m on Mojo: 21 m from speed (0.06 kt faster) and 5 m from depth (track 0.5° closer to straight down the course). Most of it came in a burst: 14 m between 50:27 and 50:57. Chomp spent 50% of it in Mojo's wind shadow, possibly in bad air.
+- **R2-1** (Race 2, Beat 1, starboard tack): About level: Chomp gained 2 m on 1044, too little to call.
+- **R2-2** (Race 2, Beat 1, port tack): 1044 gained 18 m on Chomp: 19 m from height (track 1.8° closer to straight up the course); speed about level. 1044 carried 1.6° more heel. It came and went (gained in 66% of 10 s spells).
+- **R2-3** (Race 2, Beat 1, port tack): About level: Mojo gained 5 m on 1044, too little to call.
+- **R2-4** (Race 2, Run 1, starboard gybe): 1044 gained 9 m on Chomp: 13 m from speed (0.26 kt faster), against 4 m lost on depth (track 4.4° further from straight down the course). 1044 carried 2.4° more heel. Most of it came in a burst: 6 m between 15:51 and 16:21.
+- **R2-5** (Race 2, Run 1, starboard gybe): About level: 1044 gained 3 m on Mojo, too little to call.
+- **R2-6** (Race 2, Run 1, port gybe): Chomp gained 42 m on 1044: 32 m from speed (0.15 kt faster) and 10 m from depth (track 1.3° closer to straight down the course). It came and went (gained in 63% of 10 s spells).
+- **R2-7** (Race 2, Run 1, port gybe): 1044 gained 20 m on Mojo: 13 m from depth (track 5.6° closer to straight down the course) and 7 m from speed (0.12 kt faster). The gain came steadily (77% of 10 s spells).
+- **R2-8** (Race 2, Beat 2, port tack): About level: 1044 gained 6 m on Chomp, too little to call.
+- **R2-9** (Race 2, Beat 2, port tack): 1044 gained 30 m on Mojo: 50 m from height (track 5.5° closer to straight up the course), against 20 m lost on speed (0.15 kt slower). 1044 carried 2.5° more heel. The gain came steadily (81% of 10 s spells).
+- **R2-10** (Race 2, Beat 2, port tack): About level: Chomp gained 0 m on Mojo, too little to call.
+- **R2-11** (Race 2, Beat 2, starboard tack): 1044 gained 19 m on Mojo: 35 m from height (track 4.1° closer to straight up the course), against 16 m lost on speed (0.19 kt slower). 1044 carried 3.8° more heel. It came and went (gained in 68% of 10 s spells).
+- **R2-12** (Race 2, Run 2, port gybe): 1044 gained 42 m on Chomp: 22 m from speed (0.09 kt faster) and 20 m from depth (track 2.6° closer to straight down the course). The gain came steadily (70% of 10 s spells).
+- **R2-13** (Race 2, Run 2, port gybe): Mojo gained 11 m on Chomp: 9 m from depth (track 5.7° closer to straight down the course); speed about level. Most of it came in a burst: 15 m between 50:35 and 51:05.
+- **R3-1** (Race 3, Beat 1, port tack): Mojo gained 9 m on 1044: 7 m from speed (0.23 kt faster); height about level. Mojo carried 2.1° more heel. The gain came steadily (88% of 10 s spells).
+- **R3-2** (Race 3, Run 1, port gybe): Mojo gained 47 m on 1044: 46 m from speed (0.23 kt faster); depth about level. Most of it came in a burst: 25 m between 24:36 and 25:06.
+- **R3-3** (Race 3, Beat 2, starboard tack): Mojo gained 21 m on Chomp: 36 m from height (track 12.0° closer to straight up the course), against 15 m lost on speed (0.36 kt slower). Mojo carried 1.7° less heel. Most of it came in a burst: 16 m between 27:23 and 27:53.
+- **R3-4** (Race 3, Run 2, starboard gybe): Chomp gained 22 m on Mojo: 13 m from speed (0.28 kt faster) and 9 m from depth (track 4.7° closer to straight down the course). The gain came steadily (70% of 10 s spells).
+- **R3-5** (Race 3, Run 2, port gybe): Mojo gained 36 m on Chomp: 36 m from speed (0.34 kt faster); depth about level. The gain came steadily (74% of 10 s spells).
+- **R4-1** (Race 4, Beat 1, starboard tack): About level: 1044 gained 5 m on Chomp, too little to call.
+- **R4-2** (Race 4, Beat 1, port tack): Chomp gained 21 m on 1044: 34 m from height (track 5.9° closer to straight up the course), against 13 m lost on speed (0.23 kt slower). Chomp carried 5.0° less heel. Most of it came in a burst: 21 m between 13:00 and 13:30.
+- **R4-3** (Race 4, Beat 1, port tack): About level: Mojo gained 5 m on Chomp, too little to call.
+- **R4-4** (Race 4, Beat 1, starboard tack): Mojo gained 10 m on Chomp: 7 m from height (track 1.2° closer to straight up the course) and 3 m from speed (0.09 kt faster). Mojo carried 3.0° more heel. The gain came steadily (78% of 10 s spells).
+- **R4-5** (Race 4, Run 1, port gybe): Chomp gained 26 m on 1044: 34 m from speed (0.67 kt faster), against 8 m lost on depth (track 7.8° further from straight down the course). The gain came steadily (82% of 10 s spells).
+- **R4-6** (Race 4, Beat 2, port tack): 1044 gained 17 m on Mojo: 33 m from height (track 5.3° closer to straight up the course), against 16 m lost on speed (0.31 kt slower). 1044 carried 1.8° less heel. Most of it came in a burst: 11 m between 34:56 and 35:26.
+- **R4-7** (Race 4, Beat 2, port tack): Mojo gained 49 m on Chomp: 54 m from height (track 19.7° closer to straight up the course), against 5 m lost on speed (0.24 kt slower). Mojo carried 4.9° more heel. The gain came steadily (100% of 10 s spells).
+- **R4-8** (Race 4, Run 2, starboard gybe): Mojo gained 11 m on Chomp: 21 m from speed (0.09 kt faster), against 10 m lost on depth (track 0.9° further from straight down the course). Most of it came in a burst: 15 m between 45:55 and 46:25.
+- **R5-1** (Race 5, Beat 1, port tack): About level: Chomp gained 7 m on 1044, too little to call.
+- **R5-2** (Race 5, Beat 1, starboard tack): About level: Mojo gained 2 m on Chomp, too little to call.
+- **R5-3** (Race 5, Run 1, starboard gybe): 1044 gained 25 m on Chomp: 53 m from speed (1.11 kt faster), against 28 m lost on depth (track 10.6° further from straight down the course). The gain came steadily (73% of 10 s spells).
+- **R5-4** (Race 5, Run 1, port gybe): Mojo gained 14 m on 1044: 24 m from speed (0.60 kt faster), against 10 m lost on depth (track 8.4° further from straight down the course). Most of it came in a burst: 10 m between 22:45 and 23:15.
+- **R5-5** (Race 5, Run 1, port gybe): Chomp gained 18 m on 1044: 12 m from speed (0.26 kt faster) and 6 m from depth (track 2.8° closer to straight down the course). The gain came steadily (80% of 10 s spells).
+- **R5-6** (Race 5, Beat 2, starboard tack): About level: Mojo gained 2 m on 1044, too little to call.
+- **R5-7** (Race 5, Run 2, starboard gybe): About level: Chomp gained 6 m on 1044, too little to call.
+- **R5-8** (Race 5, Run 2, starboard gybe): 1044 gained 17 m on Mojo: 24 m from depth (track 7.8° closer to straight down the course), against 7 m lost on speed (0.16 kt slower). The gain came steadily (80% of 10 s spells).
+- **R5-9** (Race 5, Run 2, starboard gybe): Chomp gained 25 m on Mojo: 21 m from depth (track 6.5° closer to straight down the course) and 4 m from speed (0.08 kt faster). Chomp carried 2.9° less heel. The gain came steadily (82% of 10 s spells).
+- **R5-10** (Race 5, Run 2, port gybe): Mojo gained 29 m on Chomp: 29 m from speed (0.63 kt faster); depth about level. The gain came steadily (70% of 10 s spells).
+- **R5-11** (Race 5, Run 2, port gybe): Chomp gained 9 m on 1044: 20 m from depth (track 3.3° closer to straight down the course), against 11 m lost on speed (0.08 kt slower). Most of it came in a burst: 16 m between 51:21 and 51:51.
+- **R5-12** (Race 5, Run 2, port gybe): Mojo gained 11 m on 1044: 11 m from speed (0.12 kt faster); depth about level. Most of it came in a burst: 12 m between 53:00 and 53:30. 1044 spent 100% of it in Mojo's wind shadow, possibly in bad air.
+- **R5-13** (Race 5, Run 2, port gybe): Mojo gained 17 m on Chomp: 18 m from speed (0.19 kt faster); depth about level. Mojo carried 1.8° less heel. Most of it came in a burst: 11 m between 52:47 and 53:17.
+- **R5-14** (Race 5, Beat 3, starboard tack): 1044 gained 37 m on Chomp: 32 m from height (track 4.5° closer to straight up the course) and 5 m from speed (0.06 kt faster). 1044 carried 4.0° more heel. The gain came steadily (81% of 10 s spells).
+- **R5-15** (Race 5, Beat 3, port tack): Mojo gained 20 m on Chomp: 29 m from height (track 6.9° closer to straight up the course), against 9 m lost on speed (0.26 kt slower). Mojo carried 3.5° more heel. Most of it came in a burst: 19 m between 62:45 and 63:15.
+- **R5-16** (Race 5, Beat 3, port tack): Mojo gained 15 m on 1044: 11 m from height (track 1.4° closer to straight up the course) and 4 m from speed (0.07 kt faster). Mojo carried 2.7° more heel. Most of it came in a burst: 9 m between 68:17 and 68:47.
+

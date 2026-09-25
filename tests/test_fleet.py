@@ -125,6 +125,10 @@ def test_fleet_outputs(pcc, tmp_path):
     assert 'data-watch="race1"' in page and "## Side by side" in md
     assert page.count('class="pairmap"') == 1 + len(fa["pairs"])  # overall map + one per pair
     assert "**Where the stretches were**" in md and "| R1-1 | Race 1 |" in md
+    n = sum(len(r["pairs"]) for r in fa["races"])
+    assert page.count('<details class="stretch"') == n == page.count('data-fleet="stretch"')
+    assert page.count('href="#stretch-R') == n and 'id="stretch-R1-1"' in page
+    assert "### Why, stretch by stretch" in md and "- **R1-1** (Race 1," in md
     assert "Next time:</strong> Stay central." in page
     data = json.loads(page.split('id="fleet-data">')[1].split("</script>")[0].replace("<\\/", "</"))
     assert len(data["races"]) == 5
@@ -208,6 +212,29 @@ def test_side_by_side(pcc):
         assert w["along"] in ("first third", "middle third", "last third")
         assert w["side"] in ("left", "middle", "right")
         assert (w["side"] == "middle") == (abs(w["xte_m"]) <= fleet.PAIR_MIDDLE_M)
+        # second by second: the gain adds up to the stretch's total, split the same way
+        d = p["detail"]
+        assert len(d["t"]) == p["duration_s"] + 1 == len(d["gain"]) == len(d["shadow"])
+        for bid in (p["a"], p["b"]):
+            assert all(len(v) == len(d["t"]) for v in d["boats"][bid].values())
+            mean_angle = p["why"]["stats"][bid]["angle"][0]
+            assert abs(mean_angle - p["boats"][bid]["angle"]) <= 2
+        assert abs(d["gain"][-1] - p["gain_m"]) <= 2
+        assert abs(d["gain_speed"][-1] + d["gain_angle"][-1] - d["gain"][-1]) <= 0.2
+        assert abs(d["gain_speed"][-1] - p["gain_speed_m"]) <= 4
+        if min(p["apart_m"]) > fleet.SHADOW_M + 60:
+            assert not any(d["shadow"])
+        why = fleet.why_sentence(fa, p)
+        g = abs(p["gain_m"])
+        winner = fa["day"][p["a"] if p["gain_m"] >= 0 else p["b"]]["name"]
+        assert why.startswith("About level" if g < 8 else f"{winner} gained {g} m")
+        if g >= 8:
+            big = (
+                "speed"
+                if abs(p["gain_speed_m"]) >= abs(p["gain_angle_m"])
+                else ("height" if p["leg_type"] == "upwind" else "depth")
+            )
+            assert why.split(": ", 1)[1].split("(")[0].strip().endswith(big)
     zones = fleet.where_summary(fa)
     assert sum(z["n"] for z in zones) == len(pairs)
     tot = {(x["a"], x["b"]): x for x in fa["pairs"]}

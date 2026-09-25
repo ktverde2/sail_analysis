@@ -50,7 +50,7 @@
 - **1044's height paid in open water.** In the first two-thirds of the beats it gained 134 m on Chomp and 105 m on Mojo; in the last third, approaching the windward mark, it gained nothing (−3 m and −22 m).
 - **Mojo beat Chomp near the windward mark:** 92 m of its 144 m came in the last third of the beats.
 - Runs were down the middle (13 of 23 stretches) or right of the rhumb line looking downwind (10).
-- Thick lines are the boat that gained; dotted lines are runs. Hover a stretch in the list to find it on the map, and click to watch it on the replay.
+- Thick lines are the boat that gained; dotted lines are runs. Hover a stretch in the list to find it on the map; click it for why that boat gained (speed, pointing, heel and trim second by second), with a link to watch it on the replay.
 
 [[chart:pairmap]]
 
