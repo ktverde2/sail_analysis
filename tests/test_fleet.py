@@ -218,6 +218,9 @@ def test_side_by_side(pcc):
         assert len(d["t"]) == p["duration_s"] + 1 == len(d["gain"]) == len(d["shadow"])
         for bid in (p["a"], p["b"]):
             assert all(len(v) == len(d["t"]) for v in d["boats"][bid].values())
+            # smoothed SOG and heel come with the spread of the 1 Hz readings around them
+            for key in ("sog", "heel", "trim"):
+                assert all(v is None or v >= 0 for v in d["boats"][bid][key + "_sd"])
             mean_angle = p["why"]["stats"][bid]["angle"][0]
             assert abs(mean_angle - p["boats"][bid]["angle"]) <= 2
         assert abs(d["gain"][-1] - p["gain_m"]) <= 2

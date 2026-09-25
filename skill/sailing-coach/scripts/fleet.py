@@ -58,6 +58,9 @@ PAIR_MIDDLE_M = 100  # within this of the rhumb line counts as the middle of the
 SHADOW_M = 75
 SHADOW_DEG = 25
 KT = 1852 / 3600  # m/s per knot
+# Side-by-side charts: SOG, heel and trim are drawn as a rolling mean over this many seconds,
+# with a band of +/-1 standard deviation of the 1 Hz readings in the same window
+DETAIL_SMOOTH_S = 15
 
 
 # ---------------------------------------------------------------- loading
@@ -362,6 +365,13 @@ def _smooth(v: pd.Series, n: int = 5) -> pd.Series:
     return v.rolling(n, center=True, min_periods=1).mean()
 
 
+def _band(v: pd.Series, n: int = DETAIL_SMOOTH_S) -> tuple[pd.Series, pd.Series]:
+    """Centred rolling mean and standard deviation: the smoothed line and how far the 1 Hz
+    readings swing around it (waves, puffs, steering)."""
+    r = v.rolling(n, center=True, min_periods=3)
+    return r.mean(), r.std().fillna(0)
+
+
 def _r(v, nd=1):
     return [None if pd.isna(x) else round(float(x), nd) for x in v]
 
@@ -386,8 +396,9 @@ def _pair_detail(a, b, pa, pb, sign, cos, ra, rb, up) -> tuple[dict, dict]:
         vx = (p.x.shift(-5) - p.x.shift(5)).bfill().ffill()  # 10 s of track, centred
         vy = (p.y.shift(-5) - p.y.shift(5)).bfill().ffill()
         angle = np.degrees(np.arctan2(np.abs(vx), sign * vy))
-        out = {
-            "sog": _smooth(p.SOG),
+        out = {}
+        out["sog"], out["sog_sd"] = _band(p.SOG)
+        out |= {
             "angle": pd.Series(angle, index=p.index),
             "vmg": _smooth(sign * p.y.diff().bfill() / KT),
         }
@@ -395,9 +406,9 @@ def _pair_detail(a, b, pa, pb, sign, cos, ra, rb, up) -> tuple[dict, dict]:
             h = np.abs(p.hdg_rel)
             out["hdg_angle"] = _smooth(h if up else 180 - h)
         if "Heel" in p:
-            out["heel"] = _smooth(p.Heel.abs())
+            out["heel"], out["heel_sd"] = _band(p.Heel.abs())
         if "Trim" in p:
-            out["trim"] = _smooth(p.Trim)
+            out["trim"], out["trim_sd"] = _band(p.Trim)
         return out
 
     sa, sb = series(A_), series(B_)
@@ -425,7 +436,7 @@ def _pair_detail(a, b, pa, pb, sign, cos, ra, rb, up) -> tuple[dict, dict]:
     detail = {
         "t": list(range(t0, t1 + 1)),
         "boats": {
-            k: {m: _r(v, 2 if m in ("sog", "vmg") else 1) for m, v in sv.items()}
+            k: {m: _r(v, 2 if m in ("sog", "vmg", "sog_sd") else 1) for m, v in sv.items()}
             for k, sv in ((a, sa), (b, sb))
         },
         "gain": _r(gain),
@@ -437,7 +448,11 @@ def _pair_detail(a, b, pa, pb, sign, cos, ra, rb, up) -> tuple[dict, dict]:
     }
 
     def stats(sv, p):
-        d = {m: (round(float(v.mean()), 2), round(float(v.std()), 2)) for m, v in sv.items()}
+        d = {
+            m: (round(float(v.mean()), 2), round(float(v.std()), 2))
+            for m, v in sv.items()
+            if not m.endswith("_sd")
+        }
         d["sailed_m"] = round(float(np.nansum(np.hypot(p.x.diff(), p.y.diff()))))
         if "hdg_angle" in sv:
             d["slip"] = round(float((sv["angle"] - sv["hdg_angle"]).mean()), 1)
@@ -666,7 +681,12 @@ def fleet_analysis(boats: list[dict]) -> dict:
                 k: sum(x["time_split_s"][k] for x in rs) for k in ("start", "upwind", "downwind")
             },
         }
-    return {"races": races, "day": day, "pairs": pair_summary(races)}
+    return {
+        "races": races,
+        "day": day,
+        "pairs": pair_summary(races),
+        "detail_smooth_s": DETAIL_SMOOTH_S,
+    }
 
 
 def _dayname(date: str) -> str:
@@ -972,6 +992,7 @@ FLEET_JS = r"""
   function clock(t) { return t < 0 ? '−' + mmss(t) + ' to gun' : '+' + mmss(t); }
   function signed(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v) + ' s'; }
   const FLEET = JSON.parse(document.getElementById('fleet-data').textContent);
+  const SMOOTH = FLEET.detail_smooth_s || 15;
   const IDS = Object.keys(FLEET.day);  // fixed boat order: colour follows the boat
   const CONFIG = { responsive: true, displaylogo: false, modeBarButtonsToRemove: ['toImage', 'lasso2d', 'select2d'] };
   // long titles break onto two lines on a phone instead of running off the chart
@@ -1196,10 +1217,10 @@ FLEET_JS = r"""
       }
       const panels = [
         'Metres ' + A.name + ' gained on ' + B.name,
-        'SOG (kt)',
+        'SOG (kt): ' + SMOOTH + ' s average, shaded ±1 SD of the 1 s readings',
         'Pointing: angle to straight ' + (up ? 'up' : 'down') + ' the course (°, lower = ' + (up ? 'higher' : 'deeper') + '; dotted = compass)',
-        'Heel (°)',
-        'Trim, fore-aft: change from each boat\'s own average (°)',
+        'Heel (°): ' + SMOOTH + ' s average, shaded ±1 SD',
+        'Trim, fore-aft: change from each boat\'s own average (°), ' + SMOOTH + ' s average, shaded ±1 SD',
       ];
       tr.push({ x, y: d.gain, yaxis: 'y', mode: 'lines', name: 'gained', line: { color: col(win), width: 3 },
         hovertemplate: hov('gained', '') });
@@ -1219,6 +1240,22 @@ FLEET_JS = r"""
             name: bt.name + ' trim', legendgroup: id, showlegend: false, line: { color: c, width: 2 }, hovertemplate: hov(bt.name + ' trim', '°') });
         }
       }
+      // shaded band: ±1 standard deviation of the 1 Hz readings around each smoothed line
+      const rgba = (hex, a) => { const n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')'; };
+      const bands = [];
+      for (const [id, bt] of [[p.a, A], [p.b, B]]) {
+        const s = d.boats[id];
+        for (const [key, axis, mid] of [['sog', 'y2', s.sog], ['heel', 'y4', s.heel], ['trim', 'y5', trimChange[id]]]) {
+          const sd = s[key + '_sd'];
+          if (!mid || !sd) continue;
+          const hi = mid.map((v, k) => v == null ? null : Math.round((v + sd[k]) * 100) / 100);
+          const lo = mid.map((v, k) => v == null ? null : Math.round((v - sd[k]) * 100) / 100);
+          bands.push({ x, y: hi, yaxis: axis, mode: 'lines', line: { width: 0 }, showlegend: false, legendgroup: id });
+          bands.push({ x, y: lo, yaxis: axis, mode: 'lines', line: { width: 0 }, fill: 'tonexty',
+            fillcolor: rgba(col(bt), 0.18), showlegend: false, legendgroup: id });
+        }
+      }
+      tr.unshift(...bands);  // behind the lines
       tr.forEach(t => { t.hoverinfo = 'none'; delete t.hovertemplate; });
       const narrow = el.clientWidth < 560;
       const lay = base(p.id + ': ' + A.name + ' and ' + B.name + ', second by second', narrow ? 860 : 960, el);
