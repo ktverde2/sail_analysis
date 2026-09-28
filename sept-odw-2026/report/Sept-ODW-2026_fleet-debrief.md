@@ -43,4 +43,5 @@
 
 **Data notes**
 - Only these two boats were tracked. Order and gaps are among them, not official results.
-- Speed is SOG. The two compasses differ by about 10°, so compare angles over the ground.
+- Speed is SOG. 969's heading reads 11° left of its track on every heading, about the local magnetic variation, so variation is probably being applied twice. Mojo's offset is 1.5°. Compare angles over the ground (see the Current page).
+- Upwind, Mojo slips 3.3° more to leeward than 969 in the same water (6.5° against 3.2°). There was no measurable current across the course.

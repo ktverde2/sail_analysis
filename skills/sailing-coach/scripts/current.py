@@ -1,0 +1,344 @@
+#!/usr/bin/env python3
+"""COG vs heading: how the water moved the boats, and where on the course.
+
+The gap between course over ground and heading (the drift angle) is three things added together:
+
+  compass offset   the same on every heading (a mounting or calibration error, or magnetic
+                   variation applied twice)
+  leeway           upwind only, to leeward: COG right of heading on port, left on starboard
+  current          the water's sideways push on whatever heading the boat is on
+
+Without a paddlewheel (speed through the water) the current along the wind axis can't be told
+apart from leeway: it pushes the boat to leeward on both tacks exactly as leeway does, and on the
+runs it's along the track. So for each boat this fits, over all its races:
+
+  drift x SOG = offset x SOG + slip x (+1 port / -1 stbd, upwind only) x SOG + C x (r . n)
+
+where n is the unit vector to starboard of the (corrected) heading and r points across the course
+(to the right, looking upwind). offset is the compass offset, slip is leeway plus any along-wind
+current (between boats in the same water, the slip difference is a leeway difference), and C is
+the current across the course, in knots. Every sample's drift left after the offset and slip,
+divided by how square it was to the course, gives a per-second estimate of the cross-course
+current: the map averages those, from every boat, in cells across the course.
+
+analyze.py calls race_drift() for each race and writes <race>/drift.json. html_report.py and
+fleet.py call report_page() to add a Current page from every boat's drift.json they can find.
+"""
+
+from __future__ import annotations
+
+import json
+import math
+from pathlib import Path
+
+import numpy as np
+import pandas as pd
+
+HERE = Path(__file__).resolve().parent
+STEP_S = 2  # one sample every 2 s is plenty for 50 m cells
+TRIM_LEG_S = 20  # skip the first and last 20 s of each leg (roundings)
+TRIM_MANEUVER_S = 15  # and 15 s either side of every tack and gybe
+MIN_SOG = 2.0
+MAX_TURN_DEG_S = 4.0  # steady sailing only
+MIN_SQUARE = 0.4  # skip samples sailing nearly along the cross-course axis
+M_PER_DEG_LAT = 110_540.0
+M_PER_DEG_LON = 111_320.0
+
+
+def adiff(a, b):
+    """Signed smallest angle from a to b, degrees."""
+    return (np.asarray(b) - np.asarray(a) + 180.0) % 360.0 - 180.0
+
+
+# --- per race (analyze.py) ---------------------------------------------------------------------
+
+
+def race_drift(df: pd.DataFrame, res: dict, course: list[dict], boat: str) -> dict:
+    """drift.json for one race: steady-sailing samples with heading, COG and the leg they're on."""
+    out = {
+        "boat": boat,
+        "race": res["race"],
+        "stem": res.get("stem"),
+        "axis": res.get("upwind_axis"),
+        "twd": (res.get("wind") or {}).get("twd_estimated"),
+        "course": course,
+        "samples": None,
+    }
+    need = {"tg", "Lat", "Lon", "SOG", "COG", "Heading"}
+    if not need <= set(df.columns) or out["twd"] is None or df.Heading.isna().all():
+        return out
+    d = df.dropna(subset=list(need)).drop_duplicates("tg").copy()
+    d["mode"], d["leg"] = None, None
+    for lg in res.get("legs", []):
+        if lg.get("type") not in ("upwind", "downwind") or lg.get("start_s") is None:
+            continue
+        a = lg["start_s"] + TRIM_LEG_S
+        b = lg["start_s"] + lg["duration_s"] - TRIM_LEG_S
+        on = (d.tg >= a) & (d.tg <= b)
+        d.loc[on, "mode"], d.loc[on, "leg"] = lg["type"], lg["leg"]
+    for m in res.get("maneuvers", []):
+        if m.get("time_s") is not None:
+            d.loc[(d.tg - m["time_s"]).abs() <= TRIM_MANEUVER_S, "mode"] = None
+    turn = np.abs(adiff(d.Heading.shift(), d.Heading))
+    dt = d.tg.diff()
+    steady = (turn / dt.clip(lower=1)).fillna(0) <= MAX_TURN_DEG_S
+    d = d[d["mode"].notna() & (d.SOG >= MIN_SOG) & steady]
+    d = d[np.round(d.tg) % STEP_S == 0]
+    # Starboard when the wind comes over the starboard side (wind from the boat's own estimate,
+    # so a compass offset doesn't flip it)
+    stbd = (out["twd"] - d.Heading) % 360 < 180
+    r = lambda s, n: [round(float(v), n) for v in s]
+    out["samples"] = {
+        "t": [int(round(v)) for v in d.tg],
+        "lat": r(d.Lat, 6),
+        "lon": r(d.Lon, 6),
+        "sog": r(d.SOG, 2),
+        "hdg": r(d.Heading, 1),
+        "cog": r(d.COG, 1),
+        "mode": ["U" if m == "upwind" else "D" for m in d["mode"]],
+        "side": ["S" if s else "P" for s in stbd],
+        "leg": [int(v) for v in d.leg],
+    }
+    return out
+
+
+# --- per boat fit ------------------------------------------------------------------------------
+
+
+def _frame(drifts: list[dict]) -> pd.DataFrame:
+    rows = []
+    for dr in drifts:
+        s = dr.get("samples")
+        if not s or not s["t"]:
+            continue
+        f = pd.DataFrame(s)
+        f["boat"], f["race"], f["axis"] = dr["boat"], dr["race"], dr["axis"]
+        rows.append(f)
+    if not rows:
+        return pd.DataFrame()
+    f = pd.concat(rows, ignore_index=True)
+    f["drift"] = adiff(f.hdg, f.cog)
+    f["up"] = (f["mode"] == "U").astype(float)
+    f["sgn"] = np.where(f.side == "P", 1.0, -1.0)  # leeway pushes COG right of heading on port
+    return f
+
+
+def _square(f: pd.DataFrame, offset) -> np.ndarray:
+    """r . n: how square the boat's sideways direction was to the cross-course axis (offset: one
+    number, or one per row)."""
+    h = np.radians(f.hdg + offset + 90)
+    ax = np.radians(f["axis"])
+    return np.cos(ax) * np.sin(h) - np.sin(ax) * np.cos(h)
+
+
+def fit_boat(f: pd.DataFrame) -> dict | None:
+    """Compass offset, upwind slip and cross-course current for one boat's samples."""
+    if len(f) < 60 or f.up.sum() < 30 or (1 - f.up).sum() < 30:
+        return None
+    y = np.radians(f.drift) * f.sog
+    offset = 0.0
+    for _ in range(3):  # the offset changes n a little; iterate
+        A = np.c_[f.sog, f.up * f.sgn * f.sog, _square(f, offset)]
+        x, *_ = np.linalg.lstsq(A, y, rcond=None)
+        offset = math.degrees(x[0])
+    resid = y - A @ x
+    return {
+        "offset": round(offset, 1),
+        "slip": round(math.degrees(x[1]), 1),
+        "cross_kt": round(float(x[2]), 2),
+        "n": int(len(f)),
+        "resid_deg": round(float(np.degrees(np.std(resid / f.sog))), 1),
+    }
+
+
+# --- page data ---------------------------------------------------------------------------------
+
+
+def build(drifts: list[dict], boat_order: list[str]) -> dict | None:
+    """Everything the Current page needs, for every boat with drift samples."""
+    f = _frame(drifts)
+    if f.empty:
+        return None
+    fits, per_race = {}, []
+    for b, g in f.groupby("boat"):
+        fb = fit_boat(g)
+        if fb:
+            fits[b] = fb
+            for race, gr in g.groupby("race"):
+                fr = fit_boat(gr)
+                if fr:
+                    per_race.append({"boat": b, "race": race, **fr})
+    f = f[f.boat.isin(fits)].copy()
+    if f.empty:
+        return None
+    f["offset"] = f.boat.map(lambda b: fits[b]["offset"])
+    f["slip"] = f.boat.map(lambda b: fits[b]["slip"])
+    f["corr"] = f.drift - f.offset  # drift with the compass offset removed
+    sq = _square(f, f.offset)
+    left = np.radians(f["corr"] - f.slip * f.up * f.sgn) * f.sog  # what the current is left to explain
+    f["cross"] = np.where(np.abs(sq) >= MIN_SQUARE, left / np.where(sq == 0, np.nan, sq), np.nan)
+
+    # Course frame: metres, rotated so the median upwind axis points up the page
+    lat0, lon0 = f.lat.mean(), f.lon.mean()
+    axis = float(np.nanmedian([d["axis"] for d in drifts if d.get("axis") is not None]))
+    th = math.radians(axis)
+    k = math.cos(math.radians(lat0))
+
+    def to_xy(lat, lon):
+        e = (np.asarray(lon) - lon0) * M_PER_DEG_LON * k
+        n = (np.asarray(lat) - lat0) * M_PER_DEG_LAT
+        return e * math.cos(th) - n * math.sin(th), e * math.sin(th) + n * math.cos(th)
+
+    f["x"], f["y"] = to_xy(f.lat, f.lon)
+    races = sorted(f.race.unique(), key=lambda r: (len(r), r))
+    boats = [b for b in boat_order if b in fits] + sorted(set(fits) - set(boat_order))
+
+    # Breakdown: point of sail x tack, per boat and per leg
+    def summ(g):
+        return {
+            "n": int(len(g)),
+            "raw": round(float(g.drift.median()), 1),
+            "corr": round(float(g["corr"].median()), 1),
+            "sog": round(float(g.sog.median()), 2),
+        }
+
+    breakdown = []
+    for (b, m, s), g in f.groupby(["boat", "mode", "side"]):
+        breakdown.append({"boat": b, "mode": m, "side": s, **summ(g)})
+    legs = []
+    for (b, race, leg, m, s), g in f.groupby(["boat", "race", "leg", "mode", "side"]):
+        if len(g) >= 10:  # 20 s or more
+            legs.append({"boat": b, "race": race, "leg": int(leg), "mode": m, "side": s,
+                         "t": int(g.t.min()), **summ(g)})
+
+    marks = []
+    for d in drifts:
+        for el in d.get("course") or []:
+            pts = [el.get("coord1"), el.get("coord2")]
+            xy = [to_xy(p["lat"], p["lon"]) for p in pts if p]
+            marks.append({"race": d["race"], "type": el["type"],
+                          "pts": [[round(float(x), 1), round(float(y), 1)] for x, y in xy]})
+    uniq, seen = [], set()
+    for m in marks:
+        key = (m["race"], m["type"], json.dumps(m["pts"]))
+        if key not in seen:
+            seen.add(key)
+            uniq.append(m)
+
+    r1 = lambda s, n=1: [None if pd.isna(v) else round(float(v), n) for v in s]
+    return {
+        "axis": round(axis, 1),
+        "boats": boats,
+        "races": races,
+        "fits": fits,
+        "per_race": per_race,
+        "breakdown": breakdown,
+        "legs": legs,
+        "marks": uniq,
+        "s": {
+            "b": [boats.index(b) for b in f.boat],
+            "r": [races.index(r) for r in f.race],
+            "t": [int(v) for v in f.t],
+            "m": list(f["mode"]),
+            "p": list(f.side),
+            "x": r1(f.x),
+            "y": r1(f.y),
+            "sog": r1(f.sog, 2),
+            "raw": r1(f.drift),
+            "corr": r1(f["corr"]),
+            "cross": r1(f.cross, 2),
+        },
+    }
+
+
+# --- html ----------------------------------------------------------------------------------------
+
+INTRO = (
+    "Course over ground against heading: how far the boats were set sideways, and where on the course. "
+    "Each boat's compass offset is taken out first, so boats with different compasses can share one map."
+)
+
+
+def fragment(extra_class: str = "") -> str:
+    return f"""<div class="tk cur {extra_class}">
+  <div class="tk-card">
+    <h2>What COG − heading is made of</h2>
+    <p class="tk-note" style="font-size:14px;color:var(--tk-ink2)">The gap between course over ground and heading
+      adds up three things: the <b>compass offset</b> (the same on every heading), <b>leeway</b> (upwind, to leeward)
+      and <b>current</b>. Without a paddlewheel, current running along the wind can't be told apart from leeway, so
+      upwind the two are reported together as <b>slip</b>. Between boats in the same water, a difference in slip is a
+      difference in leeway. Current <b>across</b> the course can be measured, and so can where the set was stronger.</p>
+    <div class="tk-tablewrap" style="margin-top:8px"><table class="tk-cmp" data-r="fits"></table></div>
+    <div data-r="fitnotes"></div>
+  </div>
+  <div class="tk-card">
+    <h2>Upwind and downwind, port and starboard</h2>
+    <p class="tk-note">Median COG − heading, compass offset removed. + means the boat tracked to the right of its heading.
+      Upwind, the gap between port and starboard is twice the slip.</p>
+    <div class="tk-tablewrap"><table class="tk-cmp" data-r="brk"></table></div>
+  </div>
+  <div class="tk-card">
+    <h2>Leg by leg</h2>
+    <div class="tk-legend" data-r="leg-legs"></div>
+    <div class="tk-chart" data-r="legs"></div>
+    <p class="tk-note">Each dot is one boat on one tack or gybe of one leg (20 s or more of steady sailing). If both tacks
+      move the same way from one beat to the next, the water changed; if they move apart, the slip did.</p>
+  </div>
+  <div class="tk-card">
+    <h2>The course</h2>
+    <div class="tk-filters" role="toolbar">
+      <div><label>Show</label><span class="tk-seg" data-r="f-metric"></span></div>
+      <div><label>Boat</label><span class="tk-seg" data-r="f-boat"></span></div>
+      <div><label>Race</label><span class="tk-seg" data-r="f-race"></span></div>
+      <div><label>Leg</label><span class="tk-seg" data-r="f-mode"></span></div>
+      <div><label>Tack</label><span class="tk-seg" data-r="f-side"></span></div>
+      <div><label>Cell</label><span class="tk-seg" data-r="f-cell"></span></div>
+    </div>
+    <p class="tk-note" data-r="metric-note"></p>
+    <div class="cur-map" data-r="map"></div>
+    <p class="tk-note">Upwind is up the page. Cells are coloured by the median of every sample in them from the boats
+      and races selected; faint cells have few samples. Hover a cell for its numbers. Drag to zoom, double-click to reset.</p>
+  </div>
+</div>"""
+
+
+def assets() -> tuple[str, str]:
+    css = (HERE / "maneuver_overlay.css").read_text() + (HERE / "current.css").read_text()
+    return css, (HERE / "current.js").read_text()
+
+
+def payload(data: dict) -> str:
+    return json.dumps(data, separators=(",", ":")).replace("</", "<\\/")
+
+
+def load_drifts(report_dirs: list[Path]) -> list[dict]:
+    out = []
+    for d in report_dirs:
+        for p in sorted(Path(d).glob("*/drift.json")):
+            out.append(json.loads(p.read_text()))
+    return out
+
+
+def fleet_dirs(report_dir: Path) -> list[Path]:
+    """A boat's report and, in the fleet layout (<reports>/<boat>/), its sibling boats'."""
+    report_dir = Path(report_dir)
+    sibs = [p for p in report_dir.parent.iterdir() if p.is_dir() and list(p.glob("*/drift.json"))]
+    return sibs if report_dir in sibs else [report_dir]
+
+
+def page_parts(report_dirs: list[Path], focus: str | None = None, embedded: bool = True):
+    """(body html, scripts) for a Current page, or None when there's no drift data."""
+    from maneuver_overlay import boat_order  # same boat colours as the Tacks and Gybes pages
+
+    drifts = load_drifts(report_dirs)
+    data = build(drifts, boat_order(d["boat"] for d in drifts))
+    if not data:
+        return None
+    data["focus"] = focus
+    css, js = assets()
+    body = fragment("tk-embedded" if embedded else "")
+    script = (
+        f"<style>{css}</style><script>{js}</script>"
+        f'<script>CurrentMap(document.querySelector("#current .cur"), {payload(data)});</script>'
+    )
+    return body, script

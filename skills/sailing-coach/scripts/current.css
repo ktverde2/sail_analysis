@@ -1,0 +1,26 @@
+/* Current page (current.js). Builds on maneuver_overlay.css: wrap in .tk for its tokens. */
+.tk.cur {
+  --cur-neg: #1c5cab; --cur-neg2: #86b6ef; --cur-mid: #f0efec; --cur-pos2: #f2a3a2; --cur-pos: #b8302f;
+  --cur-seq0: #e8f1fc; --cur-seq1: #9ec5f4; --cur-seq2: #2a78d6; --cur-seq3: #0d366b;
+  --cur-mark: #0b0b0b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .tk.cur {
+    --cur-neg: #5598e7; --cur-neg2: #1c5cab; --cur-mid: #383835; --cur-pos2: #8f2e2d; --cur-pos: #e66767;
+    --cur-seq0: #1d2633; --cur-seq1: #184f95; --cur-seq2: #3987e5; --cur-seq3: #cde2fb;
+    --cur-mark: #ffffff;
+  }
+}
+:root[data-theme="dark"] .tk.cur {
+  --cur-neg: #5598e7; --cur-neg2: #1c5cab; --cur-mid: #383835; --cur-pos2: #8f2e2d; --cur-pos: #e66767;
+  --cur-seq0: #1d2633; --cur-seq1: #184f95; --cur-seq2: #3987e5; --cur-seq3: #cde2fb;
+  --cur-mark: #ffffff;
+}
+.tk.cur .cur-map { width: 100%; height: 620px; }
+@media (max-width: 700px) { .tk.cur .cur-map { height: 480px; } }
+.tk.cur .tk-cmp td, .tk.cur .tk-cmp th { text-align: right; }
+.tk.cur .tk-cmp td:first-child, .tk.cur .tk-cmp th:first-child { text-align: left; }
+.tk.cur .cur-sub { display: block; color: var(--tk-muted); font-size: 11px; }
+.tk.cur tr.focus td { font-weight: 600; }
+.tk.cur [data-r="fitnotes"] ul { margin: 10px 0 0; padding-left: 20px; }
+.tk.cur [data-r="fitnotes"] li { margin: 4px 0; color: inherit; }

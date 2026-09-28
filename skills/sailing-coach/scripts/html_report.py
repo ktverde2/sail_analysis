@@ -29,6 +29,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
+import current as CU
 import maneuver_overlay as MO
 
 PLOTS = [
@@ -1025,6 +1026,11 @@ def build(
             downwind_page(runs),
             roundings_page(runs),
         ]
+    # Current: COG vs heading, from this boat and any others analysed alongside it
+    cur = CU.page_parts(CU.fleet_dirs(report_dir), focus=runs[0][1].get("boat") if runs else None) if INTERACTIVE and runs else None
+    if cur:
+        pages.append(page("current", "Current", CU.INTRO, cur[0], 3))
+        overlay_js += cur[1]
     sub_nav = (
         '<nav class="sub">'
         + "".join(
@@ -1055,6 +1061,7 @@ def build(
         "upwind": "Upwind",
         "downwind": "Downwind",
         "roundings": "Roundings",
+        "current": "Current",
         "races": "Race by race",
     }
     joined = "".join(pages)

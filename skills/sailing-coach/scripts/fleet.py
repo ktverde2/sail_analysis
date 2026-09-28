@@ -31,6 +31,7 @@ import re
 from pathlib import Path
 
 import analyze as A
+import current as CU
 import html_report as H
 import numpy as np
 import pandas as pd
@@ -2246,6 +2247,9 @@ def write_html(
                 pairs_html(fa),
             )
         )
+    cur = CU.page_parts([reports_dir / b["id"] for b in boats], embedded=True)
+    if cur:
+        pages.append(H.page("current", "Current", CU.INTRO, cur[0]))
     cards = boat_cards(reports_dir, boats)
     if cards:
         pages.append(
@@ -2261,6 +2265,7 @@ def write_html(
         "debrief": "Fleet debrief",
         "races": "Race by race",
         "pairs": "Side by side",
+        "current": "Current",
         "boats": "Boat by boat",
     }
     nav = (
@@ -2287,7 +2292,7 @@ def write_html(
         + "<footer>Numbers from analyze.py and fleet.py. Speeds are over ground. "
         "Times are local to the event.</footer></main>"
         f'<script type="application/json" id="fleet-data">{data}</script>{lib}'
-        f"<script>{FLEET_JS}</script></body></html>"
+        f"<script>{FLEET_JS}</script>{cur[1] if cur else ''}</body></html>"
     )
     path = out / "fleet.html"
     path.write_text(doc)

@@ -10,9 +10,13 @@ TITLE="Sept ODW · Sep 26"
 S=${SAILING_COACH_SCRIPTS:-../skills/sailing-coach/scripts}
 BOATS=(Mojo 969)
 
+# Analyse every boat before building any report: each report's Current page uses all boats' data
+for b in "${BOATS[@]}"; do
+  python3 "$S/analyze.py" data/$b/race*.csv --out report/$b
+done
+
 for b in "${BOATS[@]}"; do
   d=report/$b
-  python3 "$S/analyze.py" data/$b/race*.csv --out $d
   mv $d/executive.md $d/${E}_${b}_executive-summary.md
   mv $d/event.md     $d/${E}_${b}_event-summary.md
   # html_report.py and fleet.py look for these names

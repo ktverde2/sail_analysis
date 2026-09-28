@@ -19,6 +19,7 @@ Writes, per race, <out>/<stem>/:
   track.png, timeline.png, start.png, maneuvers.png, shifts.png, downwind.png
   plotdata.json   1 Hz series for the interactive HTML charts
   overlay.json    every comparable tack and gybe, aligned at the middle of the turn (maneuver_overlay.py)
+  drift.json      steady-sailing COG vs heading samples for the current analysis (current.py)
 and, across all races, <out>/executive.md (one factual line overall, per day and per race,
 with flags for outliers) and <out>/event.md (the comparison table). With --html, also <out>/report.html: one self-contained
 page (plots embedded) with an optional --debrief Markdown file at the top. html_report.py can
@@ -44,6 +45,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).parent))
 from coach_calcs import BANDS, KT_TO_MS, interp_targets
+import current
 import maneuver_overlay
 
 EARTH_R_M = 6_371_000
@@ -2657,6 +2659,8 @@ def run(
         boat = race.meta.get("boat") or out.name
         overlay = maneuver_overlay.race_overlay(race.df, res["maneuvers"], boat, res["race"])
         (d / "overlay.json").write_text(json.dumps(overlay, separators=(",", ":")))
+        drift = current.race_drift(race.df, res, race.course, boat)
+        (d / "drift.json").write_text(json.dumps(drift, separators=(",", ":")))
         if plots:
             make_plots(race, res, d)
         results.append(res)
