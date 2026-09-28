@@ -28,4 +28,7 @@ mv report/fleet.html report/${E}_fleet.html
 mv report/fleet.md   report/${E}_fleet.md
 mv report/fleet.json report/${E}_fleet.json
 
+python3 ../tools/tack_overlay.py --data data --reports report \
+  --out report/${E}_tacks.html --title "Sept ODW 2026 · Tacks"
+
 for b in "${BOATS[@]}"; do rm report/$b/{executive,event,debrief}.md; done

@@ -7,6 +7,7 @@ Reports, named `<regatta>_<boat>_<kind>`:
 | File | What |
 |---|---|
 | `report/Sept-ODW-2026_fleet.html` | Head-to-head: race replay, side-by-side stretches, fleet debrief |
+| `report/Sept-ODW-2026_tacks.html` | Every beat-to-beat tack for both boats, lined up at head to wind. Shows SOG and heading overlays and tacking angle against time lost, with the best 10% highlighted and what they did differently |
 | `report/Sept-ODW-2026_fleet-debrief.md` | Fleet debrief (written) |
 | `report/Sept-ODW-2026_fleet.md` / `.json` | Fleet comparison tables (generated) |
 | `report/<boat>/Sept-ODW-2026_<boat>_report.html` | Full report for one boat |
