@@ -78,6 +78,123 @@ function CurrentMap(root, D) {
     $("fitnotes").innerHTML = notes.length ? "<ul>" + notes.map(n => `<li>${n}</li>`).join("") + "</ul>" : "";
   }
 
+  // ---- NOAA tide and current ------------------------------------------------------------------
+  const hm = x => x.slice(11, 16);
+  function raceShapes(N) {
+    return N.races.map(r => ({ type: "rect", xref: "x", yref: "paper", x0: r.start, x1: r.end, y0: 0, y1: 1,
+      fillcolor: css("--tk-grid"), opacity: 0.8, line: { width: 0 }, layer: "below" }));
+  }
+  function raceLabels(N) {
+    return N.races.map(r => ({ xref: "x", yref: "paper", x: r.start, y: 1, xanchor: "left", yanchor: "top", showarrow: false,
+      text: short(r.race), font: { size: 10, color: css("--tk-muted") } }));
+  }
+  function noaaPart() {
+    const N = D.noaa;
+    if (!N) return;
+    $("noaa-card").hidden = false;
+    const C = N.current, T = N.tide;
+    const src = [];
+    if (C) src.push(`Current: <b>${C.station.name}</b> (${C.station.id}), ${C.station.km} km from the course` +
+      (C.station.depth_ft ? `, ${C.station.depth_ft} ft down` : "") + `. ${C.method}; flood toward ${C.flood_dir}°, ebb toward ${C.ebb_dir}°.`);
+    if (T) src.push(`Tide: <b>${T.station.name}</b> (${T.station.id}), ${T.station.km} km, feet above ${T.datum}.`);
+    src.push(`${N.source}, fetched ${N.fetched.slice(0, 10)}. Times are local.`);
+    $("noaa-src").innerHTML = src.join(" ");
+    const lay = (yt, extra) => base(Object.assign({ margin: { l: 48, r: 10, t: 16, b: 32 }, shapes: raceShapes(N), annotations: raceLabels(N),
+      xaxis: axis("", { type: "date", tickformat: "%H:%M" }), yaxis: axis(yt),
+      showlegend: true, legend: { orientation: "h", x: 0, y: -0.18, font: { size: 11 } } }, extra || {}));
+
+    if (T) {
+      const tr = [{ x: T.x, y: T.pred, type: "scatter", mode: "lines", name: "predicted", line: { color: css("--tk-ink2"), width: 2, dash: "dash" },
+        hovertemplate: "%{x|%H:%M}: %{y:.2f} ft predicted<extra></extra>" }];
+      if (T.obs.length) tr.push({ x: T.obs_x, y: T.obs, type: "scatter", mode: "lines", name: "observed", line: { color: css("--tk-series-1"), width: 2 },
+        hovertemplate: "%{x|%H:%M}: %{y:.2f} ft observed<extra></extra>" });
+      const hl = T.hilo.filter(h => h[0] >= T.x[0] && h[0] <= T.x[T.x.length - 1]);
+      tr.push({ x: hl.map(h => h[0]), y: hl.map(h => h[1]), type: "scatter", mode: "markers+text", name: "high / low",
+        text: hl.map(h => `${h[2] === "H" ? "High" : "Low"} ${hm(h[0])}`), textposition: "top center", textfont: { size: 10, color: css("--tk-muted") },
+        marker: { size: 8, color: css("--tk-ink2") }, hovertemplate: "%{text}: %{y:.2f} ft<extra></extra>" });
+      Plotly.react($("tide"), tr, lay(`ft above ${T.datum}`), CFG);
+    } else $("tide").parentElement.hidden = true;
+
+    if (C) {
+      const ev = C.events.filter(e => e[0] >= C.x[0] && e[0] <= C.x[C.x.length - 1]);
+      const tr = [
+        { x: C.x, y: C.v, type: "scatter", mode: "lines", name: "predicted", line: { color: css("--tk-series-1"), width: 2 },
+          hovertemplate: `%{x|%H:%M}: %{y:.2f} kt<extra></extra>` },
+        { x: ev.map(e => e[0]), y: ev.map(e => e[1]), type: "scatter", mode: "markers+text", name: "max / slack",
+          text: ev.map(e => e[2] === "slack" ? `slack ${hm(e[0])}` : `max ${e[2]} ${Math.abs(e[1]).toFixed(2)} kt ${hm(e[0])}`),
+          textposition: "bottom center", textfont: { size: 10, color: css("--tk-muted") }, marker: { size: 8, color: css("--tk-ink2") },
+          hovertemplate: "%{text}<extra></extra>" },
+      ];
+      Plotly.react($("cur"), tr, lay(`kt (+ flood ${C.flood_dir}°, − ebb ${C.ebb_dir}°)`, {
+        shapes: [...raceShapes(N), { type: "line", xref: "paper", x0: 0, x1: 1, y0: 0, y1: 0, line: { color: css("--tk-muted"), width: 1, dash: "dot" } }] }), CFG);
+
+      // Predicted across the course against each boat's measurement per race
+      const cmp = [{ x: C.x, y: C.across, type: "scatter", mode: "lines", name: "NOAA predicted, across", line: { color: css("--tk-ink2"), width: 2 },
+        customdata: C.up, hovertemplate: "%{x|%H:%M}: %{y:+.2f} kt across · %{customdata:+.2f} kt up the course<extra>NOAA</extra>" }];
+      for (const b of D.boats) {
+        const pts = D.per_race.filter(p => p.boat === b).map(p => [N.races.find(r => r.race === p.race), p]).filter(([r]) => r && r.mid);
+        if (!pts.length) continue;
+        cmp.push({ x: pts.map(([r]) => r.mid), y: pts.map(([, p]) => p.cross_kt), type: "scatter", mode: "markers", name: `${b}, measured`,
+          marker: { size: 11, color: css(boatVar(b)), line: { color: css("--tk-surface-1"), width: 1.5 } },
+          text: pts.map(([r, p]) => `${b} · ${r.race}: measured ${sgn(p.cross_kt, 2)} kt; NOAA ${sgn(r.across, 2)} kt`),
+          hovertemplate: "%{text}<extra></extra>" });
+      }
+      Plotly.react($("cmp"), cmp, lay("kt across (+ right)", {
+        shapes: [...raceShapes(N), { type: "line", xref: "paper", x0: 0, x1: 1, y0: 0, y1: 0, line: { color: css("--tk-muted"), width: 1, dash: "dot" } }] }), CFG);
+      $("leg-cmp").innerHTML = "";
+    } else { $("cur").parentElement.hidden = true; $("cmp").hidden = true; }
+
+    // Notes
+    const notes = [], R = N.races.filter(r => r.v != null);
+    if (C && R.length) {
+      const phase = r => (Math.abs(r.v) < 0.15 ? "near slack" : r.v > 0 ? "flood" : "ebb");
+      const ph = [...new Set(R.map(phase))];
+      const inWin = C.events.filter(e => e[0] >= R[0].start && e[0] <= R[R.length - 1].end);
+      notes.push(`<b>${ph.length === 1 ? `All ${R.length > 1 ? R.length + " races" : "the racing"} on the ${ph[0]}` : "Races: " + R.map(r => `${short(r.race)} ${phase(r)}`).join(", ")}</b> at the station` +
+        (inWin.length ? `: ${inWin.map(e => (e[2] === "slack" ? `slack at ${hm(e[0])}` : `max ${e[2]} ${Math.abs(e[1]).toFixed(2)} kt toward ${e[2] === "flood" ? C.flood_dir : C.ebb_dir}° at ${hm(e[0])}`)).join(", ")}.` : "."));
+    }
+    if (T && N.races.length) {
+      const at = x => { let k = T.x.findIndex(t => t >= x); return k < 0 ? null : T.pred[k]; };
+      const a = at(N.races[0].start), b = at(N.races[N.races.length - 1].end);
+      const hl = T.hilo.filter(h => h[0] >= N.races[0].start && h[0] <= N.races[N.races.length - 1].end);
+      if (a != null && b != null)
+        notes.push(`<b>Tide ${b < a ? "falling" : "rising"} from ${a.toFixed(1)} to ${b.toFixed(1)} ft</b> over the racing` +
+          (hl.length ? ` (${hl.map(h => `${h[2] === "H" ? "high" : "low"} ${h[1].toFixed(1)} ft at ${hm(h[0])}`).join(", ")}).` : "."));
+      if (T.obs.length) {
+        const diff = T.obs_x.map((x, i) => { const k = T.x.indexOf(x); return k < 0 ? null : T.obs[i] - T.pred[k]; }).filter(v => v != null);
+        const m = med(diff);
+        if (m != null && Math.abs(m) >= 0.3)
+          notes.push(`The gauge read <b>${sgn(m)} ft ${m > 0 ? "above" : "below"} the prediction</b> through the day (weather, swell or a surge). The timing of the tide, not its height, is what drives the current.`);
+      }
+    }
+    if (C && R.length) {
+      const pred = R.reduce((s, r) => s + r.across, 0) / R.length;
+      const meas = D.boats.length ? D.boats.reduce((s, b) => s + D.fits[b].cross_kt, 0) / D.boats.length : null;
+      const side = v => (v > 0 ? "right" : "left");
+      if (meas != null) {
+        if (Math.abs(pred) < 0.25 && Math.abs(meas) < 0.25)
+          notes.push(`<b>NOAA and the boats agree: little current across the course</b> (predicted ${sgn(pred, 2)} kt, measured ${sgn(meas, 2)} kt).`);
+        else if (Math.sign(pred) === Math.sign(meas) && Math.abs(meas) >= 0.5 * Math.abs(pred) && Math.abs(meas) <= 2 * Math.abs(pred))
+          notes.push(`<b>The boats felt what NOAA predicted:</b> about ${Math.abs(meas).toFixed(2)} kt across the course toward the ${side(meas)} (NOAA ${sgn(pred, 2)} kt).`);
+        else
+          notes.push(`<b>NOAA's station predicts ${Math.abs(pred).toFixed(2)} kt across the course toward the ${side(pred)} during the races; the boats measured ${sgn(meas, 2)} kt.</b> ` +
+            `The station is ${C.station.km} km away (${C.station.name}), so its current is that water's, not the race area's: use it for timing (when the tide turns), not for how hard it pushed on the course.`);
+      }
+      const up = R.reduce((s, r) => s + r.up, 0) / R.length;
+      if (Math.abs(up) >= 0.2)
+      {
+        // Along-course current would show as slip rising and falling with it on every boat
+        const spread = D.boats.map(b => { const v = D.per_race.filter(p => p.boat === b).map(p => p.slip); return v.length > 1 ? Math.max(...v) - Math.min(...v) : null; }).filter(v => v != null);
+        const steady = spread.length && Math.max(...spread) < 1;
+        notes.push(`NOAA's current along the course averaged ${Math.abs(up).toFixed(2)} kt ${up > 0 ? "up the course (against a boat going downwind)" : "down the course (against a boat going upwind)"}. ` +
+          `COG vs heading can't measure that part directly: it shows up as slip on every boat. ` +
+          (steady ? `Each boat's slip stayed within ${Math.max(...spread).toFixed(1)}° from race to race while NOAA's current changed, so it didn't show on the course either.`
+                  : `Slip varied by up to ${spread.length ? Math.max(...spread).toFixed(1) : "?"}° between races: compare it race by race with NOAA's along-course number.`));
+      }
+    }
+    $("noaa-notes").innerHTML = notes.length ? "<ul>" + notes.map(n => `<li>${n}</li>`).join("") + "</ul>" : "";
+  }
+
   // ---- upwind/downwind x port/starboard -------------------------------------------------------
   function breakdown() {
     const cols = [["U", "P", "Upwind port"], ["U", "S", "Upwind starboard"], ["D", "P", "Downwind port"], ["D", "S", "Downwind starboard"]];
@@ -214,6 +331,19 @@ function CurrentMap(root, D) {
       { xref: "paper", yref: "paper", x: 0.01, y: 0.99, xanchor: "left", yanchor: "top", showarrow: false,
         text: `↑ upwind (${Math.round(D.axis)}°)`, font: { size: 11, color: muted } },
     ];
+    // NOAA's predicted current for the race(s) in view, drawn in the map's frame (x across, y up)
+    const NC = D.noaa && D.noaa.current && D.noaa.races.filter(r => r.across != null && (S.race === "All" || r.race === S.race));
+    if (NC && NC.length) {
+      const ac = NC.reduce((s, r) => s + r.across, 0) / NC.length, up = NC.reduce((s, r) => s + r.up, 0) / NC.length;
+      const spd = Math.hypot(ac, up), L = 70 * Math.min(1.5, spd) / Math.max(spd, 1e-6) ;
+      const brg = ((D.axis + Math.atan2(ac, up) * 180 / Math.PI) % 360 + 360) % 360;
+      ann.push({ xref: "paper", yref: "paper", x: 0.16, y: 0.14, ax: -ac * L, ay: up * L, axref: "pixel", ayref: "pixel",
+        showarrow: spd >= 0.05, arrowhead: 2, arrowwidth: 2.5, arrowcolor: css("--tk-ink"),
+        text: "", hovertext: "NOAA prediction at the station, not a measurement" },
+        { xref: "paper", yref: "paper", x: 0.01, y: 0.01, xanchor: "left", yanchor: "bottom", showarrow: false, align: "left",
+          text: `NOAA, ${D.noaa.current.station.name}: ${spd.toFixed(2)} kt toward ${Math.round(brg)}°<br>(${S.race === "All" ? "average of the races" : S.race}, at the station)`,
+          font: { size: 11, color: muted } });
+    }
     const el = $("map");
     Plotly.react(el, traces, base({
       margin: { l: 44, r: 8, t: 8, b: 40 }, annotations: ann,
@@ -236,7 +366,7 @@ function CurrentMap(root, D) {
 
   function render() {
     if (!root.offsetParent) return; // hidden page: Plotly can't size charts yet
-    fits(); breakdown(); legs(); segs(); renderMap();
+    fits(); noaaPart(); breakdown(); legs(); segs(); renderMap();
   }
   render();
   window.addEventListener("hashchange", () => setTimeout(render, 0));

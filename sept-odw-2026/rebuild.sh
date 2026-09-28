@@ -15,6 +15,9 @@ for b in "${BOATS[@]}"; do
   python3 "$S/analyze.py" data/$b/race*.csv --out report/$b
 done
 
+# NOAA tide and current near the course: fetched once, then reused (delete noaa.json to refetch)
+[ -f report/noaa.json ] || python3 "$S/noaa.py" --reports report
+
 for b in "${BOATS[@]}"; do
   d=report/$b
   mv $d/executive.md $d/${E}_${b}_executive-summary.md

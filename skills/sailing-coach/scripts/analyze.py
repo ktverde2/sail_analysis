@@ -2660,6 +2660,9 @@ def run(
         overlay = maneuver_overlay.race_overlay(race.df, res["maneuvers"], boat, res["race"])
         (d / "overlay.json").write_text(json.dumps(overlay, separators=(",", ":")))
         drift = current.race_drift(race.df, res, race.course, boat)
+        # For lining the race up with tide and current data (noaa.py)
+        drift["gun"] = race.gun.timestamp() if race.gun is not None else None
+        drift["timezone"] = str(race.tz)
         (d / "drift.json").write_text(json.dumps(drift, separators=(",", ":")))
         if plots:
             make_plots(race, res, d)

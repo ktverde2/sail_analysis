@@ -29,10 +29,14 @@ from __future__ import annotations
 
 import json
 import math
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
+
+import noaa
 
 HERE = Path(__file__).resolve().parent
 STEP_S = 2  # one sample every 2 s is plenty for 50 m cells
@@ -251,6 +255,48 @@ def build(drifts: list[dict], boat_order: list[str]) -> dict | None:
     }
 
 
+# --- NOAA tide and current (noaa.py) ------------------------------------------------------------
+
+
+def noaa_view(nd: dict | None, axis: float, tz: str) -> dict | None:
+    """NOAA's predictions in local time, with the current resolved across and up the course."""
+    if not nd or not (nd.get("current") or nd.get("tide")):
+        return None
+    zone = ZoneInfo(tz)
+    loc = lambda e: datetime.fromtimestamp(e, zone).strftime("%Y-%m-%d %H:%M:%S")
+    out = {"source": nd.get("source"), "fetched": nd.get("fetched"), "tz": tz,
+           "races": [{"race": r, "start": loc(a), "end": loc(b), "a": a, "b": b} for r, (a, b) in nd["races"].items()]}
+    c = nd.get("current")
+    if c and c.get("series"):
+        t = np.array([p[0] for p in c["series"]])
+        v = np.array([p[1] for p in c["series"]])
+        # Toward the flood direction when flooding, the ebb direction when ebbing
+        d = np.where(v >= 0, c["flood_dir"], c["ebb_dir"])
+        spd = np.abs(v)
+        across = spd * np.cos(np.radians(d - (axis + 90)))  # + toward the right side, looking upwind
+        up = spd * np.cos(np.radians(d - axis))  # + up the course (into the wind)
+        for r in out["races"]:
+            on = (t >= r["a"]) & (t <= r["b"])
+            if on.any():
+                r.update(v=round(float(v[on].mean()), 2), across=round(float(across[on].mean()), 2),
+                         up=round(float(up[on].mean()), 2), mid=loc((r["a"] + r["b"]) / 2))
+        out["current"] = {
+            "station": c["station"], "method": c["method"], "flood_dir": c["flood_dir"], "ebb_dir": c["ebb_dir"],
+            "x": [loc(x) for x in t], "v": np.round(v, 2).tolist(),
+            "across": np.round(across, 2).tolist(), "up": np.round(up, 2).tolist(),
+            "events": [[loc(e[0]), e[1], e[2]] for e in c["events"]],
+        }
+    tdd = nd.get("tide")
+    if tdd and tdd.get("pred"):
+        out["tide"] = {
+            "station": tdd["station"], "datum": tdd.get("datum", "MLLW"),
+            "x": [loc(p[0]) for p in tdd["pred"]], "pred": [p[1] for p in tdd["pred"]],
+            "obs_x": [loc(p[0]) for p in tdd["obs"]], "obs": [p[1] for p in tdd["obs"]],
+            "hilo": [[loc(h[0]), h[1], h[2]] for h in tdd["hilo"]],
+        }
+    return out
+
+
 # --- html ----------------------------------------------------------------------------------------
 
 INTRO = (
@@ -270,6 +316,21 @@ def fragment(extra_class: str = "") -> str:
       difference in leeway. Current <b>across</b> the course can be measured, and so can where the set was stronger.</p>
     <div class="tk-tablewrap" style="margin-top:8px"><table class="tk-cmp" data-r="fits"></table></div>
     <div data-r="fitnotes"></div>
+  </div>
+  <div class="tk-card" data-r="noaa-card" hidden>
+    <h2>Tide and current from NOAA</h2>
+    <p class="tk-note" data-r="noaa-src"></p>
+    <div data-r="noaa-notes"></div>
+    <div class="tk-grid2">
+      <div><h3 class="cur-h3">Tide</h3><div class="tk-chart cur-small" data-r="tide"></div></div>
+      <div><h3 class="cur-h3">Current at the station</h3><div class="tk-chart cur-small" data-r="cur"></div></div>
+    </div>
+    <h3 class="cur-h3">Across the course: NOAA's prediction against what the boats measured</h3>
+    <div class="tk-legend" data-r="leg-cmp"></div>
+    <div class="tk-chart cur-small" data-r="cmp"></div>
+    <p class="tk-note">Shaded: the races. The line is the station's current resolved across the course (+ toward the right side,
+      looking upwind); the dots are each boat's fit for each race, at mid-race. NOAA's current up and down the course can't be
+      checked this way (it looks like leeway), so it's in the hover only.</p>
   </div>
   <div class="tk-card">
     <h2>Upwind and downwind, port and starboard</h2>
@@ -335,6 +396,8 @@ def page_parts(report_dirs: list[Path], focus: str | None = None, embedded: bool
     if not data:
         return None
     data["focus"] = focus
+    tz = next((d.get("timezone") for d in drifts if d.get("timezone")), "UTC")
+    data["noaa"] = noaa_view(noaa.find(report_dirs), data["axis"], tz)
     css, js = assets()
     body = fragment("tk-embedded" if embedded else "")
     script = (

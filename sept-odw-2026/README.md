@@ -16,7 +16,7 @@ Reports, named `<regatta>_<boat>_<kind>`:
 | `report/<boat>/Sept-ODW-2026_<boat>_executive-summary.md` | One line for each race, with flags |
 | `report/<boat>/Sept-ODW-2026_<boat>_event-summary.md` | Table of all races |
 
-`report/<boat>/raceN/` holds per-race detail and plots. `data/<boat>/raceN.csv` is Njord `get_data` at 1 Hz, with `-race.json` (the course) and `-raceInfo.json` (Mojo only). These keep the generic names because the scripts look for them.
+`report/noaa.json` is NOAA's tide and current near the course for the race times (0.8 nmi east of Point Loma Light, and the San Diego tide gauge); delete it to refetch. `report/<boat>/raceN/` holds per-race detail and plots. `data/<boat>/raceN.csv` is Njord `get_data` at 1 Hz, with `-race.json` (the course) and `-raceInfo.json` (Mojo only). These keep the generic names because the scripts look for them.
 
 Open the `.html` files in a browser. They work offline.
 

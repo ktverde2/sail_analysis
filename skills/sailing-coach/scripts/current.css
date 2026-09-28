@@ -24,3 +24,7 @@
 .tk.cur tr.focus td { font-weight: 600; }
 .tk.cur [data-r="fitnotes"] ul { margin: 10px 0 0; padding-left: 20px; }
 .tk.cur [data-r="fitnotes"] li { margin: 4px 0; color: inherit; }
+.tk.cur .cur-small { height: 260px; }
+.tk.cur .cur-h3 { font-size: 14px; margin: 12px 0 2px; }
+.tk.cur [data-r="noaa-notes"] ul { margin: 8px 0 4px; padding-left: 20px; }
+.tk.cur [data-r="noaa-notes"] li { margin: 4px 0; color: inherit; }
