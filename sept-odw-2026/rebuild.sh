@@ -6,7 +6,8 @@ set -euo pipefail
 cd "$(dirname "$0")"
 E=Sept-ODW-2026
 TITLE="Sept ODW · Sep 26"
-S=${SAILING_COACH_SCRIPTS:?set SAILING_COACH_SCRIPTS to the sailing-coach skill scripts dir}
+# The sailing-coach skill's scripts: this repo's copy (skills/sailing-coach) unless overridden
+S=${SAILING_COACH_SCRIPTS:-../skills/sailing-coach/scripts}
 BOATS=(Mojo 969)
 
 for b in "${BOATS[@]}"; do
@@ -28,10 +29,10 @@ mv report/fleet.html report/${E}_fleet.html
 mv report/fleet.md   report/${E}_fleet.md
 mv report/fleet.json report/${E}_fleet.json
 
-# Tacks: a standalone page for both boats, and a Tacks page in each boat report's Deep dive
-EMBED=()
-for b in "${BOATS[@]}"; do EMBED+=(--embed "$b=report/$b/${E}_${b}_report.html"); done
-python3 ../tools/tack_overlay.py --data data --reports report \
-  --out report/${E}_tacks.html --title "Sept ODW 2026 · Tacks" "${EMBED[@]}"
+# Tacks and gybes for both boats on one page each (each boat report has its own in the Deep dive)
+for k in tack gybe; do
+  python3 "$S/maneuver_overlay.py" --reports report --kind $k \
+    --out report/${E}_${k}s.html --title "Sept ODW 2026 · ${k^}s"
+done
 
 for b in "${BOATS[@]}"; do rm report/$b/{executive,event,debrief}.md; done

@@ -1,6 +1,7 @@
-// Tack overlay component: TackOverlay(root, data). Needs Plotly (basic bundle) on the page.
-// data = { boats: [...all boats, fixes each boat's colour], tacks: [...], note }
+// Tack/gybe overlay component: TackOverlay(root, data). Needs Plotly (basic bundle) on the page.
+// data = { kind: "tack"|"gybe", words: {...}, boats: [...all boats, fixes each boat's colour], items: [...], note }
 function TackOverlay(root, DATA) {
+  const W = DATA.words, TACK = DATA.kind === "tack";
   const S = { boat: "All", race: "All", onto: "All", pct: 10, angle: "cog", sel: null };
   const $ = r => root.querySelector(`[data-r="${r}"]`);
   const css = n => getComputedStyle(root).getPropertyValue(n).trim();
@@ -13,7 +14,7 @@ function TackOverlay(root, DATA) {
   };
   const f1 = v => (v == null ? "–" : (+v).toFixed(1));
   const f0 = v => (v == null ? "–" : Math.round(v).toString());
-  const inView = [...new Set(DATA.tacks.map(d => d.boat))];
+  const inView = [...new Set(DATA.items.map(d => d.boat))];
   const boatsHere = DATA.boats.filter(b => inView.includes(b));
 
   function seg(r, opts, key, fmt) {
@@ -30,7 +31,7 @@ function TackOverlay(root, DATA) {
   }
 
   function view() {
-    const t = DATA.tacks.filter(d =>
+    const t = DATA.items.filter(d =>
       (S.boat === "All" || d.boat === S.boat) &&
       (S.race === "All" || d.race === S.race) &&
       (S.onto === "All" || d.onto === S.onto));
@@ -84,7 +85,7 @@ function TackOverlay(root, DATA) {
     for (let x = -15; x <= 40; x++) xs.push(x);
     const my = xs.map(x => med(v.ranked.map(d => { const i = d.x.indexOf(x); return i < 0 ? null : d[key][i]; })));
     traces.push({ x: xs, y: my, mode: "lines", type: "scatter", line: { color: sec, width: 2, dash: "dash" },
-      hovertemplate: `Median of ${v.ranked.length} tacks<br>%{x} s: %{y:.1f}<extra></extra>` });
+      hovertemplate: `Median of ${v.ranked.length} ${W.many}<br>%{x} s: %{y:.1f}<extra></extra>` });
 
     if (key === "sog") {
       // Entry, lowest and recovered markers on the highlighted (or selected) tacks
@@ -111,9 +112,9 @@ function TackOverlay(root, DATA) {
     const muted = css("--tk-muted");
     const extra = {
       shapes: [{ type: "line", x0: 0, x1: 0, yref: "paper", y0: 0, y1: 1, line: { color: muted, width: 1, dash: "dot" } }],
-      annotations: [{ x: 0, yref: "paper", y: 1, text: "head to wind", showarrow: false, xanchor: "left", yanchor: "top", font: { size: 11, color: muted } }],
-      xaxis: axis("seconds from head to wind", { range: [-15, 40] }),
-      // A tack followed by a bear-away or a second tack runs off the scale: keep the tack itself readable
+      annotations: [{ x: 0, yref: "paper", y: 1, text: W.mid, showarrow: false, xanchor: "left", yanchor: "top", font: { size: 11, color: muted } }],
+      xaxis: axis(`seconds from ${W.mid}`, { range: [-15, 40] }),
+      // A maneuver followed by a bear-away or another turn runs off the scale: keep the turn itself readable
       yaxis: axis(ytitle, key === "hdg" ? { range: [-20, 130] } : {}),
     };
     const el = $(r);
@@ -143,14 +144,14 @@ function TackOverlay(root, DATA) {
       });
     }
     const el = $("ang");
-    Plotly.react(el, traces, layout("time lost (s)", S.angle === "cog" ? "tacking angle over the ground (°)" : "tacking angle by compass (°)"), CFG);
+    Plotly.react(el, traces, layout("time lost (s)", S.angle === "cog" ? `${W.angle} over the ground (°)` : `${W.angle} by compass (°)`), CFG);
     clickable(el);
   }
 
   function legends(v) {
     const boats = boatsHere.filter(b => v.ranked.some(d => d.boat === b));
     const base = boats.map(b => `<span><i class="tk-sw" style="background:var(${boatVar(b)})"></i>${b}, best ${S.pct}%</span>`).join("")
-      + `<span><i class="tk-sw" style="background:var(--tk-context)"></i>other tacks</span>`
+      + `<span><i class="tk-sw" style="background:var(--tk-context)"></i>other ${W.many}</span>`
       + `<span><i class="tk-sw" style="background:repeating-linear-gradient(90deg,var(--tk-ink2) 0 5px,transparent 5px 8px)"></i>median</span>`;
     $("leg-hdg").innerHTML = base;
     $("leg-sog").innerHTML = base
@@ -167,7 +168,7 @@ function TackOverlay(root, DATA) {
       <div class="d">best ${S.pct}% · rest ${fmt(med(R.map(d => d[key])))}${unit}</div></div>`;
     const kt = x => (x == null ? "–" : x.toFixed(2));
     $("tiles").innerHTML =
-      `<div class="tk-tile"><div class="k">Tacks in view</div><div class="v">${v.ranked.length}</div><div class="d">${v.n} highlighted</div></div>`
+      `<div class="tk-tile"><div class="k">${W.Many} in view</div><div class="v">${v.ranked.length}</div><div class="d">${v.n} highlighted</div></div>`
       + tile("Entry speed", "entry", kt, " kt")
       + tile("Lowest speed", "min", kt, " kt")
       + tile("Speed lost", "loss_pct", f0, "%")
@@ -180,14 +181,14 @@ function TackOverlay(root, DATA) {
     ["Entry speed", "entry", " kt", +1, 0.1, 2],
     ["Lowest speed", "min", " kt", +1, 0.1, 2],
     ["Speed lost at the bottom", "loss_pct", "%", -1, 3, 0],
-    ["Lowest point, after head to wind", "t_min", " s", 0, 1, 0],
+    [`Lowest point, after ${W.mid}`, "t_min", " s", 0, 1, 0],
     ["Back to 95% of entry", "t_rec", " s", -1, 2, 0],
     ["Turn time (10→90% of the turn)", "turn_s", " s", 0, 1, 0],
     ["Overshoot past the new heading", "overshoot", "°", -1, 2, 0],
-    ["Heel at +10 s", "heel_at10", "°", +1, 1.5, 1],
-    ["Heel settled on the new tack", "heel_post", "°", 0, 1.5, 1],
-    ["Tacking angle, compass", "hdg_angle", "°", 0, 2, 1],
-    ["Tacking angle, over the ground", "cog_angle", "°", -1, 2, 1],
+    ["Heel at +10 s", "heel_at10", "°", TACK ? +1 : 0, 1.5, 1],
+    [`Heel settled on the new ${W.one}`, "heel_post", "°", 0, 1.5, 1],
+    [`${W.Angle}, compass`, "hdg_angle", "°", 0, 2, 1],
+    [`${W.Angle}, over the ground`, "cog_angle", "°", -1, 2, 1],
     ["Time lost", "secs_lost", " s", -1, 0, 1],
   ];
 
@@ -205,7 +206,7 @@ function TackOverlay(root, DATA) {
         return `<tr><td>${r.lab}</td><td class="${good ? "better" : ""}">${fmt(r.a, r.dp)}${r.u}</td><td>${fmt(r.b, r.dp)}${r.u}</td><td>${r.d == null ? "–" : (r.d > 0 ? "+" : "") + r.d.toFixed(r.dp) + r.u}</td></tr>`;
       }).join("") + "</tbody>";
 
-    if (!R.length) { $("well").innerHTML = "<p class='tk-note'>Not enough tacks in view to compare.</p>"; return; }
+    if (!R.length) { $("well").innerHTML = `<p class='tk-note'>Not enough ${W.many} in view to compare.</p>`; return; }
     const g = k => rows.find(r => r.k === k);
     const out = [];
     const L = g("loss_pct"), M = g("min"), E = g("entry"), Rc = g("t_rec"), H = g("heel_at10"), O = g("overshoot"),
@@ -213,23 +214,27 @@ function TackOverlay(root, DATA) {
     if (L.d != null && L.d <= -3) out.push(`<b>Kept more speed through the turn.</b> They lost ${f0(L.a)}% at the bottom against ${f0(L.b)}% for the rest (lowest ${M.a.toFixed(2)} kt against ${M.b.toFixed(2)} kt).`);
     if (E.d != null && E.d >= 0.1) out.push(`<b>Went in faster.</b> Entry speed was ${E.a.toFixed(2)} kt against ${E.b.toFixed(2)} kt: build speed before you put the helm down.`);
     else if (E.d != null && E.d < 0.1) out.push(`<b>Not just a faster entry.</b> Entry speed was no higher (${E.a.toFixed(2)} against ${E.b.toFixed(2)} kt), so the gain is in the turn and the exit.`);
-    if (Rc.d != null && Rc.d <= -2) out.push(`<b>Back up to speed sooner.</b> They were back to 95% at ${f0(Rc.a)} s after head to wind, against ${f0(Rc.b)} s.`);
-    if (H.d != null && H.d >= 1.5) out.push(`<b>Loaded the boat up quickly on the new tack.</b> Heel at +10 s was ${f1(H.a)}° against ${f1(H.b)}°: the sails were trimmed and the crew was hiking early.`);
-    if (O.d != null && O.d <= -2) out.push(`<b>Less overshoot.</b> They turned ${f1(O.a)}° past the new heading against ${f1(O.b)}°. Stop the turn on the new close-hauled course instead of sailing low to build speed.`);
-    if (O.d != null && O.d >= 2) out.push(`<b>Came out a little low, then climbed.</b> They overshot by ${f1(O.a)}° against ${f1(O.b)}°: they built speed low before coming up to course.`);
+    if (Rc.d != null && Rc.d <= -2) out.push(`<b>Back up to speed sooner.</b> They were back to 95% at ${f0(Rc.a)} s after ${W.mid}, against ${f0(Rc.b)} s.`);
+    if (TACK && H.d != null && H.d >= 1.5) out.push(`<b>Loaded the boat up quickly on the new tack.</b> Heel at +10 s was ${f1(H.a)}° against ${f1(H.b)}°: the sails were trimmed and the crew was hiking early.`);
+    if (O.d != null && O.d <= -2) out.push(TACK
+      ? `<b>Less overshoot.</b> They turned ${f1(O.a)}° past the new heading against ${f1(O.b)}°. Stop the turn on the new close-hauled course instead of sailing low to build speed.`
+      : `<b>Less overshoot.</b> They turned ${f1(O.a)}° past the new heading against ${f1(O.b)}°. Stop the turn on the new downwind angle instead of rounding up past it.`);
+    if (O.d != null && O.d >= 2) out.push(TACK
+      ? `<b>Came out a little low, then climbed.</b> They overshot by ${f1(O.a)}° against ${f1(O.b)}°: they built speed low before coming up to course.`
+      : `<b>Came out a little hot, then bore away.</b> They overshot by ${f1(O.a)}° against ${f1(O.b)}°: they carried speed by heading up out of the gybe before settling deep.`);
     if (Tn.d != null && Math.abs(Tn.d) >= 1) out.push(`<b>Turn rate:</b> they took ${f0(Tn.a)} s from 10% to 90% of the turn against ${f0(Tn.b)} s (${Tn.d < 0 ? "a quicker" : "a slower, more rolled"} turn).`);
-    if (C.d != null && C.d <= -2) out.push(`<b>Tighter over the ground.</b> The tacking angle over the ground was ${f1(C.a)}° against ${f1(C.b)}°.`);
+    if (C.d != null && C.d <= -2) out.push(`<b>Tighter over the ground.</b> The ${W.angle} over the ground was ${f1(C.a)}° against ${f1(C.b)}°.`);
     const onto = { Port: T.filter(d => d.onto === "Port").length, Stbd: T.filter(d => d.onto === "Stbd").length };
     if (S.onto === "All" && T.length >= 3 && (onto.Port === 0 || onto.Stbd === 0))
-      out.push(`<b>All onto ${onto.Port ? "port" : "starboard"}.</b> Filter by "Onto" to see whether the other tack has a handling issue.`);
-    out.push(`<span class="tk-note">Medians of ${T.length} highlighted against ${R.length} other tacks. With this few tacks, treat gaps as patterns to check on the water, not proof. A puff or lift on the new tack also makes a tack look good.</span>`);
+      out.push(`<b>All onto ${onto.Port ? "port" : "starboard"}.</b> Filter by "Onto" to see whether the other side has a handling issue.`);
+    out.push(`<span class="tk-note">Medians of ${T.length} highlighted against ${R.length} other ${W.many}. With this few ${W.many}, treat gaps as patterns to check on the water, not proof. ${TACK ? "A puff or lift on the new tack also makes a tack look good." : "A puff on the new gybe, or a gybe that sails a different angle, also changes speed over the ground."}</span>`);
     $("well").innerHTML = "<ul>" + out.map(s => `<li>${s}</li>`).join("") + "</ul>";
   }
 
   function table(v) {
     const cols = [
       ["#", d => d.rank],
-      ["Tack", d => `<i class="tk-dot" style="background:var(${boatVar(d.boat)})"></i>${d.id} ${v.top.has(d.id) ? '<span class="tk-badge">best ' + S.pct + "%</span>" : ""}`],
+      [TACK ? "Tack" : "Gybe", d => `<i class="tk-dot" style="background:var(${boatVar(d.boat)})"></i>${d.id} ${v.top.has(d.id) ? '<span class="tk-badge">best ' + S.pct + "%</span>" : ""}`],
       ["Onto", d => d.onto], ["Entry kt", d => d.entry.toFixed(2)], ["Lowest kt", d => d.min.toFixed(2)], ["Lost %", d => f0(d.loss_pct)],
       ["Back to 95% (s)", d => f0(d.t_rec)], ["Time lost (s)", d => f1(d.secs_lost)], ["Metres", d => f0(d.m_lost)],
       ["Angle compass °", d => f0(d.hdg_angle)], ["Angle ground °", d => f0(d.cog_angle)], ["Turn s", d => f0(d.turn_s)],
@@ -249,7 +254,7 @@ function TackOverlay(root, DATA) {
   function render() {
     // Plotly can't size a chart inside a hidden page: wait until it's shown
     if (!root.offsetParent) return;
-    const races = ["All", ...[...new Set(DATA.tacks.map(d => d.race))].sort()];
+    const races = ["All", ...[...new Set(DATA.items.map(d => d.race))].sort()];
     if (boatsHere.length > 1) seg("f-boat", ["All", ...boatsHere], "boat");
     else $("f-boat").parentElement.hidden = true;
     seg("f-race", races, "race", r => r.replace("Race ", "R"));
@@ -257,6 +262,9 @@ function TackOverlay(root, DATA) {
     seg("f-pct", [10, 20, 25], "pct", p => p + "%");
     seg("f-angle", ["cog", "hdg"], "angle", a => (a === "cog" ? "Over the ground" : "Compass"));
     const v = view();
+    const thin = $("thin");
+    thin.hidden = v.ranked.length >= 10;
+    thin.textContent = `Only ${v.ranked.length} ${v.ranked.length === 1 ? W.one : W.many} in view: too few to call a pattern. Use this to look at each one rather than to rank them.`;
     legends(v);
     tiles(v);
     overlay("sog", "sog", "SOG (kt)", v);
