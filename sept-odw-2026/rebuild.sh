@@ -28,7 +28,10 @@ mv report/fleet.html report/${E}_fleet.html
 mv report/fleet.md   report/${E}_fleet.md
 mv report/fleet.json report/${E}_fleet.json
 
+# Tacks: a standalone page for both boats, and a Tacks page in each boat report's Deep dive
+EMBED=()
+for b in "${BOATS[@]}"; do EMBED+=(--embed "$b=report/$b/${E}_${b}_report.html"); done
 python3 ../tools/tack_overlay.py --data data --reports report \
-  --out report/${E}_tacks.html --title "Sept ODW 2026 · Tacks"
+  --out report/${E}_tacks.html --title "Sept ODW 2026 · Tacks" "${EMBED[@]}"
 
 for b in "${BOATS[@]}"; do rm report/$b/{executive,event,debrief}.md; done

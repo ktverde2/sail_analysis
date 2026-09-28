@@ -1,0 +1,91 @@
+/* Tack overlay component. Everything is scoped under .tk so it can sit inside another page. */
+.tk {
+  --tk-surface-0: #f4f3f0;
+  --tk-surface-1: #fcfcfb;
+  --tk-border: #e2e1dc;
+  --tk-grid: #ecebe7;
+  --tk-ink: #0b0b0b;
+  --tk-ink2: #52514e;
+  --tk-muted: #7a7974;
+  --tk-context: #c9c8c2;
+  --tk-series-1: #2a78d6;
+  --tk-series-2: #eb6834;
+  --tk-hover: #eaf2fc;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .tk {
+    --tk-surface-0: #121211;
+    --tk-surface-1: #1a1a19;
+    --tk-border: #33332f;
+    --tk-grid: #2a2a27;
+    --tk-ink: #ffffff;
+    --tk-ink2: #c3c2b7;
+    --tk-muted: #8f8e86;
+    --tk-context: #4a4945;
+    --tk-series-1: #3987e5;
+    --tk-series-2: #d95926;
+    --tk-hover: #1b2a3d;
+  }
+}
+:root[data-theme="dark"] .tk {
+  --tk-surface-0: #121211;
+  --tk-surface-1: #1a1a19;
+  --tk-border: #33332f;
+  --tk-grid: #2a2a27;
+  --tk-ink: #ffffff;
+  --tk-ink2: #c3c2b7;
+  --tk-muted: #8f8e86;
+  --tk-context: #4a4945;
+  --tk-series-1: #3987e5;
+  --tk-series-2: #d95926;
+  --tk-hover: #1b2a3d;
+}
+/* Inside a sailing-coach report: take the report's own surfaces and ink */
+.tk.tk-embedded {
+  --tk-surface-1: var(--card); --tk-border: var(--line); --tk-ink: var(--ink);
+  --tk-ink2: var(--ink2); --tk-muted: var(--muted); --tk-hover: var(--accent-soft);
+}
+.tk { color: var(--tk-ink); font-size: 15px; line-height: 1.45; }
+.tk h2 { font-size: 16px; margin: 0 0 2px; }
+.tk p { color: inherit; }
+.tk .tk-note { color: var(--tk-muted); font-size: 13px; margin: 4px 0 0; background: none; padding: 0; }
+.tk .tk-card {
+  background: var(--tk-surface-1); border: 1px solid var(--tk-border); border-radius: 10px;
+  padding: 14px 16px; margin-bottom: 14px; min-width: 0;
+}
+.tk .tk-filters { display: flex; flex-wrap: wrap; gap: 14px 22px; align-items: center; margin: 8px 0 14px; }
+.tk .tk-filters label { color: var(--tk-ink2); font-size: 13px; margin-right: 6px; }
+.tk .tk-seg { display: inline-flex; border: 1px solid var(--tk-border); border-radius: 8px; overflow: hidden; }
+.tk .tk-seg button {
+  border: 0; background: var(--tk-surface-1); color: var(--tk-ink2); padding: 6px 12px;
+  font: inherit; font-size: 13px; cursor: pointer; border-right: 1px solid var(--tk-border);
+}
+.tk .tk-seg button:last-child { border-right: 0; }
+.tk .tk-seg button[aria-pressed="true"] { background: var(--tk-ink); color: var(--tk-surface-1); }
+.tk .tk-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.tk .tk-tile { background: var(--tk-surface-1); border: 1px solid var(--tk-border); border-radius: 10px; padding: 10px 12px; }
+.tk .tk-tile .k { color: var(--tk-ink2); font-size: 12px; }
+.tk .tk-tile .v { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tk .tk-tile .d { color: var(--tk-muted); font-size: 12px; }
+.tk .tk-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 860px) { .tk .tk-grid2 { grid-template-columns: 1fr; } }
+.tk .tk-chart { width: 100%; height: 340px; margin: 0; min-height: 0; }
+.tk .tk-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; color: var(--tk-ink2); margin: 6px 0 2px; }
+.tk .tk-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.tk .tk-sw { width: 18px; height: 3px; border-radius: 2px; display: inline-block; }
+.tk .tk-mk { font-size: 13px; line-height: 1; }
+.tk .tk-well ul { margin: 8px 0 0; padding-left: 20px; }
+.tk .tk-well li { margin: 4px 0; color: inherit; }
+.tk .tk-well b { font-variant-numeric: tabular-nums; }
+.tk .tk-tablewrap { overflow-x: auto; }
+.tk table { border-collapse: collapse; width: 100%; font-size: 13px; font-variant-numeric: tabular-nums; }
+.tk th, .tk td { padding: 6px 8px; text-align: right; border-bottom: 1px solid var(--tk-grid); white-space: nowrap; }
+.tk th { color: var(--tk-ink2); font-weight: 600; position: sticky; top: 0; background: var(--tk-surface-1); }
+.tk .tk-list th:nth-child(-n+3), .tk .tk-list td:nth-child(-n+3) { text-align: left; }
+.tk .tk-list tbody tr { cursor: pointer; }
+.tk .tk-list tbody tr:hover { background: var(--tk-hover); }
+.tk .tk-list tbody tr.sel { outline: 2px solid var(--tk-ink); outline-offset: -2px; }
+.tk .tk-cmp th:first-child, .tk .tk-cmp td:first-child { text-align: left; }
+.tk .tk-badge { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 999px; border: 1px solid var(--tk-ink2); }
+.tk .tk-dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+.tk .better { font-weight: 600; }
