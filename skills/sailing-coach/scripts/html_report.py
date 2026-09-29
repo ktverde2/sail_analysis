@@ -797,8 +797,9 @@ def roundings_page(runs) -> str:
         "<h2>Every rounding</h2>"
         + goal
         + (f"<ul>{''.join(summary)}</ul>" if summary else "")
-        + '<p class="facts">Metres lost: VMG from 30 s before to 60 s after the rounding, against the steady '
-        "VMG of the leg before and after. Settled: 10 s VMG back to 90% of the next leg's.</p>"
+        + '<p class="facts">Metres lost toward the marks: VMC (speed toward this mark, then the next) from 30 s '
+        "before to 60 s after the rounding, against the steady VMC of the leg before and after. Settled: 10 s "
+        "VMC back to 90% of the next leg's.</p>"
         + table
     ) + card(TIGHT_ROUNDINGS)
     for d, s in runs:

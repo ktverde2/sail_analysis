@@ -26,6 +26,7 @@
   "speed_source": "SOG",
   "upwind_axis": 288.2,
   "legs_source": "Njord course",
+  "progress": "vmc",
   "wind": {
     "trusted": false,
     "reason": "no TWS channel",
@@ -71,7 +72,9 @@
       "track_angle": 44.5,
       "sog_avg": 5.81,
       "sog_steady": 5.9,
-      "vmc_avg": 4.31,
+      "vmc_avg": 4.28,
+      "vmc_steady": 4.39,
+      "closing_steady": 5.83,
       "maneuvers": 6,
       "heel_abs_avg": 19.4,
       "heel_abs_std": 3.5,
@@ -102,7 +105,9 @@
       "track_angle": 16.5,
       "sog_avg": 6.29,
       "sog_steady": 6.32,
-      "vmc_avg": 6.0,
+      "vmc_avg": 6.07,
+      "vmc_steady": 6.13,
+      "closing_steady": 6.23,
       "maneuvers": 1,
       "heel_abs_avg": 3.9,
       "heel_abs_std": 2.6,
@@ -133,7 +138,9 @@
       "track_angle": 43.6,
       "sog_avg": 5.95,
       "sog_steady": 6.08,
-      "vmc_avg": 4.28,
+      "vmc_avg": 4.29,
+      "vmc_steady": 4.43,
+      "closing_steady": 6.02,
       "maneuvers": 5,
       "heel_abs_avg": 20.8,
       "heel_abs_std": 3.7,
@@ -164,7 +171,9 @@
       "track_angle": 22.6,
       "sog_avg": 6.45,
       "sog_steady": 6.46,
-      "vmc_avg": 6.02,
+      "vmc_avg": 6.08,
+      "vmc_steady": 6.09,
+      "closing_steady": 6.33,
       "maneuvers": 1,
       "heel_abs_avg": 3.4,
       "heel_abs_std": 2.5,
@@ -194,9 +203,10 @@
       "speed_loss_kt": 2.01,
       "speed_loss_pct": 34,
       "recovery_s": 22,
-      "distance_lost_m": -10.8,
+      "distance_lost_m": 4.6,
       "heading_change": -79,
-      "note": null
+      "note": null,
+      "call_m": 1.7
     },
     {
       "time_s": 669,
@@ -208,9 +218,10 @@
       "speed_loss_kt": 1.45,
       "speed_loss_pct": 27,
       "recovery_s": 18,
-      "distance_lost_m": 24.8,
+      "distance_lost_m": 11.2,
       "heading_change": 82,
-      "note": null
+      "note": null,
+      "call_m": -0.9
     },
     {
       "time_s": 704,
@@ -222,9 +233,10 @@
       "speed_loss_kt": 1.19,
       "speed_loss_pct": 22,
       "recovery_s": 14,
-      "distance_lost_m": -15.7,
+      "distance_lost_m": 2.8,
       "heading_change": -81,
-      "note": null
+      "note": null,
+      "call_m": -4.7
     },
     {
       "time_s": 772,
@@ -236,9 +248,10 @@
       "speed_loss_kt": 1.46,
       "speed_loss_pct": 26,
       "recovery_s": 14,
-      "distance_lost_m": 20.0,
+      "distance_lost_m": -23.4,
       "heading_change": 76,
-      "note": null
+      "note": "gained through the turn (a shift or puff): handling can't be judged",
+      "call_m": 28.4
     },
     {
       "time_s": 823,
@@ -250,9 +263,10 @@
       "speed_loss_kt": 1.98,
       "speed_loss_pct": 33,
       "recovery_s": 13,
-      "distance_lost_m": -13.4,
+      "distance_lost_m": -8.5,
       "heading_change": -83,
-      "note": null
+      "note": "from past the layline (ending an overstand)",
+      "call_m": -53.7
     },
     {
       "time_s": 927,
@@ -264,9 +278,9 @@
       "speed_loss_kt": 0.81,
       "speed_loss_pct": 13,
       "recovery_s": 15,
-      "distance_lost_m": 7.7,
+      "distance_lost_m": null,
       "heading_change": -95,
-      "note": null
+      "note": "at a mark (counted in the rounding)"
     },
     {
       "time_s": 1534,
@@ -278,7 +292,7 @@
       "speed_loss_kt": 1.34,
       "speed_loss_pct": 24,
       "recovery_s": 23,
-      "distance_lost_m": 48.1,
+      "distance_lost_m": null,
       "heading_change": -146,
       "note": "double (<30 s apart; loss numbers overlap)"
     },
@@ -292,9 +306,10 @@
       "speed_loss_kt": 0.98,
       "speed_loss_pct": 20,
       "recovery_s": 7,
-      "distance_lost_m": -23.6,
+      "distance_lost_m": -3.1,
       "heading_change": -76,
-      "note": "double (<30 s apart; loss numbers overlap)"
+      "note": "double (<30 s apart; loss numbers overlap)",
+      "call_m": -11.1
     },
     {
       "time_s": 1812,
@@ -306,9 +321,10 @@
       "speed_loss_kt": 1.83,
       "speed_loss_pct": 30,
       "recovery_s": 20,
-      "distance_lost_m": 16.0,
+      "distance_lost_m": 0.8,
       "heading_change": 75,
-      "note": null
+      "note": null,
+      "call_m": -1.6
     },
     {
       "time_s": 2234,
@@ -320,9 +336,10 @@
       "speed_loss_kt": 1.88,
       "speed_loss_pct": 30,
       "recovery_s": 18,
-      "distance_lost_m": -16.3,
+      "distance_lost_m": 1.0,
       "heading_change": -84,
-      "note": null
+      "note": null,
+      "call_m": 2.4
     },
     {
       "time_s": 2350,
@@ -334,9 +351,10 @@
       "speed_loss_kt": 1.65,
       "speed_loss_pct": 28,
       "recovery_s": 15,
-      "distance_lost_m": 22.2,
+      "distance_lost_m": 26.5,
       "heading_change": 72,
-      "note": "double (<30 s apart; loss numbers overlap)"
+      "note": "double (<30 s apart; loss numbers overlap)",
+      "call_m": 10.0
     },
     {
       "time_s": 2374,
@@ -348,7 +366,7 @@
       "speed_loss_kt": 1.44,
       "speed_loss_pct": 25,
       "recovery_s": 7,
-      "distance_lost_m": -8.2,
+      "distance_lost_m": null,
       "heading_change": -95,
       "note": "double (<30 s apart; loss numbers overlap)"
     },
@@ -362,24 +380,24 @@
       "speed_loss_kt": 1.21,
       "speed_loss_pct": 19,
       "recovery_s": 15,
-      "distance_lost_m": -24.9,
+      "distance_lost_m": null,
       "heading_change": -95,
       "note": "double (<30 s apart; loss numbers overlap)"
     }
   ],
   "maneuver_summary": {
     "Tack": {
-      "count": 8,
-      "doubles_excluded": 4,
-      "entry_sog_avg": 5.88,
-      "speed_loss_avg_kt": 1.58,
-      "speed_loss_avg_pct": 27,
-      "recovery_avg_s": 16.8,
+      "count": 5,
+      "doubles_excluded": 7,
+      "entry_sog_avg": 5.82,
+      "speed_loss_avg_kt": 1.67,
+      "speed_loss_avg_pct": 29,
+      "recovery_avg_s": 18.4,
       "not_recovered_in_60s": 0,
-      "distance_lost_avg_m": 1.5,
-      "distance_lost_total_m": 12,
-      "distance_lost_avg_onto_port_m": 17.1,
-      "distance_lost_avg_onto_stbd_m": -14.0
+      "distance_lost_avg_m": 4.1,
+      "distance_lost_total_m": 20,
+      "distance_lost_avg_onto_port_m": 6.0,
+      "distance_lost_avg_onto_stbd_m": 2.8
     }
   },
   "targets": {
@@ -473,12 +491,12 @@
         "onto": "Port",
         "headed_before_deg": -0.7,
         "lifted_after_deg": 1.7,
-        "note": null,
+        "note": "gained through the turn (a shift or puff): handling can't be judged",
         "overstand_deg": null,
         "dist_to_mark_m": null,
         "shift_call": "no clear shift",
-        "verdict": "tacked no clear shift",
-        "verdict_kind": "no_shift"
+        "verdict": "double tack (no clear shift)",
+        "verdict_kind": "double"
       },
       {
         "time_s": 823,
@@ -486,12 +504,12 @@
         "onto": "Stbd",
         "headed_before_deg": 0.8,
         "lifted_after_deg": -11.3,
-        "note": null,
+        "note": "from past the layline (ending an overstand)",
         "overstand_deg": null,
         "dist_to_mark_m": null,
         "shift_call": "no clear shift",
-        "verdict": "tacked no clear shift",
-        "verdict_kind": "no_shift"
+        "verdict": "double tack (no clear shift)",
+        "verdict_kind": "double"
       },
       {
         "time_s": 927,
@@ -499,7 +517,7 @@
         "onto": "Port",
         "headed_before_deg": 14.9,
         "lifted_after_deg": null,
-        "note": null,
+        "note": "at a mark (counted in the rounding)",
         "overstand_deg": -93.8,
         "dist_to_mark_m": 9,
         "shift_call": "on a header",
@@ -573,8 +591,9 @@
       }
     ],
     "summary": {
-      "no_shift": 6,
+      "no_shift": 4,
       "header": 1,
+      "double": 2,
       "layline": 2,
       "mark": 2
     }
@@ -592,23 +611,23 @@
       "sog_min": 5.46,
       "sog_exit": 6.06,
       "sog_steady_after": 6.32,
-      "settle_s": 40,
-      "vmg_before": 4.09,
-      "vmg_after": 5.92,
-      "metres_lost": 30.0,
-      "lost_before_m": -4.2,
-      "lost_after_m": 34.2,
+      "settle_s": 29,
+      "vmg_before": 4.39,
+      "vmg_after": 6.13,
+      "metres_lost": 15.0,
+      "lost_before_m": -7.5,
+      "lost_after_m": 22.6,
       "entry_twa": 56.0,
       "exit_twa": 159.0,
       "offset_s": null,
       "mark_dist_m": 3.7,
       "gate_side": null,
-      "vs_best_m": 8.4,
-      "best_ref": "Race 2 #1",
-      "best_m": 21.6,
-      "is_best": false,
+      "vs_best_m": 0.0,
+      "best_ref": "Race 1 #1",
+      "best_m": 15.0,
+      "is_best": true,
       "tips": [
-        "No single fault stands out: -4 m went before the mark and 34 m after. Same routine, a little smoother, to close the gap to your best."
+        "Your best of this type so far: the benchmark to beat. The goal is still zero."
       ]
     },
     {
@@ -623,23 +642,22 @@
       "sog_min": 4.23,
       "sog_exit": 4.51,
       "sog_steady_after": 6.08,
-      "settle_s": 25,
-      "vmg_before": 5.92,
-      "vmg_after": 4.28,
-      "metres_lost": 38.2,
-      "lost_before_m": 10.5,
-      "lost_after_m": 27.7,
+      "settle_s": 22,
+      "vmg_before": 6.13,
+      "vmg_after": 4.43,
+      "metres_lost": 52.7,
+      "lost_before_m": 1.4,
+      "lost_after_m": 51.3,
       "entry_twa": 157.0,
       "exit_twa": 34.0,
       "offset_s": null,
       "mark_dist_m": 5.2,
       "gate_side": "left-hand mark (looking downwind)",
-      "vs_best_m": 0.0,
-      "best_ref": "Race 1 #2",
-      "best_m": 38.2,
-      "is_best": true,
+      "vs_best_m": 14.1,
+      "best_ref": "Race 2 #2",
+      "best_m": 38.6,
+      "is_best": false,
       "tips": [
-        "Your best of this type so far: the benchmark to beat. The goal is still zero.",
         "Tacked 22 s after the mark, so its cost is in this number. Fine if it was for clear air or the favoured side; otherwise hold the lane until you're up to speed."
       ]
     },
@@ -655,22 +673,23 @@
       "sog_min": 5.06,
       "sog_exit": 6.28,
       "sog_steady_after": 6.46,
-      "settle_s": 32,
-      "vmg_before": 4.28,
-      "vmg_after": 5.88,
-      "metres_lost": 30.7,
-      "lost_before_m": 11.2,
-      "lost_after_m": 19.5,
+      "settle_s": 13,
+      "vmg_before": 4.43,
+      "vmg_after": 6.09,
+      "metres_lost": 45.1,
+      "lost_before_m": 37.8,
+      "lost_after_m": 7.3,
       "entry_twa": 46.0,
       "exit_twa": 160.0,
       "offset_s": null,
       "mark_dist_m": 3.2,
       "gate_side": null,
-      "vs_best_m": 9.1,
-      "best_ref": "Race 2 #1",
-      "best_m": 21.6,
+      "vs_best_m": 30.1,
+      "best_ref": "Race 1 #1",
+      "best_m": 15.0,
       "is_best": false,
       "tips": [
+        "Gave away 38 m in the 30 s before the mark. Keep target speed on the layline; don't pinch up to the mark.",
         "Gybed 6 s after the mark, so its cost is in this number. Fine if it was for clear air or the favoured side; otherwise hold the lane until you're up to speed."
       ]
     }

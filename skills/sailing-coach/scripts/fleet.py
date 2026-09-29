@@ -578,7 +578,7 @@ def race_fleet(stem: str, entries: list[tuple[dict, dict]]) -> dict:
             seen[row["type"]] += 1
             src = by_type.get(row["type"], [])
             if k < len(src):
-                for key in ("sog_steady", "vmg_steady", "tacking_angle", "heel_abs_std"):
+                for key in ("vmc_avg", "vmc_steady", "sog_steady", "vmg_steady", "tacking_angle", "heel_abs_std"):
                     row[key] = src[k].get(key)
         per_second[boat["id"]] = _per_second(race, df, legs, xy, summ)
         # series for the track overlay and the replay
@@ -968,23 +968,23 @@ def write_md(fa: dict, out: Path, title: str) -> str:
             "**Legs**",
             "",
             (
-                "| Leg | Boat | Time | vs fastest | SOG | Sailed / straight nm | Tacks | Gybes | "
+                "| Leg | Boat | Time | vs fastest | VMC to mark | SOG | Sailed / straight nm | Tacks | Gybes | "
                 "% right of rhumb | Heel |"
             ),
-            "|---|---|---|---|---|---|---|---|---|---|",
+            "|---|---|---|---|---|---|---|---|---|---|---|",
         ]
         for j, lab in enumerate(r["marks"]):
             for k in ids:
                 lg = bs[k]["legs"][j]
                 L.append(
                     f"| {j + 1} {lg['type']} to {lab} | {bs[k]['name']} | {_mmss(lg['duration_s'])} | "
-                    f"{_plus(lg['vs_best_s'])} | {lg['sog_avg']} | "
+                    f"{_plus(lg['vs_best_s'])} | {lg.get('vmc_avg') if lg.get('vmc_avg') is not None else '–'} | {lg['sog_avg']} | "
                     f"{lg['sailed_nm']} / {lg['straight_nm']} | {lg['tacks']} | {lg['gybes']} | "
                     f"{lg.get('pct_right', '–')} | {lg['heel_abs_avg']}° |"
                 )
         L += [
             "",
-            "**Roundings (metres lost, each boat against its own steady VMG)**",
+            "**Roundings (metres lost toward the marks, each boat against its own steady VMC)**",
             "",
             "| Boat | " + " | ".join(r["marks"][: len(bs[ids[0]]["roundings"])]) + " |",
             "|---|" + "---|" * len(bs[ids[0]]["roundings"]),
@@ -1001,7 +1001,8 @@ def write_md(fa: dict, out: Path, title: str) -> str:
     L += [
         "",
         (
-            "*Speeds are over ground. % right of rhumb: share of the leg spent right of the line "
+            "*Time and vs fastest are what count. VMC to mark: the leg's distance to sail (at the boats' "
+            "tacking or gybing angle) over its time. SOG explains it, over ground. % right of rhumb: share of the leg spent right of the line "
             "from the previous mark to the next, looking at the mark.*"
         ),
         "",

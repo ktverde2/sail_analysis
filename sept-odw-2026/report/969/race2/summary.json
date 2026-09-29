@@ -26,6 +26,7 @@
   "speed_source": "SOG",
   "upwind_axis": 288.2,
   "legs_source": "Njord course",
+  "progress": "vmc",
   "wind": {
     "trusted": false,
     "reason": "no TWS channel",
@@ -71,7 +72,9 @@
       "track_angle": 41.4,
       "sog_avg": 5.94,
       "sog_steady": 6.0,
-      "vmc_avg": 4.74,
+      "vmc_avg": 4.62,
+      "vmc_steady": 4.67,
+      "closing_steady": 5.98,
       "maneuvers": 3,
       "heel_abs_avg": 21.8,
       "heel_abs_std": 3.5,
@@ -102,7 +105,9 @@
       "track_angle": 22.8,
       "sog_avg": 6.48,
       "sog_steady": 6.53,
-      "vmc_avg": 6.16,
+      "vmc_avg": 6.19,
+      "vmc_steady": 6.27,
+      "closing_steady": 6.57,
       "maneuvers": 1,
       "heel_abs_avg": 3.0,
       "heel_abs_std": 2.1,
@@ -134,6 +139,8 @@
       "sog_avg": 5.82,
       "sog_steady": 5.89,
       "vmc_avg": 4.26,
+      "vmc_steady": 4.35,
+      "closing_steady": 5.83,
       "maneuvers": 4,
       "heel_abs_avg": 20.0,
       "heel_abs_std": 4.1,
@@ -164,7 +171,9 @@
       "track_angle": 23.7,
       "sog_avg": 6.27,
       "sog_steady": 6.29,
-      "vmc_avg": 5.76,
+      "vmc_avg": 5.81,
+      "vmc_steady": 5.88,
+      "closing_steady": 6.25,
       "maneuvers": 0,
       "heel_abs_avg": 2.5,
       "heel_abs_std": 2.0,
@@ -194,9 +203,10 @@
       "speed_loss_kt": 1.11,
       "speed_loss_pct": 21,
       "recovery_s": 9,
-      "distance_lost_m": 18.5,
+      "distance_lost_m": 2.8,
       "heading_change": 75,
-      "note": null
+      "note": null,
+      "call_m": -4.0
     },
     {
       "time_s": 545,
@@ -208,9 +218,10 @@
       "speed_loss_kt": 1.78,
       "speed_loss_pct": 31,
       "recovery_s": 11,
-      "distance_lost_m": -12.4,
+      "distance_lost_m": 5.3,
       "heading_change": -73,
-      "note": null
+      "note": null,
+      "call_m": 1.3
     },
     {
       "time_s": 850,
@@ -222,9 +233,9 @@
       "speed_loss_kt": 2.42,
       "speed_loss_pct": 41,
       "recovery_s": 10,
-      "distance_lost_m": 30.4,
+      "distance_lost_m": null,
       "heading_change": -119,
-      "note": null
+      "note": "at a mark (counted in the rounding)"
     },
     {
       "time_s": 1441,
@@ -236,9 +247,9 @@
       "speed_loss_kt": 1.97,
       "speed_loss_pct": 30,
       "recovery_s": 25,
-      "distance_lost_m": 59.0,
+      "distance_lost_m": null,
       "heading_change": -113,
-      "note": null
+      "note": "at a mark (counted in the rounding)"
     },
     {
       "time_s": 1845,
@@ -250,9 +261,10 @@
       "speed_loss_kt": 1.65,
       "speed_loss_pct": 27,
       "recovery_s": 16,
-      "distance_lost_m": -15.9,
+      "distance_lost_m": 3.9,
       "heading_change": -78,
-      "note": null
+      "note": null,
+      "call_m": -3.6
     },
     {
       "time_s": 2188,
@@ -264,9 +276,10 @@
       "speed_loss_kt": 1.66,
       "speed_loss_pct": 29,
       "recovery_s": 22,
-      "distance_lost_m": 27.0,
+      "distance_lost_m": 12.5,
       "heading_change": 79,
-      "note": null
+      "note": null,
+      "call_m": -0.5
     },
     {
       "time_s": 2251,
@@ -278,9 +291,10 @@
       "speed_loss_kt": 1.87,
       "speed_loss_pct": 31,
       "recovery_s": 14,
-      "distance_lost_m": -9.1,
+      "distance_lost_m": 14.5,
       "heading_change": -78,
-      "note": null
+      "note": null,
+      "call_m": 3.3
     },
     {
       "time_s": 2300,
@@ -292,35 +306,24 @@
       "speed_loss_kt": 0.44,
       "speed_loss_pct": 8,
       "recovery_s": 5,
-      "distance_lost_m": 32.9,
+      "distance_lost_m": null,
       "heading_change": -97,
-      "note": null
+      "note": "at a mark (counted in the rounding)"
     }
   ],
   "maneuver_summary": {
-    "Gybe": {
-      "count": 1,
-      "doubles_excluded": 0,
-      "entry_sog_avg": 5.54,
-      "speed_loss_avg_kt": 0.44,
-      "speed_loss_avg_pct": 8,
-      "recovery_avg_s": 5.0,
-      "not_recovered_in_60s": 0,
-      "distance_lost_avg_m": 32.9,
-      "distance_lost_total_m": 33
-    },
     "Tack": {
-      "count": 7,
-      "doubles_excluded": 0,
-      "entry_sog_avg": 5.91,
-      "speed_loss_avg_kt": 1.78,
-      "speed_loss_avg_pct": 30,
-      "recovery_avg_s": 15.3,
+      "count": 5,
+      "doubles_excluded": 2,
+      "entry_sog_avg": 5.81,
+      "speed_loss_avg_kt": 1.61,
+      "speed_loss_avg_pct": 28,
+      "recovery_avg_s": 14.4,
       "not_recovered_in_60s": 0,
-      "distance_lost_avg_m": 13.9,
-      "distance_lost_total_m": 98,
-      "distance_lost_avg_onto_port_m": 33.7,
-      "distance_lost_avg_onto_stbd_m": -12.5
+      "distance_lost_avg_m": 7.8,
+      "distance_lost_total_m": 39,
+      "distance_lost_avg_onto_port_m": 7.6,
+      "distance_lost_avg_onto_stbd_m": 7.9
     }
   },
   "targets": {
@@ -401,7 +404,7 @@
         "onto": "Port",
         "headed_before_deg": 1.4,
         "lifted_after_deg": null,
-        "note": null,
+        "note": "at a mark (counted in the rounding)",
         "overstand_deg": -97.2,
         "dist_to_mark_m": 4,
         "shift_call": "no clear shift",
@@ -468,23 +471,23 @@
       "sog_min": 3.43,
       "sog_exit": 6.38,
       "sog_steady_after": 6.53,
-      "settle_s": 30,
-      "vmg_before": 4.38,
-      "vmg_after": 5.95,
-      "metres_lost": 21.6,
-      "lost_before_m": -9.1,
-      "lost_after_m": 30.8,
+      "settle_s": 28,
+      "vmg_before": 4.67,
+      "vmg_after": 6.27,
+      "metres_lost": 38.4,
+      "lost_before_m": 12.4,
+      "lost_after_m": 26.0,
       "entry_twa": 26.0,
       "exit_twa": 162.0,
       "offset_s": null,
       "mark_dist_m": 2.5,
       "gate_side": null,
-      "vs_best_m": 0.0,
-      "best_ref": "Race 2 #1",
-      "best_m": 21.6,
-      "is_best": true,
+      "vs_best_m": 23.4,
+      "best_ref": "Race 1 #1",
+      "best_m": 15.0,
+      "is_best": false,
       "tips": [
-        "Your best of this type so far: the benchmark to beat. The goal is still zero."
+        "Speed dropped 39% through the turn (5.63 \u2192 3.43 kt; best 14%). A smoother, rounder turn keeps more of it."
       ]
     },
     {
@@ -499,23 +502,23 @@
       "sog_min": 4.49,
       "sog_exit": 5.83,
       "sog_steady_after": 5.89,
-      "settle_s": 47,
-      "vmg_before": 5.95,
-      "vmg_after": 4.2,
-      "metres_lost": 38.8,
-      "lost_before_m": -5.0,
-      "lost_after_m": 43.8,
+      "settle_s": 20,
+      "vmg_before": 6.27,
+      "vmg_after": 4.35,
+      "metres_lost": 38.6,
+      "lost_before_m": 5.7,
+      "lost_after_m": 32.9,
       "entry_twa": 161.0,
       "exit_twa": 37.0,
       "offset_s": null,
       "mark_dist_m": 5.7,
       "gate_side": "left-hand mark (looking downwind)",
-      "vs_best_m": 0.6,
-      "best_ref": "Race 1 #2",
-      "best_m": 38.2,
-      "is_best": false,
+      "vs_best_m": 0.0,
+      "best_ref": "Race 2 #2",
+      "best_m": 38.6,
+      "is_best": true,
       "tips": [
-        "Took 47 s to settle upwind (best 25 s). Trim main and jib on through the turn, then speed before height."
+        "Your best of this type so far: the benchmark to beat. The goal is still zero."
       ]
     },
     {
@@ -530,23 +533,23 @@
       "sog_min": 5.1,
       "sog_exit": 6.14,
       "sog_steady_after": 6.29,
-      "settle_s": 28,
-      "vmg_before": 4.2,
-      "vmg_after": 5.63,
-      "metres_lost": 37.8,
-      "lost_before_m": -11.0,
-      "lost_after_m": 48.8,
+      "settle_s": 24,
+      "vmg_before": 4.35,
+      "vmg_after": 5.88,
+      "metres_lost": 37.1,
+      "lost_before_m": 1.0,
+      "lost_after_m": 36.0,
       "entry_twa": 40.0,
       "exit_twa": 160.0,
       "offset_s": null,
       "mark_dist_m": 3.3,
       "gate_side": null,
-      "vs_best_m": 16.2,
-      "best_ref": "Race 2 #1",
-      "best_m": 21.6,
+      "vs_best_m": 22.1,
+      "best_ref": "Race 1 #1",
+      "best_m": 15.0,
       "is_best": false,
       "tips": [
-        "No single fault stands out: -11 m went before the mark and 49 m after. Same routine, a little smoother, to close the gap to your best."
+        "No single fault stands out: 1 m went before the mark and 36 m after. Same routine, a little smoother, to close the gap to your best."
       ]
     }
   ]

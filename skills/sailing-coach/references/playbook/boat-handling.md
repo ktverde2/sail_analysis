@@ -1,6 +1,6 @@
 # Boat handling
 
-Tacks, gybes, sets and drops. Our maneuver table measures entry speed, minimum speed, `speed loss %`, recovery time and metres lost against VMG.
+Tacks, gybes, sets and drops. Our maneuver table measures entry speed, minimum speed, `speed loss %`, recovery time and metres lost toward the mark (VMC). Speed loss and recovery explain a maneuver; metres lost toward the mark score it.
 
 ## Tacks
 - In a heavy keelboat, turn slowly at first so the boat carries its momentum to windward, then faster once head-to-wind as speed drops. A long, slow tack in light air can gain real distance to windward. [B1, N1]

@@ -26,6 +26,7 @@
   "speed_source": "SOG",
   "upwind_axis": 288.0,
   "legs_source": "Njord course",
+  "progress": "vmc",
   "wind": {
     "trusted": false,
     "reason": "no TWS channel",
@@ -71,7 +72,9 @@
       "track_angle": 37.7,
       "sog_avg": 5.53,
       "sog_steady": 5.63,
-      "vmc_avg": 4.31,
+      "vmc_avg": 4.26,
+      "vmc_steady": 4.43,
+      "closing_steady": 5.57,
       "maneuvers": 4,
       "heel_abs_avg": 17.5,
       "heel_abs_std": 3.7,
@@ -102,7 +105,9 @@
       "track_angle": 31.3,
       "sog_avg": 6.09,
       "sog_steady": 6.16,
-      "vmc_avg": 4.82,
+      "vmc_avg": 4.99,
+      "vmc_steady": 5.07,
+      "closing_steady": 5.78,
       "maneuvers": 3,
       "heel_abs_avg": 3.9,
       "heel_abs_std": 3.1,
@@ -133,7 +138,9 @@
       "track_angle": 38.9,
       "sog_avg": 5.58,
       "sog_steady": 5.72,
-      "vmc_avg": 4.2,
+      "vmc_avg": 4.17,
+      "vmc_steady": 4.38,
+      "closing_steady": 5.63,
       "maneuvers": 6,
       "heel_abs_avg": 18.0,
       "heel_abs_std": 3.9,
@@ -163,9 +170,10 @@
       "speed_loss_kt": 1.49,
       "speed_loss_pct": 40,
       "recovery_s": 8,
-      "distance_lost_m": -3.4,
+      "distance_lost_m": 13.4,
       "heading_change": 83,
-      "note": null
+      "note": null,
+      "call_m": -17.6
     },
     {
       "time_s": 743,
@@ -177,9 +185,10 @@
       "speed_loss_kt": 1.85,
       "speed_loss_pct": 34,
       "recovery_s": 20,
-      "distance_lost_m": 10.9,
+      "distance_lost_m": 11.9,
       "heading_change": 73,
-      "note": null
+      "note": null,
+      "call_m": 0.9
     },
     {
       "time_s": 809,
@@ -191,9 +200,10 @@
       "speed_loss_kt": 1.19,
       "speed_loss_pct": 22,
       "recovery_s": 15,
-      "distance_lost_m": 1.5,
+      "distance_lost_m": -2.8,
       "heading_change": -72,
-      "note": null
+      "note": "from past the layline (ending an overstand)",
+      "call_m": -39.8
     },
     {
       "time_s": 885,
@@ -205,9 +215,9 @@
       "speed_loss_kt": 1.4,
       "speed_loss_pct": 23,
       "recovery_s": 12,
-      "distance_lost_m": 4.6,
+      "distance_lost_m": null,
       "heading_change": -88,
-      "note": null
+      "note": "at a mark (counted in the rounding)"
     },
     {
       "time_s": 1121,
@@ -219,9 +229,10 @@
       "speed_loss_kt": 2.8,
       "speed_loss_pct": 37,
       "recovery_s": 37,
-      "distance_lost_m": 4.0,
+      "distance_lost_m": -5.1,
       "heading_change": 90,
-      "note": null
+      "note": "gained through the turn (a shift or puff): handling can't be judged",
+      "call_m": 4.9
     },
     {
       "time_s": 1199,
@@ -233,9 +244,10 @@
       "speed_loss_kt": 2.27,
       "speed_loss_pct": 33,
       "recovery_s": 24,
-      "distance_lost_m": -5.3,
+      "distance_lost_m": -0.5,
       "heading_change": -79,
-      "note": null
+      "note": null,
+      "call_m": -1.6
     },
     {
       "time_s": 1326,
@@ -247,9 +259,10 @@
       "speed_loss_kt": 2.28,
       "speed_loss_pct": 34,
       "recovery_s": 58,
-      "distance_lost_m": -6.8,
+      "distance_lost_m": -23.9,
       "heading_change": 97,
-      "note": null
+      "note": "gained through the turn (a shift or puff): handling can't be judged",
+      "call_m": -5.8
     },
     {
       "time_s": 1564,
@@ -261,9 +274,9 @@
       "speed_loss_kt": 2.09,
       "speed_loss_pct": 36,
       "recovery_s": 23,
-      "distance_lost_m": 75.3,
+      "distance_lost_m": null,
       "heading_change": -139,
-      "note": null
+      "note": "at a mark (counted in the rounding)"
     },
     {
       "time_s": 1904,
@@ -275,9 +288,10 @@
       "speed_loss_kt": 1.55,
       "speed_loss_pct": 27,
       "recovery_s": 25,
-      "distance_lost_m": 5.4,
+      "distance_lost_m": 8.8,
       "heading_change": -71,
-      "note": null
+      "note": null,
+      "call_m": 1.1
     },
     {
       "time_s": 1958,
@@ -289,9 +303,10 @@
       "speed_loss_kt": 1.89,
       "speed_loss_pct": 35,
       "recovery_s": 14,
-      "distance_lost_m": 12.4,
+      "distance_lost_m": 8.9,
       "heading_change": 62,
-      "note": null
+      "note": null,
+      "call_m": 2.3
     },
     {
       "time_s": 2034,
@@ -303,9 +318,10 @@
       "speed_loss_kt": 2.34,
       "speed_loss_pct": 38,
       "recovery_s": 28,
-      "distance_lost_m": -0.7,
+      "distance_lost_m": 1.8,
       "heading_change": -79,
-      "note": null
+      "note": null,
+      "call_m": 0.1
     },
     {
       "time_s": 2189,
@@ -317,9 +333,10 @@
       "speed_loss_kt": 2.12,
       "speed_loss_pct": 36,
       "recovery_s": 25,
-      "distance_lost_m": 16.0,
+      "distance_lost_m": 12.7,
       "heading_change": 82,
-      "note": null
+      "note": null,
+      "call_m": 3.8
     },
     {
       "time_s": 2220,
@@ -331,35 +348,36 @@
       "speed_loss_kt": 1.44,
       "speed_loss_pct": 25,
       "recovery_s": 14,
-      "distance_lost_m": -9.2,
+      "distance_lost_m": 1.9,
       "heading_change": -75,
-      "note": null
+      "note": null,
+      "call_m": -9.4
     }
   ],
   "maneuver_summary": {
     "Gybe": {
-      "count": 3,
-      "doubles_excluded": 0,
-      "entry_sog_avg": 7.03,
-      "speed_loss_avg_kt": 2.45,
-      "speed_loss_avg_pct": 35,
-      "recovery_avg_s": 39.7,
+      "count": 1,
+      "doubles_excluded": 2,
+      "entry_sog_avg": 6.85,
+      "speed_loss_avg_kt": 2.27,
+      "speed_loss_avg_pct": 33,
+      "recovery_avg_s": 24.0,
       "not_recovered_in_60s": 0,
-      "distance_lost_avg_m": -2.7,
-      "distance_lost_total_m": -8
+      "distance_lost_avg_m": -0.5,
+      "distance_lost_total_m": 0
     },
     "Tack": {
-      "count": 10,
-      "doubles_excluded": 0,
-      "entry_sog_avg": 5.52,
-      "speed_loss_avg_kt": 1.74,
-      "speed_loss_avg_pct": 32,
-      "recovery_avg_s": 18.4,
+      "count": 7,
+      "doubles_excluded": 3,
+      "entry_sog_avg": 5.41,
+      "speed_loss_avg_kt": 1.81,
+      "speed_loss_avg_pct": 34,
+      "recovery_avg_s": 19.1,
       "not_recovered_in_60s": 0,
-      "distance_lost_avg_m": 11.3,
-      "distance_lost_total_m": 113,
-      "distance_lost_avg_onto_port_m": 19.3,
-      "distance_lost_avg_onto_stbd_m": -0.7
+      "distance_lost_avg_m": 8.5,
+      "distance_lost_total_m": 59,
+      "distance_lost_avg_onto_port_m": 11.7,
+      "distance_lost_avg_onto_stbd_m": 4.2
     }
   },
   "targets": {
@@ -440,7 +458,7 @@
         "onto": "Stbd",
         "headed_before_deg": 2.1,
         "lifted_after_deg": -12.0,
-        "note": null,
+        "note": "from past the layline (ending an overstand)",
         "overstand_deg": null,
         "dist_to_mark_m": null,
         "shift_call": "no clear shift",
@@ -453,7 +471,7 @@
         "onto": "Port",
         "headed_before_deg": 13.1,
         "lifted_after_deg": null,
-        "note": null,
+        "note": "at a mark (counted in the rounding)",
         "overstand_deg": -88.8,
         "dist_to_mark_m": 9,
         "shift_call": "on a header",
@@ -466,7 +484,7 @@
         "onto": "Port",
         "headed_before_deg": null,
         "lifted_after_deg": 0.2,
-        "note": null,
+        "note": "at a mark (counted in the rounding)",
         "overstand_deg": null,
         "dist_to_mark_m": null,
         "shift_call": "unknown",
@@ -561,24 +579,24 @@
       "sog_exit": 5.76,
       "sog_steady_after": 6.16,
       "settle_s": 52,
-      "vmg_before": 4.41,
-      "vmg_after": 5.1,
-      "metres_lost": 45.5,
-      "lost_before_m": 12.4,
-      "lost_after_m": 33.2,
+      "vmg_before": 4.43,
+      "vmg_after": 5.07,
+      "metres_lost": 27.4,
+      "lost_before_m": -4.6,
+      "lost_after_m": 32.1,
       "entry_twa": 44.0,
       "exit_twa": 135.0,
       "offset_s": null,
       "mark_dist_m": 4.0,
       "gate_side": null,
-      "vs_best_m": 24.2,
+      "vs_best_m": 10.5,
       "best_ref": "Race 2 #1",
-      "best_m": 21.3,
+      "best_m": 16.9,
       "is_best": false,
       "tips": [
         "Reached off at 135\u00b0 to the wind for the first 15\u201340 s after the mark (your best exited at 166\u00b0). Bear away all the way to the run angle first, then set.",
-        "Took 52 s to settle on the run (best 15 s). Pole and halyard ready on the layline, so the set happens as you bear away.",
-        "Speed dropped 21% through the turn (5.93 \u2192 4.67 kt; best 8%). A smoother, rounder turn with trim in step with the helm keeps more of it."
+        "Took 52 s to settle on the run (best 16 s). Pole and halyard ready on the layline, so the set happens as you bear away.",
+        "Speed dropped 21% through the turn (5.93 \u2192 4.67 kt; best 8%). A smoother, rounder turn keeps more of it."
       ]
     },
     {
@@ -593,25 +611,25 @@
       "sog_min": 3.78,
       "sog_exit": 5.37,
       "sog_steady_after": 5.72,
-      "settle_s": 37,
-      "vmg_before": 5.1,
-      "vmg_after": 4.42,
-      "metres_lost": 53.2,
-      "lost_before_m": -9.6,
-      "lost_after_m": 62.7,
+      "settle_s": 36,
+      "vmg_before": 5.07,
+      "vmg_after": 4.38,
+      "metres_lost": 68.1,
+      "lost_before_m": -6.2,
+      "lost_after_m": 74.3,
       "entry_twa": 159.0,
       "exit_twa": 40.0,
       "offset_s": null,
       "mark_dist_m": 9.1,
       "gate_side": "left-hand mark (looking downwind)",
-      "vs_best_m": 11.7,
-      "best_ref": "Race 2 #2",
-      "best_m": 41.5,
+      "vs_best_m": 10.2,
+      "best_ref": "Race 1 #2",
+      "best_m": 57.9,
       "is_best": false,
       "tips": [
-        "Tacked 1 s after the mark, so its cost is in this number. Fine if it was for clear air or the favoured side; otherwise hold the lane until you're up to speed.",
         "Came out at 40\u00b0 to the wind, low and wide (your best exited at 33\u00b0). Finish the turn close to close-hauled; the wide entry is what makes a tight exit possible.",
-        "Speed dropped 39% through the turn (6.19 \u2192 3.78 kt; best 24%). A smoother, rounder turn with trim in step with the helm keeps more of it."
+        "Speed dropped 39% through the turn (6.19 \u2192 3.78 kt; best 27%). A smoother, rounder turn keeps more of it.",
+        "Passed 9 m from the mark. Wide in, tight out: leave it about a boat length (3 m) away on the exit."
       ]
     }
   ]

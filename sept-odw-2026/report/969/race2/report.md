@@ -19,28 +19,29 @@ Gun 2026-09-26 14:05:00 (America/Los_Angeles), race 49.8 min. Speed source: SOG.
 Legs: Njord course.
 Straight: mark to mark. Ideal: shortest path at our average angle to the wind over the ground (leeway included) in steady wind; m vs ideal is the extra we sailed.
 
-| Leg | Type | Time | Sailed nm | Straight nm | +% vs straight | m vs ideal | SOG | SOG steady | VMC | Maneuvers | Heel (abs) | Heel sd | Tacking ∠ | TWD est | SOG stbd/port | Heel stbd/port | % stbd |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | upwind | 14:09 | 1.4 | 1.12 | 25.4 | 91 | 5.94 | 6.0 | 4.74 | 3 | 21.8 | 3.5 | 68.3 | 262.7 | 5.76/6.13 | 21.5/22.0 | 36 |
-| 2 | downwind | 9:48 | 1.06 | 1.02 | 3.7 | 45 | 6.48 | 6.53 | 6.16 | 1 | 3.0 | 2.1 | – | – | 6.58/6.32 | 3.1/2.9 | 80 |
-| 3 | upwind | 14:19 | 1.39 | 1.02 | 36.1 | 109 | 5.82 | 5.89 | 4.26 | 4 | 20.0 | 4.1 | 77.0 | 269.8 | 5.83/5.93 | 19.7/20.2 | 46 |
-| 4 | downwind | 11:30 | 1.2 | 1.12 | 7.8 | 94 | 6.27 | 6.29 | 5.76 | 0 | 2.5 | 2.0 | – | – | 6.2/6.45 | 2.5/2.5 | 66 |
+| Leg | Type | Time | VMC to mark | VMC steady | Sailed nm | Straight nm | +% vs straight | m vs ideal | SOG | SOG steady | Maneuvers | Heel (abs) | Heel sd | Tacking ∠ | TWD est | SOG stbd/port | Heel stbd/port | % stbd |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | upwind | 14:09 | 4.62 | 4.67 | 1.4 | 1.12 | 25.4 | 91 | 5.94 | 6.0 | 3 | 21.8 | 3.5 | 68.3 | 262.7 | 5.76/6.13 | 21.5/22.0 | 36 |
+| 2 | downwind | 9:48 | 6.19 | 6.27 | 1.06 | 1.02 | 3.7 | 45 | 6.48 | 6.53 | 1 | 3.0 | 2.1 | – | – | 6.58/6.32 | 3.1/2.9 | 80 |
+| 3 | upwind | 14:19 | 4.26 | 4.35 | 1.39 | 1.02 | 36.1 | 109 | 5.82 | 5.89 | 4 | 20.0 | 4.1 | 77.0 | 269.8 | 5.83/5.93 | 19.7/20.2 | 46 |
+| 4 | downwind | 11:30 | 5.81 | 5.88 | 1.2 | 1.12 | 7.8 | 94 | 6.27 | 6.29 | 0 | 2.5 | 2.0 | – | – | 6.2/6.45 | 2.5/2.5 | 66 |
 
 ## Maneuvers
-- Gybes: 1, avg entry 5.54 kt, avg loss 0.44 kt (8%), avg recovery 5.0 s, avg 32.9 m lost (total 33 m).
-- Tacks: 7, avg entry 5.91 kt, avg loss 1.78 kt (30%), avg recovery 15.3 s, avg 13.9 m lost (total 98 m); onto port 33.7 m vs onto stbd -12.5 m.
+- Tacks: 5, avg entry 5.81 kt, avg loss 1.61 kt (28%), avg recovery 14.4 s, avg 7.8 m lost (total 39 m); onto port 7.6 m vs onto stbd 7.9 m; 2 in double tacks/gybes left out of these averages.
 
-| Time | Kind | Onto | Leg | Entry kt | Min kt | Loss % | Recover s | Lost m | Note |
-|---|---|---|---|---|---|---|---|---|---|
-| 0:18 | Tack | Port | 1 | 5.43 | 4.32 | 21 | 9 | 18.5 | – |
-| 9:05 | Tack | Stbd | 1 | 5.78 | 4.0 | 31 | 11 | -12.4 | – |
-| 14:10 | Tack | Port | 1 | 5.85 | 3.43 | 41 | 10 | 30.4 | – |
-| 24:01 | Tack | Port | 2 | 6.46 | 4.49 | 30 | 25 | 59.0 | – |
-| 30:45 | Tack | Stbd | 3 | 6.02 | 4.37 | 27 | 16 | -15.9 | – |
-| 36:28 | Tack | Port | 3 | 5.73 | 4.07 | 29 | 22 | 27.0 | – |
-| 37:31 | Tack | Stbd | 3 | 6.07 | 4.2 | 31 | 14 | -9.1 | – |
-| 38:20 | Gybe | – | 3 | 5.54 | 5.1 | 8 | 5 | 32.9 | – |
+| Time | Kind | Onto | Leg | Entry kt | Min kt | Loss % | Recover s | Handling m | Call m | Note |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 0:18 | Tack | Port | 1 | 5.43 | 4.32 | 21 | 9 | 2.8 | -4.0 | – |
+| 9:05 | Tack | Stbd | 1 | 5.78 | 4.0 | 31 | 11 | 5.3 | 1.3 | – |
+| 14:10 | Tack | Port | 1 | 5.85 | 3.43 | 41 | 10 | – | – | at a mark (counted in the rounding) |
+| 24:01 | Tack | Port | 2 | 6.46 | 4.49 | 30 | 25 | – | – | at a mark (counted in the rounding) |
+| 30:45 | Tack | Stbd | 3 | 6.02 | 4.37 | 27 | 16 | 3.9 | -3.6 | – |
+| 36:28 | Tack | Port | 3 | 5.73 | 4.07 | 29 | 22 | 12.5 | -0.5 | – |
+| 37:31 | Tack | Stbd | 3 | 6.07 | 4.2 | 31 | 14 | 14.5 | 3.3 | – |
+| 38:20 | Gybe | – | 3 | 5.54 | 5.1 | 8 | 5 | – | – | at a mark (counted in the rounding) |
 
+
+Metres toward the mark. Handling: the dip against a baseline from the VMC before to the VMC once settled after (what the turn itself cost). Call: what changing onto the new tack's VMC was worth over the same 30 s (negative = gained, e.g. tacking off a header). They add up to the total against keeping the VMC it had.
 ## Wind shifts and tack calls
 Wind direction from headings: heading ± half the tacking angle. Shifts are relative to each beat's median; + is a right shift (veer), − a left shift (back). A puff that lets the boat point higher also reads as a lift, so treat single 3–4° calls as soft.
 
@@ -66,19 +67,19 @@ Tacks: 1 off the start, 2 no clear shift (< 3°), 2 layline, 1 on a header.
 Headed before: + means the old tack was headed (a good time to tack). New tack after: + means the new tack was lifted over the next minute.
 
 ## Mark roundings
-Metres lost: VMG from 30 s before to 60 s after the rounding against the steady VMG of the leg before and after. Settled: 10 s VMG back to 90% of the next leg's.
+Metres lost toward the marks: VMC (speed toward this mark, then the next) from 30 s before to 60 s after the rounding against the steady VMC of the leg before and after. Settled: 10 s VMC back to 90% of the next leg's.
 
 | # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | m lost | Closest to mark m | Gate | vs best m |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | windward | 14:12 | layline tack 2 s out | 5.63 | 3.43 | 6.38 | 30 | 21.6 | 2.5 | – | 0.0 |
-| 2 | leeward | 24:01 | no gybe on the run | 6.12 | 4.49 | 5.83 | 47 | 38.8 | 5.7 | left-hand mark (looking downwind) | 0.6 |
-| 3 | windward | 38:21 | layline tack 50 s out | 5.77 | 5.1 | 6.14 | 28 | 37.8 | 3.3 | – | 16.2 |
+| 1 | windward | 14:12 | layline tack 2 s out | 5.63 | 3.43 | 6.38 | 28 | 38.4 | 2.5 | – | 23.4 |
+| 2 | leeward | 24:01 | no gybe on the run | 6.12 | 4.49 | 5.83 | 20 | 38.6 | 5.7 | left-hand mark (looking downwind) | 0.0 |
+| 3 | windward | 38:21 | layline tack 50 s out | 5.77 | 5.1 | 6.14 | 24 | 37.1 | 3.3 | – | 22.1 |
 
 vs best: metres more than the best rounding of the same type in this analysis. The goal is zero lost; the best is the next milestone.
 
-- #1 windward: Your best of this type so far: the benchmark to beat. The goal is still zero.
-- #2 leeward: Took 47 s to settle upwind (best 25 s). Trim main and jib on through the turn, then speed before height.
-- #3 windward: No single fault stands out: -11 m went before the mark and 49 m after. Same routine, a little smoother, to close the gap to your best.
+- #1 windward: Speed dropped 39% through the turn (5.63 → 3.43 kt; best 14%). A smoother, rounder turn keeps more of it.
+- #2 leeward: Your best of this type so far: the benchmark to beat. The goal is still zero.
+- #3 windward: No single fault stands out: 1 m went before the mark and 36 m after. Same routine, a little smoother, to close the gap to your best.
 
 ## Upwind vs. targets
 Not computed: wind speed not trustworthy (no TWS channel); pass --tws, e.g. --tws 8-10.

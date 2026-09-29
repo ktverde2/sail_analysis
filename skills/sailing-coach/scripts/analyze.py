@@ -314,9 +314,13 @@ def analyze_race(race: Race, tws_override: float | None) -> dict:
     cog = df.COG if "COG" in df else df[hdg_col]
     toward = np.where(df.leg_type == "downwind", (df.twd_used + 180) % 360, df.twd_used)
     df["vmg_wind"] = df.SOG * np.cos(np.radians(adiff(toward, cog)))
+    # VMC: how fast the distance to sail to the next mark shrank (ladder.py). This is the measure
+    # of success: tacks, gybes, roundings and legs are all scored on it. Without marks there is
+    # nothing to sail to, so it falls back to VMG along the wind.
+    progress = "closing" if mark_progress(race, df, legs, axis) else "vmg_wind"
 
-    leg_rows = [leg_stats(df, lg, hdg_col, mans) for lg in legs]
-    man_rows = [maneuver_stats(df, m, hdg_col) for m in mans]
+    leg_rows = [leg_stats(df, lg, hdg_col, mans, progress) for lg in legs]
+    man_rows = [maneuver_stats(df, m, hdg_col, progress) for m in mans]
     for a, b in pairwise(man_rows):
         if b["time_s"] - a["time_s"] < 30:
             a["note"] = b["note"] = "double (<30 s apart; loss numbers overlap)"
@@ -335,7 +339,7 @@ def analyze_race(race: Race, tws_override: float | None) -> dict:
     )
     shifts = wind_shifts(df, legs, man_rows, gun, hdg_col, racing_from) if gun is not None else None
     roundings = (
-        rounding_stats(race, df, legs, leg_rows, man_rows, shifts) if gun is not None else []
+        rounding_stats(race, df, legs, leg_rows, man_rows, shifts, progress) if gun is not None else []
     )
     targets = target_bands(df, wind, parse_tws(tws_override))
 
@@ -354,6 +358,8 @@ def analyze_race(race: Race, tws_override: float | None) -> dict:
         "speed_source": "BoatSpeed" if "BoatSpeed" in df else "SOG",
         "upwind_axis": round(axis, 1) if axis is not None else None,
         "legs_source": legs_source if legs else None,
+        # what gains and losses are measured in: VMC to the next mark, or (no marks) VMG
+        "progress": "vmc" if progress == "closing" else progress,
         "wind": wind,
         "start": start,
         "legs": leg_rows,
@@ -738,12 +744,15 @@ def estimate_twd(df, legs, hdg_col, axis):
 
 ROUNDING_WINDOW_S = (-30, 60)  # VMG compared with the steady legs either side over this window
 ROUNDING_FLAG_M = 60  # a rounding this costly gets a flag in the executive summary
-SETTLED_VMG = 0.9  # 10 s VMG back to this share of the next leg's steady VMG = settled
+SETTLED_VMG = 0.9  # 10 s VMC back to this share of the next leg's steady VMC = settled
 
 
-def rounding_stats(race: Race, df, legs, leg_rows, man_rows, shifts) -> list[dict]:
+def rounding_stats(race: Race, df, legs, leg_rows, man_rows, shifts, progress="vmg_wind") -> list[dict]:
     """Each mark rounding (the boundary between two legs): approach, speed through, and metres
-    lost against sailing the steady VMG of the leg before and after."""
+    lost toward the marks against sailing the steady VMC of the leg before (to this mark) and
+    after (to the next one). Without marks, VMG along the wind stands in for VMC."""
+    steady_key = "closing_steady" if progress == "closing" else "vmg_steady"
+    show_key = "vmc_steady" if progress == "closing" else "vmg_steady"
     course = race.course
     marks = [c for c in course if c["type"] in ("Mark", "Gate")]
     # An offset mark straight after a mark: the rounding runs on to the offset
@@ -774,15 +783,15 @@ def rounding_stats(race: Race, df, legs, leg_rows, man_rows, shifts) -> list[dic
             return df[(rel >= a) & (rel <= b)]
 
         win = w(ROUNDING_WINDOW_S[0], ROUNDING_WINDOW_S[1] + off_s)
-        base = np.where(rel[win.index] < 0, rb["vmg_steady"] or np.nan, ra["vmg_steady"] or np.nan)
-        gap = (base - win.vmg_wind) * KT_TO_MS
-        ok_vmg = win.vmg_wind.notna().sum() > 30
+        base = np.where(rel[win.index] < 0, rb[steady_key] or np.nan, ra[steady_key] or np.nan)
+        gap = (base - win[progress]) * KT_TO_MS
+        ok_vmg = win[progress].notna().sum() > 30
         lost = float(np.nansum(gap)) if ok_vmg else None
         pre = (rel[win.index] < 0).values
-        # 10 s trailing VMG, only over time after the rounding (before it VMG was the other leg's)
+        # 10 s trailing VMC, only over time after the rounding (before it, it was the other leg's)
         after_r = df[(rel >= off_s) & (rel <= 180 + off_s)]
-        vmg10 = after_r.vmg_wind.rolling(10, min_periods=10).mean()
-        settle = after_r[vmg10 >= SETTLED_VMG * (ra["vmg_steady"] or np.inf)]
+        vmg10 = after_r[progress].rolling(10, min_periods=10).mean()
+        settle = after_r[vmg10 >= SETTLED_VMG * (ra[steady_key] or np.inf)]
         # Approach: the last tack (windward) or gybe (leeward) of the leg before
         want = "Tack" if kind == "windward" else "Gybe"
         prev = [
@@ -808,8 +817,9 @@ def rounding_stats(race: Race, df, legs, leg_rows, man_rows, shifts) -> list[dic
             "settle_s": round(float((settle.t.iloc[0] - t_r).total_seconds()) - off_s)
             if len(settle)
             else None,
-            "vmg_before": rb["vmg_steady"],
-            "vmg_after": ra["vmg_steady"],
+            # steady VMC (to the mark) of the legs either side: what the rounding is measured against
+            "vmg_before": rb[show_key],
+            "vmg_after": ra[show_key],
             "metres_lost": _r(lost, 1),
             "lost_before_m": _r(float(np.nansum(gap[pre])), 1) if ok_vmg else None,
             "lost_after_m": _r(float(np.nansum(gap[~pre])), 1) if ok_vmg else None,
@@ -922,7 +932,7 @@ def rounding_tips(r: dict, b: dict, maneuvers: list[dict]) -> list[str]:
         tip(
             after * 0.8,
             f"Took {r['settle_s']} s to settle upwind (best {b.get('settle_s')} s). ",
-            "Trim main and jib on through the turn, then speed before height.",
+            "Speed before height.",
         )
 
     drop, bdrop = _drop_pct(r), _drop_pct(b)
@@ -933,7 +943,7 @@ def rounding_tips(r: dict, b: dict, maneuvers: list[dict]) -> list[str]:
             f"{r['sog_min']} kt; best {bdrop:.0f}%). "
             if bdrop is not None
             else f"{r['sog_min']} kt). ",
-            "A smoother, rounder turn with trim in step with the helm keeps more of it.",
+            "A smoother, rounder turn keeps more of it.",
         )
 
     # A tack after a leeward mark (or gybe after a windward one) inside the minute is in the number
@@ -1026,7 +1036,61 @@ def leg_distance(g, s, lg, sailed_nm) -> dict:
     return out
 
 
-def leg_stats(df, lg, hdg_col, mans):
+def mark_progress(race: Race, df, legs, axis) -> bool:
+    """Second by second, from each leg's laylines and rungs (ladder.py):
+
+    to_go    metres still to sail to the next mark at the boats' tacking or gybing angle
+    closing  how fast to_go shrank (kt): metres gained or lost toward the mark come from this
+    vmc      VMC on the usual scale (kt): progress straight up (or down) the ladder toward the
+             mark, i.e. closing x cos(half tacking angle). With the mark dead upwind it's classic
+             VMC; off to one side it still counts only real progress, and overstanding counts
+             against it.
+
+    All 5 s centred. False when the course has no marks to sail to."""
+    df["to_go"], df["closing"], df["vmc"] = np.nan, np.nan, np.nan
+    els = [c for c in race.course if c["type"] in ("Mark", "Gate", "FinishLine")]
+    start = next((c for c in race.course if c["type"] == "StartLine"), None)
+    if not legs or len(els) != len(legs) or start is None or any(lg.get("detected") for lg in legs):
+        return False
+    lat0 = (start["coord1"]["lat"] + start["coord2"]["lat"]) / 2
+    lon0 = (start["coord1"]["lon"] + start["coord2"]["lon"]) / 2
+    rot = math.radians(axis or 0)
+
+    def xy(lat, lon):  # the same frame as plot_data: start-line middle, upwind up
+        x, y = local_xy(lat, lon, lat0, lon0)
+        return x * math.cos(rot) - y * math.sin(rot), x * math.sin(rot) + y * math.cos(rot)
+
+    x, y = xy(df.Lat.to_numpy(), df.Lon.to_numpy())
+    pts = [[list(xy(*p)) for p in _course_points(c)] for c in els]
+    ons, dirs = [], []
+    for lg in legs:
+        on = ((df.t >= lg["start"]) & (df.t <= lg["end"])).to_numpy()
+        ons.append(on)
+        settled = on & (df.t >= lg["start"] + pd.Timedelta(seconds=20)).to_numpy()
+        dirs.append(ladder.track_dirs(x[settled], y[settled], df.SOG.to_numpy()[settled]))
+    mids = lambda p: [float(np.mean([q[0] for q in p])), float(np.mean([q[1] for q in p]))]
+    origins = [list(xy(lat0, lon0))] + [mids(p) for p in pts[:-1]]
+    lads = ladder.build([lg["type"] for lg in legs], dirs, pts, origins)
+    to_go = np.full(len(df), np.nan)
+    rung = np.full(len(df), np.nan)  # cos(half tacking angle): distance to sail -> up the ladder
+    over = np.full(len(df), np.nan)  # metres of to_go from being past a layline
+    for on, lad in zip(ons, lads, strict=True):
+        if lad.get("targets"):
+            to_go[on] = ladder.to_go(x[on], y[on], lad, lad["targets"])
+            over[on] = ladder.overstand(x[on], y[on], lad, lad["targets"])
+            rung[on] = math.cos(math.radians(lad["half_deg"]))
+    df["to_go"] = to_go
+    df["overstand"] = over
+    dt = df.t.diff().dt.total_seconds()
+    made = -df.to_go.diff()  # metres closer to the mark since the last fix
+    made[made < -50] = np.nan  # a new leg starts: the distance jumps up
+    df["closing"] = (made / dt / KT_TO_MS).rolling(5, center=True, min_periods=3).mean()
+    df["vmc"] = df.closing * rung
+    df["rung_k"] = rung
+    return bool(df.vmc.notna().any())
+
+
+def leg_stats(df, lg, hdg_col, mans, progress="vmg_wind"):
     g = df[(df.t >= lg["start"]) & (df.t <= lg["end"])]
     s = g[g.steady]
     dur = (lg["end"] - lg["start"]).total_seconds()
@@ -1041,9 +1105,18 @@ def leg_stats(df, lg, hdg_col, mans):
         **leg_distance(g, s, lg, dist_nm),
         "sog_avg": round(float(g.SOG.mean()), 2),
         "sog_steady": round(float(s.SOG.mean()), 2) if len(s) else None,
-        "vmc_avg": round(float(g.VMC.mean()), 2)
-        if "VMC" in g and g.VMC.notna().any() and not lg.get("detected")
-        else None,  # without marks Njord's VMC points at the finish, not up/down the course
+        # VMC for the leg: the distance to sail at its start over the time it took (the measure
+        # of success), and the steady-sailing average of VMC second by second
+        "vmc_avg": round(float(g.to_go.iloc[0] * g.rung_k.iloc[0]) / dur / KT_TO_MS, 2)
+        if progress == "closing" and len(g) and pd.notna(g.to_go.iloc[0]) and dur > 0
+        else None,
+        "vmc_steady": round(float(s.vmc.mean()), 2)
+        if progress == "closing" and len(s) and s.vmc.notna().any()
+        else None,
+        # the same in distance-to-sail terms: what metres lost in roundings are measured against
+        "closing_steady": round(float(s.closing.mean()), 2)
+        if progress == "closing" and len(s) and s.closing.notna().any()
+        else None,
         "maneuvers": sum(lg["start"] <= m["t"] <= lg["end"] for m in mans),
         "heel_abs_avg": round(float(heel.mean()), 1) if len(heel) else None,
         "heel_abs_std": round(float(heel.std()), 1) if len(heel) > 1 else None,
@@ -1070,7 +1143,7 @@ def leg_stats(df, lg, hdg_col, mans):
     return row
 
 
-def maneuver_stats(df, m, hdg_col):
+def maneuver_stats(df, m, hdg_col, progress="vmg_wind"):
     t = m["t"]
     w = lambda a, b: df[
         (df.t >= t + pd.Timedelta(seconds=a)) & (df.t <= t + pd.Timedelta(seconds=b))
@@ -1112,10 +1185,35 @@ def maneuver_stats(df, m, hdg_col):
         row["heading_change"] = round(
             float(adiff(circ_mean(pre[hdg_col]), circ_mean(post[hdg_col])))
         )
-    base = w(-15, -5).vmg_wind.mean()
-    span = w(-5, 25).vmg_wind
+    # Metres lost toward the mark against keeping the VMC it had before the maneuver. Not for a
+    # maneuver that straddles a mark (it's in the rounding's number: the VMC before was to the
+    # other mark), and noted for a tack or gybe made from past a layline (its gain is ending the
+    # overstand, a layline call, not boat handling).
+    whole = w(-15, 25)
+    if progress == "closing" and "to_go" in df and whole.to_go.diff().max() > 50:
+        row["note"] = "at a mark (counted in the rounding)"
+        return row
+    if progress == "closing" and "overstand" in df and (w(-15, -5).overstand.mean() or 0) > 10:
+        row["note"] = "from past the layline (ending an overstand)"
+    # Split into handling (the dip against a baseline running from the VMC before, -15..-5 s, to
+    # the VMC once settled after, +25..+35 s) and the call (the rest: what changing onto the new
+    # tack's VMC was worth over the window). They add up to the total against the VMC before.
+    base = w(-15, -5)[progress].mean()
+    after_v = w(25, 35)[progress].mean()
+    span = w(-5, 25)[progress]
     if pd.notna(base) and span.notna().sum() > 20:
-        row["distance_lost_m"] = round(float(((base - span) * KT_TO_MS).sum()), 1)
+        total = float(((base - span) * KT_TO_MS).sum())
+        if pd.notna(after_v):
+            f = ((span.index.to_series().map(df.tg) - df.tg[span.index[0]]) / 30.0).clip(0, 1)
+            line = base + (after_v - base) * f
+            handling = float(((line - span) * KT_TO_MS).sum())
+            row["distance_lost_m"] = round(handling, 1)
+            row["call_m"] = round(total - handling, 1)  # negative = the new tack gained
+            if handling < -5 and not row["note"]:
+                # a turn can't gain distance by itself: a shift or puff arrived inside the window
+                row["note"] = "gained through the turn (a shift or puff): handling can't be judged"
+        else:
+            row["distance_lost_m"] = round(total, 1)
     return row
 
 
@@ -1608,9 +1706,13 @@ def downwind_plot(race: Race, res: dict, out: Path, plt):
                     fontsize=8,
                     color=INK,
                 )
-        vmg = f", VMG {lg['vmg_steady']} kt" if lg.get("vmg_steady") is not None else ""
+        prog = (
+            f"VMC {lg['vmc_avg']} kt to the mark, "
+            if lg.get("vmc_avg") is not None
+            else f"VMG {lg['vmg_steady']} kt, " if lg.get("vmg_steady") is not None else ""
+        )
         ax.set_title(
-            f"Leg {lg['leg']}: {lg['sog_steady']} kt steady{vmg}, "
+            f"Leg {lg['leg']}: {prog}SOG {lg['sog_steady']} kt steady, "
             f"{lg['pct_time_stbd']}% on starboard"
         )
         ax.set_ylabel("SOG (kt, 5 s avg)")
@@ -1794,7 +1896,8 @@ def plot_data(race: Race, res: dict) -> dict:
         "x": col(x, 1),
         "y": col(y, 1),
         "sog": col(df.SOG, 2),
-        "vmg": col(df.vmg_wind, 2),
+        # speed toward the target: VMC to the next mark (VMG along the wind when there are no marks)
+        "vmg": col(df[res.get("progress") or "vmg_wind"], 2),
         "hdg": col(hdg, 0),
         "heel": col(df.Heel, 1) if "Heel" in df else None,
         "twa": col(df.twa_gps, 0),
@@ -1847,6 +1950,7 @@ def plot_data(race: Race, res: dict) -> dict:
     ]
     return {
         "race": res["race"],
+        "progress": "VMC" if res.get("progress") == "vmc" else "VMG",
         "series": series,
         "course": course,
         "legs": [
@@ -2006,7 +2110,7 @@ def make_plots(race: Race, res: dict, out: Path):
         colors = [ORANGE if r["kind"] == "Gybe" else BLUE for r in rs]
         ax.bar(range(len(rs)), [r["distance_lost_m"] for r in rs], color=colors, width=0.7)
         ax.set_xticks(range(len(rs)), [_fmt_mmss(r["time_s"]) for r in rs], rotation=60, fontsize=8)
-        ax.set_ylabel("metres lost vs. entry VMG")
+        ax.set_ylabel("metres lost toward the mark")
         ax.set_xlabel("time from gun")
         ax.set_title(f"{res['race']}: distance lost per maneuver (blue = tack, orange = gybe)")
         ax.axhline(0, color=INK, lw=0.8)
@@ -2108,8 +2212,9 @@ def roundings_md(rs: list | None) -> list[str]:
         [
             "## Mark roundings",
             (
-                "Metres lost: VMG from 30 s before to 60 s after the rounding against the steady VMG "
-                "of the leg before and after. Settled: 10 s VMG back to 90% of the next leg's."
+                "Metres lost toward the marks: VMC (speed toward this mark, then the next) from 30 s "
+                "before to 60 s after the rounding against the steady VMC of the leg before and after. "
+                "Settled: 10 s VMC back to 90% of the next leg's."
                 + (
                     " With an offset mark the window runs to 60 s after the offset, and the exit "
                     "angle, exit speed and settle time are measured from the offset (the offset "
@@ -2236,13 +2341,14 @@ def write_report(res: dict, out: Path):
                 ("Leg", "leg"),
                 ("Type", "type"),
                 ("Time", lambda r: _fmt_mmss(r["duration_s"])),
+                ("VMC to mark", "vmc_avg"),
+                ("VMC steady", "vmc_steady"),
                 ("Sailed nm", "distance_sailed_nm"),
                 ("Straight nm", "straight_nm"),
                 ("+% vs straight", "extra_pct"),
                 ("m vs ideal", "extra_vs_ideal_m"),
                 ("SOG", "sog_avg"),
                 ("SOG steady", "sog_steady"),
-                ("VMC", "vmc_avg"),
                 ("Maneuvers", "maneuvers"),
                 ("Heel (abs)", "heel_abs_avg"),
                 ("Heel sd", "heel_abs_std"),
@@ -2291,10 +2397,16 @@ def write_report(res: dict, out: Path):
                 ("Min kt", "min_sog"),
                 ("Loss %", "speed_loss_pct"),
                 ("Recover s", "recovery_s"),
-                ("Lost m", "distance_lost_m"),
+                ("Handling m", "distance_lost_m"),
+                ("Call m", lambda r: r.get("call_m")),
                 ("Note", "note"),
             ],
         ),
+        "",
+        "Metres toward the mark. Handling: the dip against a baseline from the VMC before to the VMC "
+        "once settled after (what the turn itself cost). Call: what changing onto the new tack's VMC "
+        "was worth over the same 30 s (negative = gained, e.g. tacking off a header). They add up to "
+        "the total against keeping the VMC it had.",
     ]
     lines += shifts_md(res.get("shifts"))
     lines += roundings_md(res.get("roundings"))
@@ -2445,14 +2557,19 @@ def _race_line(r: dict) -> str:
     up, down = _up(r), _down(r)
     parts = [_start_phrase(r["start"] or {}).capitalize()]
     tgt = _mid_target(r["targets"])
+    # Progress to the mark first (VMC: each leg's distance to sail over the time it took), then
+    # the speed and heel that explain it
+    up_vmc, dn_vmc = _mean([lg.get("vmc_avg") for lg in up]), _mean([lg.get("vmc_avg") for lg in down])
     up_sog = _mean([lg["sog_steady"] for lg in up])
     if up_sog is not None:
         heel = _mean([lg["heel_abs_avg"] for lg in up])
         pct = f" ({tgt['tgt_speed_pct']:.0f}% of target)" if tgt else ""
-        parts.append(f"upwind {up_sog:.2f} kt{pct}, heel {heel:.0f}°")
+        vmc = f"VMC {up_vmc:.2f} kt to the mark (SOG " if up_vmc is not None else ""
+        parts.append(f"upwind {vmc}{up_sog:.2f} kt{pct}{')' if vmc else ''}, heel {heel:.0f}°")
     dn = _mean([lg["sog_steady"] for lg in down])
     if dn is not None:
-        parts.append(f"downwind {dn:.2f} kt")
+        vmc = f"VMC {dn_vmc:.2f} kt to the mark (SOG " if dn_vmc is not None else ""
+        parts.append(f"downwind {vmc}{dn:.2f} kt{')' if vmc else ''}")
     ms = r["maneuver_summary"].get("Tack")
     if ms:
         n, _ = _calls([r])
@@ -2603,6 +2720,9 @@ def write_event(results: list[dict], out: Path):
                 "accel": s.get("accel_pm5s_kt"),
                 "tacks": ms.get("count"),
                 "tack_loss": ms.get("distance_lost_avg_m"),
+                # progress to the mark (VMC), then the speed that explains it
+                "up_vmc": _r(_mean([lg.get("vmc_avg") for lg in up]), 2) if up else None,
+                "dn_vmc": _r(_mean([lg.get("vmc_avg") for lg in r["legs"] if lg["type"] == "downwind"]), 2),
                 "up_sog": round(np.mean([lg["sog_steady"] for lg in up if lg["sog_steady"]]), 2)
                 if up
                 else None,
@@ -2630,8 +2750,10 @@ def write_event(results: list[dict], out: Path):
             ("Line pos % from pin", "pos"),
             ("SOG at gun", "sog0"),
             ("Accel ±5 s", "accel"),
+            ("Upwind VMC to mark", "up_vmc"),
+            ("Downwind VMC to mark", "dn_vmc"),
             ("Tacks", "tacks"),
-            ("Avg m lost/tack", "tack_loss"),
+            ("Avg m lost/tack (to the mark)", "tack_loss"),
             ("Upwind SOG", "up_sog"),
             ("Upwind heel (abs)", "up_heel"),
             ("Tacking ∠", "tack_angle"),

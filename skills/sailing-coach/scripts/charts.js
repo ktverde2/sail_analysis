@@ -42,9 +42,10 @@
     s.min = s.t.map(t => (t === null ? null : t / 60));
     s.sog5 = smooth(s.sog, 5);
     s.heel5 = smooth(s.heelAbs, 5);
-    // One hover block per point: time, speed, VMG, heading, heel
+    // One hover block per point: time, speed, VMC (speed toward the next mark), heading, heel
+    const P = d.progress || 'VMG';
     s.hover = s.t.map((t, i) =>
-      '<b>' + clock(t) + '</b><br>SOG ' + f(s.sog[i], 2, ' kt') + '<br>VMG ' + f(s.vmg[i], 2, ' kt') +
+      '<b>' + clock(t) + '</b><br>SOG ' + f(s.sog[i], 2, ' kt') + '<br>' + P + ' ' + f(s.vmg[i], 2, ' kt') +
       '<br>Heading ' + f(s.hdg[i], 0, '°') + '<br>Heel ' + f(s.heelAbs[i], 0, '°'));
     d.legType = {};
     d.legs.forEach(l => (d.legType[l.leg] = l.type));
@@ -302,7 +303,7 @@
         marker: { color: ms.map(m => (m.kind === 'Gybe' ? c.orange : c.blue)) },
         text: ms.map(maneuverText), textposition: 'none', hovertemplate: '%{text}<extra></extra>',
       }], layout(c, {
-        title: title(c, 'Metres lost per maneuver vs. VMG before it (blue = tack, orange = gybe)', 'Metres lost per maneuver'),
+        title: title(c, 'Metres lost toward the mark per maneuver, vs. ' + (d.progress || 'VMG') + ' before it (blue = tack, orange = gybe)', 'Metres lost per maneuver'),
         xaxis: axis(c, { title: 'time from gun', type: 'category', tickangle: -60 }),
         yaxis: axis(c, { title: 'm lost', zeroline: true, zerolinecolor: c.ink2 }), bargap: 0.3, height: 340,
       }), CONFIG);
@@ -441,10 +442,10 @@
       Plotly.newPlot(el, [
         { x, y: smooth3(g(s.sog)), mode: 'lines', name: 'SOG', line: { color: c.blue, width: 2 },
           text: idx.map(i => s.hover[i] + '<br>Rounding ' + relClock(s.t[i] - r.time_s)), hovertemplate: '%{text}<extra>SOG</extra>' },
-        { x, y: smooth3(g(s.vmg)), mode: 'lines', name: 'VMG', line: { color: c.orange, width: 2 },
-          hovertemplate: 'VMG %{y:.2f} kt<extra></extra>' },
+        { x, y: smooth3(g(s.vmg)), mode: 'lines', name: d.progress || 'VMG', line: { color: c.orange, width: 2 },
+          hovertemplate: (d.progress || 'VMG') + ' %{y:.2f} kt<extra></extra>' },
       ], layout(c, {
-        title: title(c, 'SOG and VMG (dotted = steady VMG of the legs either side)', 'SOG and VMG'),
+        title: title(c, 'SOG and ' + (d.progress || 'VMG') + ' (dotted = steady ' + (d.progress || 'VMG') + ' of the legs either side)', 'SOG and ' + (d.progress || 'VMG')),
         xaxis: axis(c, { title: 'seconds from rounding', ...SPIKE }), yaxis: axis(c, { title: 'kt', rangemode: 'tozero' }),
         shapes, showlegend: true, legend: { orientation: 'h', y: -0.3 }, hovermode: 'x', height: 340,
       }), CONFIG);

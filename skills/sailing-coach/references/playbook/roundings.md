@@ -1,11 +1,11 @@
 # Mark roundings
 
-Roundings are where metres go fastest: a few seconds of slow turning, a set that holds the boat on a reach, or a pinched exit costs more than a bad tack. Our `m lost` (VMG from 30 s before to 60 s after the mark, vs. the steady VMG of the legs either side) measures it directly.
+Roundings are where metres go fastest: a few seconds of slow turning, a set that holds the boat on a reach, or a pinched exit costs more than a bad tack. Our `m lost` (VMC toward this mark and then the next, from 30 s before to 60 s after the mark, vs. the steady VMC of the legs either side) measures it directly.
 
 ## Windward mark
 - A good rounding does three things: accelerates through the bear-away, sails the least distance, and keeps clear air going downwind. [R1]
 - Come in about half a length above the layline so you can bear away smoothly without pinching or touching the mark. [R1]
-- Set the boat up for the run before the mark, not after it: in the Etchells, ease the mast lever, drop the traveler, pre-set the spinnaker sheet to its downwind mark, and bear away to the downwind angle at the mark so the trimmer isn't sheeting hard on a reach once the kite fills. [N1]
+- Set the boat up for the run before the mark, not after it, and bear away to the downwind angle at the mark rather than reaching off it. [N1]
 - Doyle's version of the same idea: release the lever before the mark so the mast is free once the backstay goes; while the kite goes up and the main is eased, the helm releases the backstay fully, then the jib comes down. [D1]
 - Ease the main smoothly and quickly through the turn, flatten the boat (hike) to help it bear away, and look at the point of closest approach to the mark as you turn. [R1]
 - If you'll gybe right after the mark or offset, go slightly wide in and tight out, and don't sail extra distance past the mark before gybing unless clear air needs it. [R1, R5]
@@ -22,7 +22,7 @@ Roundings are where metres go fastest: a few seconds of slow turning, a set that
 - Current: with current against you (flowing upwind), drop later; with current carrying you downwind, drop early and turn up the moment the bow passes the mark. [R3]
 - Gate choice: the upwind mark is only one factor. Weigh which mark you reach first from your side, traffic, clean air on the exit, current (the down-current mark is usually the easier turn), and above all which gate gives a clear lane to the favored side. [R3, R4]
 - Stay out of the middle "funnel" between the gates; approach one gate from outside and be the inside boat with rights. [R4]
-- Exit: trim the main ahead of the jib to help the turn with less rudder; coast slightly high of close-hauled to hold a lane; don't foot into the bad air of boats ahead. In a crowd with only a marginal overlap, hold back, round behind, and take the high lane. [R4, N2]
+- Exit: coast slightly high of close-hauled to hold a lane; don't foot into the bad air of boats ahead. In a crowd with only a marginal overlap, hold back, round behind, and take the high lane. [R4, N2]
 - **Data:** `SOG in → min → out`, exit TWA (by heading) against the card (38–41° at 8–10 kt), settle time to 90% of the beat's steady VMG. Pinching out (exit TWA in the high 20s, speed dropping to 4 kt) and going wide and slow (mid-40s, down to 3.4 kt) are both visible.
 - **Cue:** "Wide in, tight out, foot to the number": the trimmer calls speed out of the mark, and nobody points until it reads 5.5 kt.
 

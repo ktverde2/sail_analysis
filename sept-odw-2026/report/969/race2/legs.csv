@@ -1,5 +1,5 @@
-leg,type,start_s,duration_s,distance_sailed_nm,straight_nm,extra_pct,ideal_nm,extra_vs_ideal_m,track_angle,sog_avg,sog_steady,vmc_avg,maneuvers,heel_abs_avg,heel_abs_std,trim_avg,tacking_angle,twd_est,vmg_steady,twa_steady,gybes,tacks,pct_time_stbd,sog_stbd,heel_stbd,pct_time_port,sog_port,heel_port
-1,upwind,3,849,1.4,1.12,25.4,1.35,91,41.4,5.94,6.0,4.74,3,21.8,3.5,4.0,68.3,262.7,4.38,34.2,0,3,36,5.76,21.5,64,6.13,22.0
-2,downwind,853,588,1.06,1.02,3.7,1.04,45,22.8,6.48,6.53,6.16,1,3.0,2.1,-0.1,,,5.95,164.0,0,1,80,6.58,3.1,20,6.32,2.9
-3,upwind,1442,859,1.39,1.02,36.1,1.33,109,42.9,5.82,5.89,4.26,4,20.0,4.1,3.9,77.0,269.8,4.2,38.5,1,3,46,5.83,19.7,54,5.93,20.2
-4,downwind,2302,690,1.2,1.12,7.8,1.15,94,23.7,6.27,6.29,5.76,0,2.5,2.0,-0.4,,,5.63,159.4,0,0,66,6.2,2.5,34,6.45,2.5
+leg,type,start_s,duration_s,distance_sailed_nm,straight_nm,extra_pct,ideal_nm,extra_vs_ideal_m,track_angle,sog_avg,sog_steady,vmc_avg,vmc_steady,closing_steady,maneuvers,heel_abs_avg,heel_abs_std,trim_avg,tacking_angle,twd_est,vmg_steady,twa_steady,gybes,tacks,pct_time_stbd,sog_stbd,heel_stbd,pct_time_port,sog_port,heel_port
+1,upwind,3,849,1.4,1.12,25.4,1.35,91,41.4,5.94,6.0,4.62,4.67,5.98,3,21.8,3.5,4.0,68.3,262.7,4.38,34.2,0,3,36,5.76,21.5,64,6.13,22.0
+2,downwind,853,588,1.06,1.02,3.7,1.04,45,22.8,6.48,6.53,6.19,6.27,6.57,1,3.0,2.1,-0.1,,,5.95,164.0,0,1,80,6.58,3.1,20,6.32,2.9
+3,upwind,1442,859,1.39,1.02,36.1,1.33,109,42.9,5.82,5.89,4.26,4.35,5.83,4,20.0,4.1,3.9,77.0,269.8,4.2,38.5,1,3,46,5.83,19.7,54,5.93,20.2
+4,downwind,2302,690,1.2,1.12,7.8,1.15,94,23.7,6.27,6.29,5.81,5.88,6.25,0,2.5,2.0,-0.4,,,5.63,159.4,0,0,66,6.2,2.5,34,6.45,2.5

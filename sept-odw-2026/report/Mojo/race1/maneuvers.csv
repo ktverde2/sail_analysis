@@ -1,9 +1,9 @@
-time_s,kind,onto,leg,entry_sog,min_sog,speed_loss_kt,speed_loss_pct,recovery_s,distance_lost_m,heading_change,note
-113,Tack,Port,1,5.72,4.13,1.59,28,12.0,5.8,78,
-589,Tack,Stbd,1,5.72,4.13,1.59,28,17.0,8.2,-65,
-761,Tack,Port,1,5.76,3.68,2.08,36,13.0,14.0,68,
-827,Tack,Stbd,1,5.79,4.23,1.56,27,11.0,5.1,-67,
-907,Tack,Port,1,6.35,5.47,0.88,14,17.0,-7.3,-90,
-1499,Gybe,,2,6.48,5.5,0.98,15,,62.9,102,
-2274,Tack,Stbd,3,5.84,4.43,1.42,24,9.0,12.0,-60,
-2350,Tack,Port,3,6.44,5.18,1.26,20,13.0,-6.1,-101,
+time_s,kind,onto,leg,entry_sog,min_sog,speed_loss_kt,speed_loss_pct,recovery_s,distance_lost_m,heading_change,note,call_m
+113,Tack,Port,1,5.72,4.13,1.59,28,12.0,6.2,78,,3.1
+589,Tack,Stbd,1,5.72,4.13,1.59,28,17.0,6.9,-65,,2.2
+761,Tack,Port,1,5.76,3.68,2.08,36,13.0,12.4,68,,2.1
+827,Tack,Stbd,1,5.79,4.23,1.56,27,11.0,5.2,-67,,-34.7
+907,Tack,Port,1,6.35,5.47,0.88,14,17.0,,-90,at a mark (counted in the rounding),
+1499,Gybe,,2,6.48,5.5,0.98,15,,,102,at a mark (counted in the rounding),
+2274,Tack,Stbd,3,5.84,4.43,1.42,24,9.0,4.1,-60,from past the layline (ending an overstand),-34.3
+2350,Tack,Port,3,6.44,5.18,1.26,20,13.0,,-101,at a mark (counted in the rounding),

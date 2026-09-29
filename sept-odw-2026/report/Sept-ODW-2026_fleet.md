@@ -39,23 +39,23 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 
 **Legs**
 
-| Leg | Boat | Time | vs fastest | SOG | Sailed / straight nm | Tacks | Gybes | % right of rhumb | Heel |
-|---|---|---|---|---|---|---|---|---|---|
-| 1 upwind to Windward 1 | Mojo | 15:12 | 0 | 5.82 | 1.47 / 1.11 | 5 | 0 | 69 | 19.2° |
-| 1 upwind to Windward 1 | 969 | 15:32 | +0:20 | 5.81 | 1.5 / 1.11 | 6 | 0 | 79 | 18.9° |
-| 2 downwind to Leeward 1 | Mojo | 9:56 | 0 | 6.49 | 1.07 / 1.03 | 0 | 1 | 52 | 2.7° |
-| 2 downwind to Leeward 1 | 969 | 10:11 | +0:15 | 6.27 | 1.06 / 1.03 | 1 | 0 | 23 | 3.9° |
-| 3 upwind to Windward 2 | Mojo | 14:11 | 0 | 5.85 | 1.38 / 1.03 | 2 | 0 | 25 | 19.8° |
-| 3 upwind to Windward 2 | 969 | 14:11 | 0 | 5.96 | 1.4 / 1.03 | 5 | 0 | 42 | 20.2° |
-| 4 downwind to Finish | Mojo | 10:37 | 0 | 6.5 | 1.15 / 1.11 | 0 | 0 | 66 | 2.9° |
-| 4 downwind to Finish | 969 | 10:58 | +0:21 | 6.45 | 1.17 / 1.11 | 0 | 1 | 100 | 3.4° |
+| Leg | Boat | Time | vs fastest | VMC to mark | SOG | Sailed / straight nm | Tacks | Gybes | % right of rhumb | Heel |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 upwind to Windward 1 | Mojo | 15:12 | 0 | 4.37 | 5.82 | 1.47 / 1.11 | 5 | 0 | 69 | 19.2° |
+| 1 upwind to Windward 1 | 969 | 15:32 | +0:20 | 4.28 | 5.81 | 1.5 / 1.11 | 6 | 0 | 79 | 18.9° |
+| 2 downwind to Leeward 1 | Mojo | 9:56 | 0 | 6.24 | 6.49 | 1.07 / 1.03 | 0 | 1 | 52 | 2.7° |
+| 2 downwind to Leeward 1 | 969 | 10:11 | +0:15 | 6.07 | 6.27 | 1.06 / 1.03 | 1 | 0 | 23 | 3.9° |
+| 3 upwind to Windward 2 | Mojo | 14:11 | 0 | 4.29 | 5.85 | 1.38 / 1.03 | 2 | 0 | 25 | 19.8° |
+| 3 upwind to Windward 2 | 969 | 14:11 | 0 | 4.29 | 5.96 | 1.4 / 1.03 | 5 | 0 | 42 | 20.2° |
+| 4 downwind to Finish | Mojo | 10:37 | 0 | 6.28 | 6.5 | 1.15 / 1.11 | 0 | 0 | 66 | 2.9° |
+| 4 downwind to Finish | 969 | 10:58 | +0:21 | 6.08 | 6.45 | 1.17 / 1.11 | 0 | 1 | 100 | 3.4° |
 
-**Roundings (metres lost, each boat against its own steady VMG)**
+**Roundings (metres lost toward the marks, each boat against its own steady VMC)**
 
 | Boat | Windward 1 | Leeward 1 | Windward 2 |
 |---|---|---|---|
-| Mojo | 40 | 45 | 31 |
-| 969 | 30 | 38 | 31 |
+| Mojo | 18 | 58 | 19 |
+| 969 | 15 | 53 | 45 |
 
 ## Race 2 (14:05)
 
@@ -77,23 +77,23 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 
 **Legs**
 
-| Leg | Boat | Time | vs fastest | SOG | Sailed / straight nm | Tacks | Gybes | % right of rhumb | Heel |
-|---|---|---|---|---|---|---|---|---|---|
-| 1 upwind to Windward 1 | 969 | 14:15 | 0 | 5.93 | 1.4 / 1.12 | 3 | 0 | 100 | 21.4° |
-| 1 upwind to Windward 1 | Mojo | 14:57 | +0:42 | 5.84 | 1.45 / 1.12 | 3 | 1 | 99 | 21.0° |
-| 2 downwind to Leeward 1 | 969 | 9:50 | 0 | 6.48 | 1.06 / 1.03 | 1 | 0 | 96 | 3.1° |
-| 2 downwind to Leeward 1 | Mojo | 9:57 | +0:07 | 6.4 | 1.06 / 1.03 | 1 | 0 | 44 | 3.1° |
-| 3 upwind to Windward 2 | 969 | 14:18 | 0 | 5.82 | 1.38 / 1.03 | 3 | 1 | 100 | 19.5° |
-| 3 upwind to Windward 2 | Mojo | 14:51 | +0:33 | 5.65 | 1.4 / 1.03 | 5 | 0 | 75 | 17.4° |
-| 4 downwind to Finish | 969 | 11:31 | +0:14 | 6.27 | 1.2 / 1.12 | 0 | 0 | 74 | 2.5° |
-| 4 downwind to Finish | Mojo | 11:17 | 0 | 6.28 | 1.18 / 1.12 | 0 | 0 | 72 | 3.2° |
+| Leg | Boat | Time | vs fastest | VMC to mark | SOG | Sailed / straight nm | Tacks | Gybes | % right of rhumb | Heel |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 upwind to Windward 1 | 969 | 14:15 | 0 | 4.62 | 5.93 | 1.4 / 1.12 | 3 | 0 | 100 | 21.4° |
+| 1 upwind to Windward 1 | Mojo | 14:57 | +0:42 | 4.46 | 5.84 | 1.45 / 1.12 | 3 | 1 | 99 | 21.0° |
+| 2 downwind to Leeward 1 | 969 | 9:50 | 0 | 6.19 | 6.48 | 1.06 / 1.03 | 1 | 0 | 96 | 3.1° |
+| 2 downwind to Leeward 1 | Mojo | 9:57 | +0:07 | 6.16 | 6.4 | 1.06 / 1.03 | 1 | 0 | 44 | 3.1° |
+| 3 upwind to Windward 2 | 969 | 14:18 | 0 | 4.26 | 5.82 | 1.38 / 1.03 | 3 | 1 | 100 | 19.5° |
+| 3 upwind to Windward 2 | Mojo | 14:51 | +0:33 | 4.1 | 5.65 | 1.4 / 1.03 | 5 | 0 | 75 | 17.4° |
+| 4 downwind to Finish | 969 | 11:31 | +0:14 | 5.81 | 6.27 | 1.2 / 1.12 | 0 | 0 | 74 | 2.5° |
+| 4 downwind to Finish | Mojo | 11:17 | 0 | 5.93 | 6.28 | 1.18 / 1.12 | 0 | 0 | 72 | 3.2° |
 
-**Roundings (metres lost, each boat against its own steady VMG)**
+**Roundings (metres lost toward the marks, each boat against its own steady VMC)**
 
 | Boat | Windward 1 | Leeward 1 | Windward 2 |
 |---|---|---|---|
-| 969 | 22 | 39 | 38 |
-| Mojo | 21 | 42 | 72 |
+| 969 | 38 | 39 | 37 |
+| Mojo | 17 | 58 | 79 |
 
 ## Race 3 (15:15)
 
@@ -115,23 +115,23 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 
 **Legs**
 
-| Leg | Boat | Time | vs fastest | SOG | Sailed / straight nm | Tacks | Gybes | % right of rhumb | Heel |
-|---|---|---|---|---|---|---|---|---|---|
-| 1 upwind to Windward 1 | 969 | 13:42 | 0 | 5.77 | 1.31 / 1.03 | 2 | 0 | 98 | 18.1° |
-| 1 upwind to Windward 1 | Mojo | 14:50 | +1:08 | 5.48 | 1.35 / 1.03 | 4 | 0 | 90 | 17.1° |
-| 2 downwind to Leeward 1 | 969 | 10:36 | 0 | 5.79 | 1.02 / 0.94 | 1 | 1 | 45 | 2.9° |
-| 2 downwind to Leeward 1 | Mojo | 11:27 | +0:51 | 6.06 | 1.16 / 0.94 | 1 | 3 | 31 | 3.9° |
-| 3 upwind to Finish | 969 | 13:09 | 0 | 5.66 | 1.24 / 0.94 | 5 | 0 | 95 | 18.6° |
-| 3 upwind to Finish | Mojo | 13:20 | +0:11 | 5.6 | 1.24 / 0.94 | 5 | 0 | 100 | 18.0° |
+| Leg | Boat | Time | vs fastest | VMC to mark | SOG | Sailed / straight nm | Tacks | Gybes | % right of rhumb | Heel |
+|---|---|---|---|---|---|---|---|---|---|---|
+| 1 upwind to Windward 1 | 969 | 13:42 | 0 | 4.53 | 5.77 | 1.31 / 1.03 | 2 | 0 | 98 | 18.1° |
+| 1 upwind to Windward 1 | Mojo | 14:50 | +1:08 | 4.26 | 5.48 | 1.35 / 1.03 | 4 | 0 | 90 | 17.1° |
+| 2 downwind to Leeward 1 | 969 | 10:36 | 0 | 5.39 | 5.79 | 1.02 / 0.94 | 1 | 1 | 45 | 2.9° |
+| 2 downwind to Leeward 1 | Mojo | 11:27 | +0:51 | 4.99 | 6.06 | 1.16 / 0.94 | 1 | 3 | 31 | 3.9° |
+| 3 upwind to Finish | 969 | 13:09 | 0 | 4.25 | 5.66 | 1.24 / 0.94 | 5 | 0 | 95 | 18.6° |
+| 3 upwind to Finish | Mojo | 13:20 | +0:11 | 4.17 | 5.6 | 1.24 / 0.94 | 5 | 0 | 100 | 18.0° |
 
-**Roundings (metres lost, each boat against its own steady VMG)**
+**Roundings (metres lost toward the marks, each boat against its own steady VMC)**
 
 | Boat | Windward 1 | Leeward 1 |
 |---|---|---|
-| 969 | 40 | 73 |
-| Mojo | 46 | 53 |
+| 969 | 42 | 63 |
+| Mojo | 27 | 68 |
 
-*Speeds are over ground. % right of rhumb: share of the leg spent right of the line from the previous mark to the next, looking at the mark.*
+*Time and vs fastest are what count. VMC to mark: the leg's distance to sail (at the boats' tacking or gybing angle) over its time. SOG explains it, over ground. % right of rhumb: share of the leg spent right of the line from the previous mark to the next, looking at the mark.*
 
 ## Side by side (within 200 m, same leg, same tack or gybe)
 

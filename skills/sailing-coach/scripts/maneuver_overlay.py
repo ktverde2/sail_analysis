@@ -99,9 +99,32 @@ def record(s: pd.DataFrame, t_rep: float, kind: str) -> dict | None:
     rec = np.flatnonzero((x > t_min) & (sog >= RECOVERY_PCT * entry))
     t_rec = int(x[rec[0]]) if len(rec) else None
 
-    # Time lost: seconds at entry speed given away until recovered (or the end of the window)
-    end = t_rec if t_rec is not None else POST
-    secs_lost = float(np.nansum(np.clip(1 - sog[at(-5, end)] / entry, 0, None)))
+    # Success is VMC: metres lost toward the mark against keeping the VMC it had going in, over
+    # the window analyze.py scores a maneuver on (-5..+25 s); time lost is those metres at that
+    # VMC. A tack onto a lift can gain (negative). Without marks there's no VMC: SOG stands in.
+    vmc = seg.vmc.values.astype(float) if "vmc" in seg and seg.vmc.notna().sum() > 20 else None
+    vmc_in = float(np.nanmean(vmc[at(-15, -5)])) if vmc is not None else np.nan
+    # metres are distance to sail (analyze.py's closing rate), the same unit as every other
+    # "metres toward the mark" in the reports; VMC is shown on the usual up-the-ladder scale
+    close = seg.closing.values.astype(float) if vmc is not None and "closing" in seg else None
+    close_in = float(np.nanmean(close[at(-15, -5)])) if close is not None else np.nan
+    close_out = float(np.nanmean(close[at(25, 35)])) if close is not None else np.nan
+    vmc_out = float(np.nanmean(vmc[at(25, 35)])) if vmc is not None else np.nan
+    call_m = None
+    if close is not None and close_in > 0.5 and not np.isnan(close_out):
+        # Handling: the dip against a baseline from the VMC going in to the VMC once settled
+        # (+25..+35 s), so a tack isn't credited for leaving a header (that's the call, below)
+        span = at(-5, 25)
+        line = close_in + (close_out - close_in) * np.clip((x[span] + 5) / 30.0, 0, 1)
+        m_lost = float(np.nansum(line - close[span])) * KT
+        secs_lost = m_lost / (((close_in + close_out) / 2) * KT)
+        call_m = float(np.nansum(close_in - close[span])) * KT - m_lost  # negative: new tack gained
+        measure = "VMC"
+    else:
+        end = t_rec if t_rec is not None else POST
+        secs_lost = float(np.nansum(np.clip(1 - sog[at(-5, end)] / entry, 0, None)))
+        m_lost = secs_lost * entry * KT
+        measure = "SOG"
 
     a = abs(turn)
     reached = lambda f: x[np.flatnonzero(hdg >= f * a)[0]] if (hdg >= f * a).any() else None
@@ -123,8 +146,12 @@ def record(s: pd.DataFrame, t_rep: float, kind: str) -> dict | None:
         "loss_pct": round(100 * (entry - min_sog) / entry, 1),
         "t_min": t_min,
         "t_rec": t_rec,
+        "measure": measure,  # what time and metres lost are measured in: VMC to the mark, or SOG
+        "vmc_in": r1(vmc_in),
+        "vmc_out": r1(vmc_out),
+        "call_m": None if call_m is None else round(call_m, 1),
         "secs_lost": round(secs_lost, 1),
-        "m_lost": round(secs_lost * entry * KT, 1),
+        "m_lost": round(m_lost, 1),
         "hdg_angle": round(a, 1),
         "cog_angle": r1(cog_angle),
         "turn_s": int(t90 - t10) if t10 is not None and t90 is not None else None,
@@ -134,6 +161,7 @@ def record(s: pd.DataFrame, t_rep: float, kind: str) -> dict | None:
         "heel_post": r1(np.nanmean(heel[at(15, 25)])),
         "x": x.tolist(),
         "sog": [None if np.isnan(v) else round(float(v), 2) for v in sog],
+        "vmc": [None if np.isnan(v) else round(float(v), 2) for v in vmc] if vmc is not None else None,
         "hdg": [None if np.isnan(v) else round(float(v), 1) for v in hdg],
     }
 
@@ -149,6 +177,8 @@ def comparable(r: dict, kind: str) -> str | None:
     lo, hi = k["angle"]
     if not lo <= r["hdg_angle"] <= hi:
         return "mark"
+    if r.get("measure") == "VMC" and r["m_lost"] < -5:
+        return "shift"  # a turn can't gain by itself: a shift or puff arrived mid-turn
     return None
 
 
@@ -164,12 +194,14 @@ def race_overlay(df: pd.DataFrame, maneuvers: list[dict], boat: str, race: str) 
         s = s.assign(Heading=s.COG)  # no compass: GPS course is the next best heading
     out = {"boat": boat, "race": race}
     for kind, k in KINDS.items():
-        keep, skipped = [], {"double": 0, "mark": 0, "stall": 0}
+        keep, skipped = [], {"double": 0, "mark": 0, "stall": 0, "layline": 0, "shift": 0}
         for m in maneuvers:
             if m.get("kind") != k["event"] or m.get("time_s") is None:
                 continue
-            if m.get("note"):
-                skipped["double"] += 1  # doubles: the two maneuvers' losses overlap
+            note = m.get("note") or ""
+            if note:  # analyze.py's reason: a double, at a mark, or from past a layline
+                skipped["double" if note.startswith("double") else "mark" if note.startswith("at a mark")
+                        else "shift" if note.startswith("gained") else "layline"] += 1
                 continue
             r = record(s, float(m["time_s"]), kind)
             why = "mark" if r is None else comparable(r, kind)
@@ -194,7 +226,7 @@ WORDS = {
 
 
 def collect(overlays: list[dict], kind: str, boats: list[str] | None = None) -> tuple[list[dict], dict]:
-    items, skipped = [], {"double": 0, "mark": 0, "stall": 0}
+    items, skipped = [], {"double": 0, "mark": 0, "stall": 0, "layline": 0, "shift": 0}
     for o in overlays:
         if boats and o["boat"] not in boats:
             continue
@@ -213,7 +245,11 @@ def skipped_note(skipped: dict, kind: str) -> str:
     )
     return (
         f"Left out: {skipped['double']} {w['many']} in doubles (under 30 s apart, so their losses overlap), "
-        f"{skipped['mark']} at {where}, and {skipped['stall']} from a stall (entry under {MIN_ENTRY_KT:.0f} kt)."
+        f"{skipped['mark']} at {where}, {skipped.get('layline', 0)} made from past the layline (their gain is ending "
+        f"the overstand: a layline call, judged in the tack calls, not boat handling), {skipped.get('shift', 0)} that "
+        f"gained through the turn itself (a shift or puff arrived mid-turn, so the handling can't be judged), and "
+        f"{skipped['stall']} from a "
+        f"stall (entry under {MIN_ENTRY_KT:.0f} kt)."
     )
 
 
@@ -222,8 +258,12 @@ def intro(kind: str) -> str:
     return (
         f"Every comparable {w['one']}, lined up at {w['mid']} (0 s): the moment the heading is halfway "
         f"through the turn. The best 10% by <b>time lost</b> are drawn in the boat's colour and the rest in "
-        f"grey. Time lost is the seconds at entry speed the {w['one']} gave away until speed was back to "
-        f"95% of entry. Click a line, dot or table row to follow one {w['one']}."
+        f"grey. Time lost is what the turn itself cost toward the mark: the dip in VMC (speed toward the "
+        f"mark) from 5 s before to 25 s after, against a line from the VMC going in to the VMC once "
+        f"settled, in seconds. What changing {'tack' if kind == 'tack' else 'gybe'} was worth (onto a "
+        f"{'lift' if kind == 'tack' else 'better angle or pressure'}, or off it) is the call, shown "
+        f"separately, so a {w['one']} isn't ranked well just for leaving a bad heading. Speed (SOG) "
+        f"explains a {w['one']}; VMC scores it. Click a line, dot or table row to follow one {w['one']}."
     )
 
 
@@ -248,11 +288,10 @@ def fragment(kind: str, extra_class: str = "") -> str:
   <div class="tk-tiles" data-r="tiles"></div>
   <div class="tk-card">
     <h2>Speed through the {w['one']}</h2>
+    <div class="tk-seg" data-r="f-speed" style="margin:6px 0"></div>
     <div class="tk-legend" data-r="leg-sog"></div>
     <div class="tk-chart" data-r="sog"></div>
-    <p class="tk-note">SOG, 1 Hz. Entry speed is the average from −10 to −4 s. The dashed line is the median of
-      every {w['one']} in view. Speed over the ground includes current and any puff or lull, so read single
-      {w['many']} with care.</p>
+    <p class="tk-note" data-r="speed-note"></p>
   </div>
   <div class="tk-grid2">
     <div class="tk-card">
