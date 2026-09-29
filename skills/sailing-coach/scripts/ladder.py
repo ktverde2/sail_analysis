@@ -143,26 +143,35 @@ def overstand(x, y, geo: dict, targets: list[list[float]]) -> np.ndarray:
 def rungs(geo: dict, targets: list[list[float]], reach_m: float, step: int = RUNG_M) -> dict:
     """Laylines and rungs to draw: polylines (None-separated) in the course frame.
 
-    reach_m: how far down the ladder to draw (the leg's length or so)."""
-    cx = float(np.mean([p[0] for p in targets]))
-    cy = float(np.mean([p[1] for p in targets]))
+    A mark gives both laylines from the mark. A gate or a line gives each layline from the end on
+    its own side (the left layline from the left end, looking at the mark), and the rungs span
+    the gate plus both laylines. Rungs are counted from the end further down the ladder (the one
+    a boat reaches first). reach_m: how far down the ladder to draw (the leg's length or so)."""
     u = math.radians(geo["up_deg"])
-    tx, ty = math.sin(u), math.cos(u)
-    nx, ny = math.cos(u), -math.sin(u)
+    tx, ty = math.sin(u), math.cos(u)  # up the ladder, toward the mark
+    nx, ny = math.cos(u), -math.sin(u)  # across it, to the right looking at the mark
     t = math.tan(math.radians(geo["half_deg"]))
-    lay_x, lay_y, rung_x, rung_y, labels = [], [], [], [], []
-    for s in (-1, 1):  # both laylines from the mark (gate or line: from its middle)
-        a = reach_m
-        lay_x += [cx, cx - a * tx + s * a * t * nx, None]
-        lay_y += [cy, cy - a * ty + s * a * t * ny, None]
     k = 1 / math.cos(math.radians(geo["half_deg"]))
+    ends = [targets[0], targets[-1]]
+    lad = [(p[0] * tx + p[1] * ty, p[0] * nx + p[1] * ny) for p in ends]  # (along, across)
+    (al, cl), (ar, cr) = sorted(lad, key=lambda q: q[1])  # left end, right end
+    a0 = min(al, ar)
+    xy = lambda A, C: (A * tx + C * nx, A * ty + C * ny)
+    left_at = lambda L: cl - (al - L) * t  # left layline's across position at along = L
+    right_at = lambda L: cr + (ar - L) * t
+    bottom = a0 - reach_m
+    lay_x, lay_y, rung_x, rung_y, labels = [], [], [], [], []
+    for (A, C), at in (((al, cl), left_at), ((ar, cr), right_at)):
+        (x0, y0), (x1, y1) = xy(A, C), xy(bottom, at(bottom))
+        lay_x += [x0, x1, None]
+        lay_y += [y0, y1, None]
     for n in range(1, int(reach_m // step) + 1):
-        a = n * step  # this rung is a metres down the ladder from the mark
-        bx, by = cx - a * tx, cy - a * ty
-        w = a * t
-        rung_x += [bx - w * nx, bx + w * nx, None]
-        rung_y += [by - w * ny, by + w * ny, None]
-        labels.append({"x": round(bx - w * nx, 1), "y": round(by - w * ny, 1), "rung_m": a, "to_go_m": round(a * k)})
+        a = n * step  # this rung is a metres down the ladder from the nearer end
+        L = a0 - a
+        (x0, y0), (x1, y1) = xy(L, left_at(L)), xy(L, right_at(L))
+        rung_x += [x0, x1, None]
+        rung_y += [y0, y1, None]
+        labels.append({"x": round(x0, 1), "y": round(y0, 1), "rung_m": a, "to_go_m": round(a * k)})
     r = lambda v: [None if q is None else round(q, 1) for q in v]
     return {"layline": {"x": r(lay_x), "y": r(lay_y)}, "rungs": {"x": r(rung_x), "y": r(rung_y)}, "labels": labels}
 
