@@ -46,6 +46,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).parent))
 from coach_calcs import BANDS, KT_TO_MS, interp_targets
 import current
+import ladder
 import maneuver_overlay
 
 EARTH_R_M = 6_371_000
@@ -1807,6 +1808,20 @@ def plot_data(race: Race, res: dict) -> dict:
     for c in race.course:
         pts = [xy(c[k]["lat"], c[k]["lon"]) for k in ("coord1", "coord2") if c.get(k)]
         course.append({"type": c["type"], "pts": [[round(a, 1), round(b, 1)] for a, b in pts]})
+    # Laylines and rungs for each leg, from this boat's own tracks (ladder.py)
+    ladders = []
+    tg_els = [c for c in course if c["type"] in ("Mark", "Gate", "FinishLine")]
+    types = [lg["type"] for lg in res["legs"]]
+    if tg_els and len(tg_els) == len(types):
+        sog = df.SOG.to_numpy()
+        dirs = []
+        for lg in res["legs"]:
+            on = (leg_of == lg["leg"]).to_numpy() & (df.tg.to_numpy() >= lg["start_s"] + 20)
+            dirs.append(ladder.track_dirs(x[on], y[on], sog[on]))
+        mids = lambda c: [float(np.mean([p[0] for p in c["pts"]])), float(np.mean([p[1] for p in c["pts"]]))]
+        start = next((c for c in course if c["type"] == "StartLine"), None)
+        origins = [mids(start) if start else [0.0, 0.0]] + [mids(c) for c in tg_els[:-1]]
+        ladders = ladder.build(types, dirs, [c["pts"] for c in tg_els], origins)
     calls = {c["time_s"]: c for c in (res.get("shifts") or {}).get("tacks", [])}
     mans = [
         {
@@ -1838,6 +1853,7 @@ def plot_data(race: Race, res: dict) -> dict:
             {k: lg[k] for k in ("leg", "type", "start_s", "duration_s")} for lg in res["legs"]
         ],
         "maneuvers": mans,
+        "ladders": ladders,
         "beats": [
             {k: b[k] for k in ("leg", "twd_median", "trend_deg", "pattern")}
             for b in (res.get("shifts") or {}).get("beats", [])

@@ -111,6 +111,25 @@
     });
     return out;
   }
+  // Laylines and rungs (ladder.js): one leg's, or every distinct mark's for the whole race
+  function ladderFor(d, c, legs) {
+    if (!window.LADDER || !d.ladders) return [];
+    const seen = [], out = [];
+    for (const leg of legs) {
+      const lad = d.ladders[leg - 1];
+      if (!lad || !lad.targets || !lad.targets.length) continue;
+      const cx = lad.targets.reduce((a, p) => a + p[0], 0) / lad.targets.length;
+      const cy = lad.targets.reduce((a, p) => a + p[1], 0) / lad.targets.length;
+      if (seen.some(([x, y]) => Math.hypot(x - cx, y - cy) < 30)) continue;
+      seen.push([cx, cy]);
+      out.push(...LADDER.traces(lad, c, 'Leg ' + leg + ' ' + (d.legType[leg] || '')));
+    }
+    return out;
+  }
+  function withLadder(traces, lay, c) {
+    lay.updatemenus = window.LADDER ? LADDER.button(traces, c) : [];
+    return lay;
+  }
   function lineEnds(d) {
     const line = d.course.find(e => e.type === 'StartLine');
     if (!line) return [];
@@ -185,7 +204,7 @@
       const man = d.maneuvers.map(m => ({ m, i: d.idxAt(m.time_s) }));
       const tx = g(s.x).filter(v => v !== null), ty = g(s.y).filter(v => v !== null);
       const txr = [Math.min(...tx) - 60, Math.max(...tx) + 60], tyr = [Math.min(...ty) - 60, Math.max(...ty) + 60];
-      Plotly.newPlot(el, [
+      const tr = [
         { x: g(s.x), y: g(s.y), mode: 'lines', line: { color: c.line, width: 1 }, hoverinfo: 'skip' },
         { x: g(s.x), y: g(s.y), mode: 'markers', text: idx.map(i => s.hover[i] + '<br>Leg ' + s.leg[i] + ' ' + (d.legType[s.leg[i]] || '')),
           hovertemplate: '%{text}<extra></extra>',
@@ -195,13 +214,15 @@
         { x: man.map(o => s.x[o.i]), y: man.map(o => s.y[o.i]), mode: 'markers',
           marker: { size: 9, color: 'rgba(0,0,0,0)', line: { width: 1.5, color: man.map(o => (o.m.kind === 'Gybe' ? c.orange : c.ink2)) } },
           text: man.map(o => maneuverText(o.m)), hovertemplate: '%{text}<extra></extra>' },
-      ], layout(c, {
+        ...ladderFor(d, c, d.legs.map(l => l.leg)),
+      ];
+      Plotly.newPlot(el, tr, withLadder(tr, layout(c, {
         title: title(c, 'Track (circles = tacks, orange = gybes)', 'Track'),
-        xaxis: axis(c, { title: 'metres (upwind is up)', zeroline: false }),
-        yaxis: axis(c, { scaleanchor: 'x', zeroline: false }),
+        xaxis: axis(c, { title: 'metres (upwind is up)', zeroline: false, range: txr }),
+        yaxis: axis(c, { scaleanchor: 'x', zeroline: false, range: tyr }),
         annotations: lineEnds(d).map(a => Object.assign(a, { font: { color: c.ink } })),
         hovermode: 'closest', height: mapHeight(el, txr, tyr, 380, 720),
-      }), CONFIG);
+      }), c), CONFIG);
     },
 
     // Speed and heel through the race, upwind legs shaded
@@ -306,7 +327,7 @@
       const q = p => sogs[Math.floor(p * (sogs.length - 1))];
       const man = d.maneuvers.filter(m => m.leg === leg).map(m => ({ m, i: d.idxAt(m.time_s) }));
       const [xr, yr] = fit(g(s.x), g(s.y), 40);
-      Plotly.newPlot(el, [
+      const tr = [
         { x: g(s.x), y: g(s.y), mode: 'lines', line: { color: c.line, width: 1 }, hoverinfo: 'skip' },
         { x: g(s.x), y: g(s.y), mode: 'markers', text: idx.map(i => s.hover[i]), hovertemplate: '%{text}<extra></extra>',
           marker: { size: 5, color: g(s.sog), colorscale: c.seq, cmin: q(0.05), cmax: q(0.95), showscale: !narrow(),
@@ -315,13 +336,15 @@
         { x: man.map(o => s.x[o.i]), y: man.map(o => s.y[o.i]), mode: 'markers',
           marker: { size: 10, color: 'rgba(0,0,0,0)', line: { width: 1.5, color: man.map(o => (o.m.kind === 'Gybe' ? c.orange : c.ink2)) } },
           text: man.map(o => maneuverText(o.m)), hovertemplate: '%{text}<extra></extra>' },
-      ], layout(c, {
+        ...ladderFor(d, c, [leg]),
+      ];
+      Plotly.newPlot(el, tr, withLadder(tr, layout(c, {
         title: title(c, 'Leg ' + leg + ' ' + (d.legType[leg] || '') + ' track (circles = ' +
           (d.legType[leg] === 'upwind' ? 'tacks' : 'gybes') + ')', 'Leg ' + leg + ' track'),
         xaxis: axis(c, { title: 'metres (upwind is up)', zeroline: false, range: xr }),
         yaxis: axis(c, { scaleanchor: 'x', zeroline: false, range: yr }),
         hovermode: 'closest', height: mapHeight(el, xr, yr, 320, 560),
-      }), CONFIG);
+      }), c), CONFIG);
     },
 
     // Speed vs. wind angle on one beat: starboard right, port left; height = upwind VMG
@@ -385,7 +408,9 @@
       const rel = i => s.t[i] - r.time_s;
       const [xr, yr] = fit(g(s.x), g(s.y), 25);
       const at = d.idxAt(r.time_s);
-      Plotly.newPlot(el, [
+      // the leg that comes into this mark
+      const into = d.legs.reduce((b, l) => (Math.abs(l.start_s + l.duration_s - r.time_s) < Math.abs(b.start_s + b.duration_s - r.time_s) ? l : b), d.legs[0]);
+      const tr = [
         { x: g(s.x), y: g(s.y), mode: 'lines', line: { color: c.line, width: 1 }, hoverinfo: 'skip' },
         { x: g(s.x), y: g(s.y), mode: 'markers', text: idx.map(i => s.hover[i] + '<br>Rounding ' + relClock(rel(i))),
           hovertemplate: '%{text}<extra></extra>',
@@ -394,12 +419,14 @@
         ...courseTraces(d, c),
         { x: [s.x[at]], y: [s.y[at]], mode: 'markers', marker: { size: 12, color: c.orange, line: { color: c.card, width: 2 } },
           text: [s.hover[at]], hovertemplate: 'Rounding<br>%{text}<extra></extra>' },
-      ], layout(c, {
+        ...ladderFor(d, c, into ? [into.leg] : []),
+      ];
+      Plotly.newPlot(el, tr, withLadder(tr, layout(c, {
         title: title(c, 'Track, a minute either side (orange = rounding)', 'Track ±60 s'),
         xaxis: axis(c, { title: 'metres (upwind is up)', zeroline: false, range: xr }),
         yaxis: axis(c, { scaleanchor: 'x', zeroline: false, range: yr }),
         hovermode: 'closest', height: mapHeight(el, xr, yr, 300, 460),
-      }), CONFIG);
+      }), c), CONFIG);
     },
 
     // Speed and VMG through a rounding, against the steady VMG of the legs either side

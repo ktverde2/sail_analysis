@@ -10,7 +10,7 @@
 **Top 3 to work on**
 1. **Mojo: starts 15 s and 24 s late in Races 2 and 3**
    - **Next time:** Call time on distance from −60 s, and be sheeting on at −8 s.
-2. **Mojo: upwind speed, 120 m lost on speed side by side with 969**
+2. **Mojo: upwind speed, 146 m lost on speed side by side with 969**
    - **Next time:** Get the heel back to 19–20° and foot 1–2° when you're level with 969.
 3. **969: leeward roundings, 50 m lost on average**
    - **Next time:** Go in wide and come out tight, with the jib trimmed so the exit is at 5+ kt.
@@ -20,8 +20,8 @@
 [[chart:split]]
 
 **Side by side upwind, 969 is faster and Mojo is higher: speed wins**
-- 33 minutes within 200 m: 969 gained 79 m. It gained 120 m on speed and gave 41 m back on height.
-- R2-1 and R3-1, both first beats on port, were steady 969 gains of 22 m and 37 m.
+- 33 minutes within 200 m: 969 gained 90 m toward the mark. It gained 146 m on speed and gave 56 m back on course (sailing lower).
+- R2-1 and R3-1, both first beats on port, were steady 969 gains of 27 m and 45 m toward the mark.
 
 [[chart:pairmap]]
 

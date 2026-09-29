@@ -7,9 +7,9 @@
 - **Starts: 2–3 s late in every race, at 5.6–5.8 kt at the gun**
   - Started in the middle to boat end of the line each time (70–80% from the pin).
   - Accelerated through the gun in Races 1–2 (+1.0 and +1.9 kt).
-- **Upwind speed: 120 m gained on Mojo on speed side by side**
+- **Upwind speed: 146 m gained on Mojo on speed side by side**
   - About 0.12 kt faster than Mojo upwind in every race, with heel held at 19–21°.
-  - In Race 3 on the first beat, 969 was both faster and higher, and gained 37 m in 6.5 minutes.
+  - In Race 3 on the first beat, 969 was both faster and higher, and gained 45 m toward the mark in 6.5 minutes.
 - **Windward roundings: 22–40 m lost, 32 m on average**
 
 **Top 3 to work on**

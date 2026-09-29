@@ -31,6 +31,7 @@ import re
 from pathlib import Path
 
 import analyze as A
+import ladder as LD
 import current as CU
 import html_report as H
 import numpy as np
@@ -213,11 +214,13 @@ def _per_second(race: A.Race, df: pd.DataFrame, legs: list[dict], xy, summ: dict
     return g
 
 
-def side_by_side(per: dict[str, pd.DataFrame], leg_types: list[str]) -> list[dict]:
+def side_by_side(per: dict[str, pd.DataFrame], leg_types: list[str], ladders: list[dict]) -> list[dict]:
     """Stretches where two boats sailed within PAIR_RADIUS_M of each other on the same leg and
-    tack/gybe, and what each gained. Gain is progress along the course axis (up the course on a
-    beat, down it on a run): the part from boat speed and the part from sailing a closer angle
-    to the axis. Both boats are in the same breeze, so the difference is the boats, not the wind.
+    tack/gybe, and what each gained. Gain is distance to sail to the mark (ladder.to_go): inside
+    the laylines that's rungs, and past a layline the overstand counts against the boat. Split
+    into the part from boat speed and the part from course (how much of each metre sailed brought
+    the mark closer: height or depth, and not sailing past the layline). Both boats are in the
+    same breeze, so the difference is the boats, not the wind.
     """
     out = []
     names = leg_names(leg_types)
@@ -246,7 +249,7 @@ def side_by_side(per: dict[str, pd.DataFrame], leg_types: list[str]) -> list[dic
                     runs.append([s, s])
             for s0, s1 in runs:
                 if s1 - s0 >= PAIR_MIN_S:
-                    out.append(_pair_row(a, b, pa.loc[s0:s1], pb.loc[s0:s1], leg_types, names))
+                    out.append(_pair_row(a, b, pa.loc[s0:s1], pb.loc[s0:s1], leg_types, names, ladders))
     out.sort(key=lambda r: r["t0"])
     return out
 
@@ -305,38 +308,45 @@ def where_summary(fa: dict) -> list[dict]:
     ]
 
 
-def _pair_row(a, b, pa, pb, leg_types, names) -> dict:
+def _pair_row(a, b, pa, pb, leg_types, names, ladders) -> dict:
     leg = int(pa.leg.iloc[0])
     up = leg_types[leg] == "upwind"
-    sign = 1 if up else -1  # progress is +y on a beat, -y on a run
+    geo = ladders[leg]
+    u = math.radians(geo["up_deg"])
+    tx, ty = math.sin(u), math.cos(u)  # toward the mark, along the ladder
     dur = int(pa.index[-1] - pa.index[0])
 
     def boat(p):
         dx, dy = p.x.iloc[-1] - p.x.iloc[0], p.y.iloc[-1] - p.y.iloc[0]
-        made = sign * dy
+        made = float(p.togo.iloc[0] - p.togo.iloc[-1])  # metres closer to the mark, to sail
+        sailed = float(np.nansum(np.hypot(p.x.diff(), p.y.diff())))
         return {
             "sog": round(float(p.SOG.mean()), 2),
             "heel": round(float(p.Heel.abs().mean()), 1) if "Heel" in p else None,
-            # angle between the track and straight up (beat) or down (run) the course
-            "angle": round(math.degrees(math.atan2(abs(dx), sign * dy)), 1),
-            "made_m": round(float(made)),
+            # angle between the track and the leg's axis (straight up or down the ladder)
+            "angle": round(abs(float(A.adiff(geo["up_deg"], math.degrees(math.atan2(dx, dy))))), 1),
+            "made_m": round(made),
+            "sailed_m": round(sailed),
+            # share of each metre sailed that brought the mark closer
+            "made_pct": round(100 * made / sailed) if sailed else None,
+            "to_go_m": [round(float(p.togo.iloc[0])), round(float(p.togo.iloc[-1]))],
+            # distance to sail that came from being past a layline, at the end of the stretch
+            "overstand_m": round(float(LD.overstand([p.x.iloc[-1]], [p.y.iloc[-1]], geo, geo["targets"])[0])),
         }
 
     ra, rb = boat(pa), boat(pb)
     gain = ra["made_m"] - rb["made_m"]
-    cos = math.cos(math.radians((ra["angle"] + rb["angle"]) / 2))
-    speed = (ra["sog"] - rb["sog"]) * KT * cos * dur
+    eff = np.mean([r["made_m"] / r["sailed_m"] for r in (ra, rb) if r["sailed_m"]] or [1.0])
+    speed = (ra["sog"] - rb["sog"]) * KT * eff * dur
 
-    def rel(k):  # a relative to b: metres ahead along the course sailed, and to windward
-        vx = pa.x.iloc[-1] - pa.x.iloc[0] + pb.x.iloc[-1] - pb.x.iloc[0]
-        vy = pa.y.iloc[-1] - pa.y.iloc[0] + pb.y.iloc[-1] - pb.y.iloc[0]
-        L = math.hypot(vx, vy) or 1.0
-        ux, uy = vx / L, vy / L
-        nx, ny = (-uy, ux) if ux > 0 else (uy, -ux)  # the normal that points up the course
+    def rel(k):  # a relative to b: metres less to sail to the mark, and rungs further up the ladder
         dx, dy = pa.x.iloc[k] - pb.x.iloc[k], pa.y.iloc[k] - pb.y.iloc[k]
-        return {"ahead_m": round(dx * ux + dy * uy), "windward_m": round(dx * nx + dy * ny)}
+        return {
+            "ahead_m": round(float(pb.togo.iloc[k] - pa.togo.iloc[k])),
+            "windward_m": round(dx * tx + dy * ty),
+        }
 
-    detail, why = _pair_detail(a, b, pa, pb, sign, cos, ra, rb, up)
+    detail, why = _pair_detail(a, b, pa, pb, geo, eff, ra, rb, up)
     return {
         "a": a,
         "b": b,
@@ -377,15 +387,19 @@ def _r(v, nd=1):
     return [None if pd.isna(x) else round(float(x), nd) for x in v]
 
 
-def _pair_detail(a, b, pa, pb, sign, cos, ra, rb, up) -> tuple[dict, dict]:
+def _pair_detail(a, b, pa, pb, geo, eff, ra, rb, up) -> tuple[dict, dict]:
     """Second by second through a side-by-side stretch, and the numbers behind the gain.
 
-    detail: per boat SOG, track angle to the course, heading angle (compass), heel, trim and
-    VMG along the course; the metres A gained on B so far, split into speed and angle the same
-    way as the stretch totals; where A was relative to B; and seconds in a wind shadow."""
+    detail: per boat SOG, track angle to the leg's axis, heading angle (compass), heel, trim and
+    VMC (speed toward the mark: how fast the distance to sail shrank); the metres A gained on B
+    so far toward the mark, split into speed and course the same way as the stretch totals;
+    how much less A had to sail than B, and how many metres further up the ladder; and seconds
+    in a wind shadow."""
     t0, t1 = int(pa.index[0]), int(pa.index[-1])
     idx = pd.RangeIndex(t0, t1 + 1)
-    cols = ["x", "y", "SOG", "COG", "Heel", "Trim", "hdg_rel"]
+    cols = ["x", "y", "SOG", "COG", "Heel", "Trim", "hdg_rel", "togo"]
+    u = math.radians(geo["up_deg"])
+    tx, ty = math.sin(u), math.cos(u)
 
     def fill(p):
         p = p[[c for c in cols if c in p]].reindex(idx)
@@ -396,16 +410,18 @@ def _pair_detail(a, b, pa, pb, sign, cos, ra, rb, up) -> tuple[dict, dict]:
     def series(p):
         vx = (p.x.shift(-5) - p.x.shift(5)).bfill().ffill()  # 10 s of track, centred
         vy = (p.y.shift(-5) - p.y.shift(5)).bfill().ffill()
-        angle = np.degrees(np.arctan2(np.abs(vx), sign * vy))
+        d = np.degrees(np.arctan2(vx, vy))
+        angle = np.abs(A.adiff(geo["up_deg"], d))
         out = {}
         out["sog"], out["sog_sd"] = _band(p.SOG)
         out |= {
             "angle": pd.Series(angle, index=p.index),
-            "vmg": _smooth(sign * p.y.diff().bfill() / KT),
+            "vmg": _smooth(-p.togo.diff().bfill() / KT),  # VMC: toward the mark, to sail
         }
         if "hdg_rel" in p:
-            h = np.abs(p.hdg_rel)
-            out["hdg_angle"] = _smooth(h if up else 180 - h)
+            # compass heading against the leg's axis (hdg_rel is against the race axis, frame 0)
+            h = np.abs(A.adiff(geo["up_deg"], p.hdg_rel.to_numpy() % 360))
+            out["hdg_angle"] = _smooth(pd.Series(h, index=p.index))
         if "Heel" in p:
             out["heel"], out["heel_sd"] = _band(p.Heel.abs())
         if "Trim" in p:
@@ -413,18 +429,14 @@ def _pair_detail(a, b, pa, pb, sign, cos, ra, rb, up) -> tuple[dict, dict]:
         return out
 
     sa, sb = series(A_), series(B_)
-    step = sign * A_.y.diff().fillna(0) - sign * B_.y.diff().fillna(0)
-    gain = step.cumsum()
+    # metres A gained on B toward the mark so far (distance to sail, B's minus A's, vs the start)
+    lead = B_.togo - A_.togo
+    gain = lead - lead.iloc[0]
     dsog = ((A_.SOG + A_.SOG.shift()) / 2 - (B_.SOG + B_.SOG.shift()) / 2).fillna(0)
-    speed = (dsog * KT * cos).cumsum()
-    # A relative to B, along the direction both sailed and across it (+ = to windward)
-    vx = A_.x.iloc[-1] - A_.x.iloc[0] + B_.x.iloc[-1] - B_.x.iloc[0]
-    vy = A_.y.iloc[-1] - A_.y.iloc[0] + B_.y.iloc[-1] - B_.y.iloc[0]
-    L = math.hypot(vx, vy) or 1.0
-    ux, uy = vx / L, vy / L
-    nx, ny = (-uy, ux) if ux > 0 else (uy, -ux)
+    speed = (dsog * KT * eff).cumsum()
+    # A relative to B: less to sail (+ = A closer) and rungs further up the ladder
     dx, dy = A_.x - B_.x, A_.y - B_.y
-    ahead, windward = dx * ux + dy * uy, dx * nx + dy * ny
+    ahead, windward = lead, dx * tx + dy * ty
     dist = np.hypot(dx, dy)
     # wind from +y: straight downwind of a boat is -y. B in A's shadow if B lies in that cone
     down = lambda ex, ey: np.degrees(
@@ -644,6 +656,7 @@ def race_fleet(stem: str, entries: list[tuple[dict, dict]]) -> dict:
             split[b["legs"][j]["type"]] += mine - theirs
         b["time_split_s"] = {k: round(v) for k, v in split.items()}
     leg_types = [lg["type"] for lg in ref_legs[:n]]
+    ladders = race_ladders(per_second, course_xy, origins_xy, leg_types)
     return {
         "stem": stem,
         "race": race_name,
@@ -653,11 +666,35 @@ def race_fleet(stem: str, entries: list[tuple[dict, dict]]) -> dict:
         "leg_names": leg_names(leg_types),
         "course": course_xy,
         "targets": targets_xy,
+        "ladders": ladders,
         "boats": boats,
         "pairs": place_pairs(
-            side_by_side(per_second, leg_types), per_second, origins_xy, targets_xy, stem
+            side_by_side(per_second, leg_types, ladders), per_second, origins_xy, targets_xy, stem
         ),
     }
+
+
+def race_ladders(per_second: dict, course_xy: list[dict], origins_xy: list, leg_types: list[str]) -> list[dict]:
+    """Each leg's laylines and rungs from every tracked boat's GPS tracks (ladder.py), and each
+    boat's distance to sail to the mark, second by second (per_second[boat].togo)."""
+    els = [c for c in course_xy if c["type"] in ("Mark", "Gate", "FinishLine")]
+
+    def dirs(j):
+        d = []
+        for g in per_second.values():
+            on = g[(g.leg == j) & (g.since_leg >= PAIR_SETTLE_S)]
+            d.append(LD.track_dirs(on.x.to_numpy(), on.y.to_numpy(), on.SOG.to_numpy()))
+        return np.concatenate(d) if d else np.array([])
+
+    out = LD.build(leg_types, [dirs(j) for j in range(len(leg_types))],
+                   [els[j]["pts"] if j < len(els) else [] for j in range(len(leg_types))], origins_xy)
+    for j, lad in enumerate(out):
+        if not lad.get("targets"):
+            continue
+        for g in per_second.values():
+            on = g.leg == j
+            g.loc[on, "togo"] = LD.to_go(g.x[on].to_numpy(), g.y[on].to_numpy(), lad, lad["targets"])
+    return out
 
 
 def fleet_analysis(boats: list[dict]) -> dict:
@@ -1217,9 +1254,9 @@ FLEET_JS = r"""
         trimChange[id] = s.map(t => t == null ? null : Math.round((t - m) * 10) / 10);
       }
       const panels = [
-        'Metres ' + A.name + ' gained on ' + B.name,
+        'Metres ' + A.name + ' gained on ' + B.name + ' toward the mark (distance to sail)',
         'SOG (kt): ' + SMOOTH + ' s average, shaded ±1 SD of the 1 s readings',
-        'Pointing: angle to straight ' + (up ? 'up' : 'down') + ' the course (°, lower = ' + (up ? 'higher' : 'deeper') + '; dotted = compass)',
+        'Pointing: angle to straight ' + (up ? 'up' : 'down') + ' the wind (°, lower = ' + (up ? 'higher' : 'deeper') + '; dotted = compass)',
         'Heel (°): ' + SMOOTH + ' s average, shaded ±1 SD',
         'Trim, fore-aft: change from each boat\'s own average (°), ' + SMOOTH + ' s average, shaded ±1 SD',
       ];
@@ -1227,8 +1264,8 @@ FLEET_JS = r"""
         hovertemplate: hov('gained', '') });
       tr.push({ x, y: d.gain_speed, yaxis: 'y', mode: 'lines', name: 'from speed', line: { color: ink2, width: 1.5, dash: 'dash' },
         hovertemplate: hov('from speed', '') });
-      tr.push({ x, y: d.gain_angle, yaxis: 'y', mode: 'lines', name: 'from ' + (up ? 'height' : 'depth'), line: { color: ink2, width: 1.5, dash: 'dot' },
-        hovertemplate: hov('from ' + (up ? 'height' : 'depth'), '') });
+      tr.push({ x, y: d.gain_angle, yaxis: 'y', mode: 'lines', name: 'from course', line: { color: ink2, width: 1.5, dash: 'dot' },
+        hovertemplate: hov('from course', '') });
       for (const [id, bt] of [[p.a, A], [p.b, B]]) {
         const s = d.boats[id], c = col(bt);
         tr.push({ x, y: s.sog, yaxis: 'y2', mode: 'lines', name: bt.name, legendgroup: id, line: { color: c, width: 2 }, hovertemplate: hov(bt.name + ' SOG', ' kt') });
@@ -1292,11 +1329,11 @@ FLEET_JS = r"""
       // ---- the readout panel beside the chart
       const panel = el.parentElement.querySelector('.st-panel');
       if (!panel) return;
-      const aw = up ? 'height' : 'depth';
+      const aw = 'course';
       const f = (v, nd) => v == null ? '–' : Number(v).toFixed(nd);
       const signed = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(Math.round(v)) + ' m';
       const rows = [  // key, label (long|short), unit, decimals, better (+1 higher, -1 lower)
-        ['sog', 'SOG|SOG', ' kt', 2, 1], ['vmg', 'VMG|VMG', ' kt', 2, 1], ['angle', 'Track angle|Track', '°', 1, -1],
+        ['sog', 'SOG|SOG', ' kt', 2, 1], ['vmg', 'VMC (to the mark)|VMC', ' kt', 2, 1], ['angle', 'Track angle|Track', '°', 1, -1],
         ['hdg_angle', 'Compass angle|Compass', '°', 1, 0], ['heel', 'Heel|Heel', '°', 1, 0], ['trim', 'Trim change|Trim Δ', '°', 1, 0],
       ];
       function boats(val) {
@@ -1317,7 +1354,7 @@ FLEET_JS = r"""
       function gainLine(g, gs, ga) {
         if (Math.abs(g) < 0.5) return '<p class="st-gain">Level so far</p>';
         const lead = g >= 0 ? A : B, lag = g >= 0 ? B : A, sg = g >= 0 ? 1 : -1;
-        return '<p class="st-gain"><b style="color:' + col(lead) + '">' + lead.name + ' ' + signed(Math.abs(g)) + '</b> on ' + lag.name +
+        return '<p class="st-gain"><b style="color:' + col(lead) + '">' + lead.name + ' ' + signed(Math.abs(g)) + '</b> toward the mark on ' + lag.name +
           '<br><span>' + signed(sg * gs) + ' from speed · ' + signed(sg * ga) + ' from ' + aw + '</span></p>';
       }
       function average() {
@@ -1326,13 +1363,13 @@ FLEET_JS = r"""
         panel.innerHTML = '<p class="st-head">Whole stretch (averages)</p>' +
           gainLine(p.gain_m, p.gain_speed_m, p.gain_angle_m) + boats(val) +
           '<p class="rp-note">Move along the chart to read any second. <b>Bold</b>: faster, or closer to straight ' +
-          (up ? 'up' : 'down') + ' the course.</p>';
+          (up ? 'up' : 'down') + ' the wind.</p>';
       }
       function readAt(i) {
         const val = (id, key) => key === 'trim' ? (trimChange[id] ? trimChange[id][i] : null) : (d.boats[id][key] ? d.boats[id][key][i] : null);
         const ah = d.ahead[i], ww = d.windward[i];
-        let pos = A.name + ' ' + Math.abs(ah) + ' m ' + (ah >= 0 ? 'ahead' : 'behind') + ', ' + Math.abs(ww) + ' m ' +
-          (ww >= 0 ? 'to windward' : 'to leeward') + ' of ' + B.name;
+        let pos = A.name + ' has ' + Math.abs(ah) + ' m ' + (ah >= 0 ? 'less' : 'more') + ' to sail than ' + B.name + ', ' +
+          Math.abs(ww) + ' m ' + (ww >= 0 ? 'further up' : 'further down') + ' the ladder';
         if (d.shadow[i]) pos += '<br>' + (d.shadow[i] > 0 ? B.name + ' possibly in ' + A.name : A.name + ' possibly in ' + B.name) + '\'s wind shadow';
         panel.innerHTML = '<p class="st-head">At ' + mmss(d.t[i]) + ' after the gun</p>' +
           gainLine(d.gain[i], d.gain_speed[i], d.gain_angle[i]) + boats(val) + '<p class="st-pos">' + pos + '</p>';
@@ -1387,6 +1424,12 @@ FLEET_JS = r"""
     while (lo < hi) { const m = (lo + hi + 1) >> 1; if (ts[m] <= t) lo = m; else hi = m - 1; }
     return lo;
   }
+  // ---------------------------------------------------------------- laylines and rungs
+  function ladColors() { return { ink: css('--ink'), ink2: css('--ink2'), line: css('--line'), card: css('--card') }; }
+  function ladderTraces(r, j, on, prefix) {
+    const lad = r && r.ladders && r.ladders[j];
+    return lad ? LADDER.traces(lad, ladColors(), (prefix || '') + r.leg_names[j], on) : [];
+  }
   function replay(el) {
     const races = el.dataset.race ? FLEET.races.filter(x => x.stem === el.dataset.race) : FLEET.races;
     el.innerHTML =
@@ -1402,7 +1445,14 @@ FLEET_JS = r"""
     const plot = el.querySelector('.rp-plot'), panel = el.querySelector('.rp-panel');
     const slider = el.querySelector('.rp-slider'), label = el.querySelector('.rp-time');
     const playBtn = el.querySelector('.rp-play'), speedSel = el.querySelector('.rp-speed');
-    let r, ids, T0, T1, t = 0, timer = null, stopAt = null, live = [];
+    let r, ids, T0, T1, t = 0, timer = null, stopAt = null, live = [], ladLeg = 0, ladAt = 0;
+    function swapLadder(j) {  // show leg j's laylines and rungs, keeping the toggle's state
+      if (j === ladLeg || j < 0 || !r.ladders || j >= r.ladders.length) return;
+      const n = plot.data.length - ladAt, on = n > 0 && plot.data[ladAt].visible === true;
+      if (n > 0) Plotly.deleteTraces(plot, [...Array(n).keys()].map(k => ladAt + k));
+      Plotly.addTraces(plot, ladderTraces(r, j, on));
+      ladLeg = j;
+    }
     function load(i) {
       pause();
       r = races[i];
@@ -1434,11 +1484,15 @@ FLEET_JS = r"""
           textfont: { color: col(b), size: 12 }, marker: { size: 12, color: col(b), line: { color: css('--card'), width: 2 } },
           hoverinfo: 'skip', showlegend: false });
       }
+      // Laylines and rungs of the leading boat's leg, last (so the live traces keep their places)
+      ladLeg = 0; ladAt = traces.length;
+      traces.push(...ladderTraces(r, 0, false));
       const pad = 60, lay = base(r.race + ' replay (upwind is up)', el.clientWidth < 560 ? 420 : 560, plot);
       lay.xaxis.range = [Math.min(...xs) - pad, Math.max(...xs) + pad];
       lay.yaxis.range = [Math.min(...ys) - pad, Math.max(...ys) + pad];
       lay.xaxis.scaleanchor = 'y'; lay.xaxis.title = 'm'; lay.yaxis.title = 'm';
       lay.margin.b = 40; lay.uirevision = r.stem; lay.showlegend = false;
+      lay.updatemenus = LADDER.button(traces, ladColors());
       Plotly.react(plot, traces, lay, CONFIG);
       set(Math.max(T0, 0));
     }
@@ -1462,7 +1516,10 @@ FLEET_JS = r"""
         if (k < 0) { rows.push({ id, b, k }); return; }
         const j = status(b, k), n = b.passes_s.length;
         const tgt = j >= 0 && j < n ? r.targets[j] : null;
-        const dist = tgt ? Math.hypot(tgt[0] - s.x[k], tgt[1] - s.y[k]) : null;
+        // distance to sail to the next mark: rungs inside the laylines, overstand counted
+        const lad = j >= 0 && r.ladders ? r.ladders[j] : null;
+        const dist = lad && lad.targets && lad.targets.length ? LADDER.toGo(s.x[k], s.y[k], lad)
+          : tgt ? Math.hypot(tgt[0] - s.x[k], tgt[1] - s.y[k]) : null;
         const a0 = Math.max(0, k - 3), a1 = Math.min(s.x.length - 1, k + 2);
         const dx = s.x[a1] - s.x[a0];
         rows.push({ id, b, k, j, n, dist, left: dx < 0, done: j >= n,
@@ -1471,6 +1528,7 @@ FLEET_JS = r"""
       Plotly.restyle(plot, { x: xs, y: ys }, live);
       const racing = rows.filter(x => x.k >= 0 && x.j >= 0).sort((p, q) => p.key - q.key);
       const lead = racing[0];
+      if (lead && !lead.done) swapLadder(lead.j);
       panel.innerHTML = rows.map(x => {
         const b = x.b, s = b.series;
         let head = '', leg = 'Not in the data yet', facts = '';
@@ -1484,7 +1542,7 @@ FLEET_JS = r"""
           else leg = r.leg_names[x.j] + ' · ' + side;
           const heel = s.heel && s.heel[x.k] != null ? Math.abs(s.heel[x.k]) + '°' : '–';
           facts = '<dt>SOG</dt><dd>' + (s.sog[x.k] == null ? '–' : s.sog[x.k].toFixed(1)) + ' kt</dd><dt>Heel</dt><dd>' + heel + '</dd>';
-          if (x.dist != null) facts += '<dt>To mark</dt><dd>' + Math.round(x.dist) + ' m</dd>';
+          if (x.dist != null) facts += '<dt>To sail</dt><dd>' + Math.round(x.dist) + ' m</dd>';
           if (x.j > 0 && x.j <= b.gaps_s.length && !x.done) {
             const g = b.gaps_s[x.j - 1];
             facts += '<dt>Last mark</dt><dd>' + (g ? '+' + mmss(g) : 'first') + '</dd>';
@@ -1494,8 +1552,9 @@ FLEET_JS = r"""
         }
         return '<div class="rp-boat" style="--c:' + col(b) + '"><div class="rp-name"><span class="rp-dot"></span>' +
           b.name + head + '</div><div class="rp-leg">' + leg + '</div><dl>' + facts + '</dl></div>';
-      }).join('') + '<p class="rp-note">Position among the tracked boats: legs done, then distance to the next mark. ' +
-        '“Behind” is the extra distance to the mark on the same leg.</p>';
+      }).join('') + '<p class="rp-note">Position among the tracked boats: legs done, then distance to sail to the next mark ' +
+        '(up the ladder inside the laylines; past a layline, the straight line back). “Behind” is the extra distance to sail ' +
+        'on the same leg. Laylines &amp; rungs (top left) follow the leading boat\'s leg.</p>';
     }
     function pause() { clearInterval(timer); timer = null; stopAt = null; playBtn.textContent = '▶'; playBtn.setAttribute('aria-label', 'Play'); }
     function play(until) {
@@ -1581,9 +1640,9 @@ FLEET_JS = r"""
         const tip = '<b>' + p.id + '</b> · ' + r.race + ', ' + p.leg_name + ', ' + p.side +
           '<br>' + mmss(p.t0) + '–' + mmss(p.t1) + ' after the gun (' + mmss(p.duration_s) + ')' +
           (where ? '<br>' + where : '') +
-          '<br><b>' + name(win) + ' gained ' + Math.abs(p.gain_m) + ' m</b> on ' + name(lose) +
+          '<br><b>' + name(win) + ' gained ' + Math.abs(p.gain_m) + ' m</b> toward the mark on ' + name(lose) +
           '<br>SOG ' + name(p.a) + ' ' + p.boats[p.a].sog + ' · ' + name(p.b) + ' ' + p.boats[p.b].sog + ' kt' +
-          '<br>angle ' + name(p.a) + ' ' + Math.round(p.boats[p.a].angle) + '° · ' + name(p.b) + ' ' + Math.round(p.boats[p.b].angle) + '°' +
+          '<br>angle to the wind ' + name(p.a) + ' ' + Math.round(p.boats[p.a].angle) + '° · ' + name(p.b) + ' ' + Math.round(p.boats[p.b].angle) + '°' +
           '<br><i>Click for why, and to watch it</i>';
         const item = { r, p, win, lose, where, traces: [] };
         let mx = 0, my = 0, k = 0;
@@ -1603,6 +1662,19 @@ FLEET_JS = r"""
         }
         shown.push(item);
       }
+      // laylines and rungs for every race and leg with a stretch in view (hidden until toggled)
+      // one ladder per mark (Beat 1 and Beat 2 go to the same one)
+      const legsIn = [...new Set(shown.map(x => x.r.stem + '|' + x.p.leg))], drawn = [];
+      for (const k of legsIn) {
+        const [stem, leg] = k.split('|'), r = FLEET.races.find(q => q.stem === stem);
+        const lad = r.ladders && r.ladders[Number(leg)];
+        if (!lad || !lad.targets || !lad.targets.length) continue;
+        const cx = lad.targets.reduce((a, p) => a + p[0], 0) / lad.targets.length;
+        const cy = lad.targets.reduce((a, p) => a + p[1], 0) / lad.targets.length;
+        if (drawn.some(([x, y]) => Math.hypot(x - cx, y - cy) < 30)) continue;
+        drawn.push([cx, cy]);
+        traces.push(...ladderTraces(r, Number(leg), false, ri < 0 ? r.race + ' ' : ''));
+      }
       for (const id of IDS) traces.push({ x: [null], y: [null], mode: 'lines', name: name(id),
         line: { color: col(FLEET.day[id]), width: 4 }, hoverinfo: 'skip' });
       traces.push({ x: [null], y: [null], mode: 'lines', name: 'run (dotted)', line: { color: ink2, width: 3, dash: 'dot' }, hoverinfo: 'skip' });
@@ -1612,6 +1684,7 @@ FLEET_JS = r"""
       lay.xaxis.scaleanchor = 'y'; lay.xaxis.title = 'm, looking upwind (left −, right +)'; lay.yaxis.title = 'm up the course';
       lay.hovermode = 'closest'; lay.uirevision = 'pm' + ri + '-' + pi + '-' + li;
       lay.margin.r = 8; lay.legend.y = narrow ? -0.18 : -0.12;
+      lay.updatemenus = LADDER.button(traces, ladColors());
       Plotly.react(plot, traces, lay, CONFIG);
       list.innerHTML = shown.length ? shown.map((x, i) =>
         '<button type="button" class="pm-row" data-k="' + i + '" style="--w:' + col(FLEET.day[x.win]) + ';--l:' + col(FLEET.day[x.lose]) + '">' +
@@ -1797,8 +1870,8 @@ def _pair_names(fa: dict, a: str, b: str) -> tuple[str, str]:
 
 
 def pair_sentence(fa: dict, row: dict, kind: str) -> str | None:
-    """'25 min side by side upwind: 1044 gained 83 m on Mojo (3.3 m a minute): 164 m from a
-    closer angle, 81 m lost on speed.'"""
+    """'25 min side by side upwind: 1044 gained 83 m toward the mark on Mojo (3.3 m a minute):
+    164 m from height, 81 m lost on speed.'"""
     t = row[kind]
     if not t.get("duration_s"):
         return None
@@ -1809,10 +1882,10 @@ def pair_sentence(fa: dict, row: dict, kind: str) -> str | None:
     def part(v, what):
         return f"{abs(v)} m {'from' if v >= 0 else 'lost on'} {what}"
 
-    angle = "height" if kind == "upwind" else "depth"
+    angle = "course"  # height or depth, and staying inside the laylines
     return (
         f"{round(t['duration_s'] / 60)} min side by side {kind} ({t['n']} stretches): "
-        f"**{win} gained {abs(t['gain_m'])} m on {lose}** ({abs(t['gain_m_per_min'])} m a minute): "
+        f"**{win} gained {abs(t['gain_m'])} m toward the mark on {lose}** ({abs(t['gain_m_per_min'])} m a minute): "
         f"{part(sp, 'speed')}, {part(an, angle)}."
     )
 
@@ -1824,14 +1897,14 @@ def why_sentence(fa: dict, p: dict) -> str:
     nw, nl = _pair_names(fa, win, lose)
     g = abs(p["gain_m"])
     if g < 8:  # a few metres over minutes is within what the tracks and the split can resolve
-        return f"About level: {nw} gained {g} m on {nl}, too little to call."
+        return f"About level: {nw} gained {g} m toward the mark on {nl}, too little to call." + _overstood(fa, p)
     sg = 1 if win == a else -1
     sp, an = sg * p["gain_speed_m"], sg * p["gain_angle_m"]
     bw, bl = p["boats"][win], p["boats"][lose]
     dsog = bw["sog"] - bl["sog"]
-    dang = bl["angle"] - bw["angle"]  # + = winner closer to straight up/down the course
+    dang = bl["angle"] - bw["angle"]  # + = winner's track closer to the leg's wind axis
     up = p["leg_type"] == "upwind"
-    word = "height" if up else "depth"
+    word = "course"  # height or depth, and staying inside the laylines
 
     def part(v, what, how):
         return f"{v} m from {what} ({how})" if v >= 0 else f"{-v} m lost on {what} ({how})"
@@ -1841,7 +1914,7 @@ def why_sentence(fa: dict, p: dict) -> str:
         an,
         word,
         f"track {abs(dang):.1f}° {'closer to' if dang >= 0 else 'further from'} "
-        f"straight {'up' if up else 'down'} the course"
+        f"straight {'up' if up else 'down'} the wind"
         if abs(dang) >= 0.1
         else "the same track angle",
     )
@@ -1849,11 +1922,11 @@ def why_sentence(fa: dict, p: dict) -> str:
     small_v = an if abs(sp) >= abs(an) else sp
     if abs(small_v) < 3:  # too small to call either way
         level = word if abs(sp) >= abs(an) else "speed"
-        out = f"{nw} gained {g} m on {nl}: {big}; {level} about level"
+        out = f"{nw} gained {g} m toward the mark on {nl}: {big}; {level} about level"
     else:
         link = " and " if min(sp, an) >= 0 else ", against "
-        out = f"{nw} gained {g} m on {nl}: {big}{link}{small}"
-    out += "."
+        out = f"{nw} gained {g} m toward the mark on {nl}: {big}{link}{small}"
+    out += "." + _overstood(fa, p)
     sw, sl = p["why"]["stats"][win], p["why"]["stats"][lose]
     if "heel" in sw and "heel" in sl and abs(dh := sw["heel"][0] - sl["heel"][0]) >= 1.5:
         out += f" {nw} carried {abs(dh):.1f}° {'more' if dh > 0 else 'less'} heel."
@@ -1876,6 +1949,16 @@ def why_sentence(fa: dict, p: dict) -> str:
     return out
 
 
+def _overstood(fa: dict, p: dict) -> str:
+    """' Mojo finished it 18 m past the layline.' for any boat that did (10 m or more)."""
+    out = ""
+    for bid in (p["a"], p["b"]):
+        o = p["boats"][bid].get("overstand_m") or 0
+        if o >= 10:
+            out += f" {_pair_names(fa, bid, bid)[0]} finished it {o} m past the layline."
+    return out
+
+
 def pairs_md(fa: dict) -> list[str]:
     if not fa.get("pairs"):
         return []
@@ -1883,8 +1966,10 @@ def pairs_md(fa: dict) -> list[str]:
         f"## Side by side (within {PAIR_RADIUS_M} m, same leg, same tack or gybe)",
         "",
         (
-            "Both boats had the same wind, so the gain is the boats: speed, and angle (height on "
-            "a beat, depth on a run). Gain is progress up or down the course axis."
+            "Both boats had the same wind, so the gain is the boats: speed, and course (height on "
+            "a beat, depth on a run, and not sailing past the laylines). Gain is distance to sail "
+            "to the mark: inside the laylines that's rungs up the ladder, and past a layline the "
+            "overstand counts against the boat."
         ),
         "",
     ]
@@ -1896,7 +1981,7 @@ def pairs_md(fa: dict) -> list[str]:
     L += [
         (
             "| # | Race | Leg | Tack | Where | From | Length | Boats | Apart (m) | Gain (m) | "
-            "Speed / angle (m) | SOG (kt) | Angle (°) | Heel (°) |"
+            "Speed / course (m) | SOG (kt) | Angle to wind (°) | Heel (°) |"
         ),
         "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
@@ -1916,9 +2001,10 @@ def pairs_md(fa: dict) -> list[str]:
     L += [
         "",
         (
-            "*Gain, speed and angle are from the first boat's side (+ = it gained). Angle is the "
-            "track against straight up or down the course, so it depends on the tack when the "
-            "wind is shifted; compare the two boats on the same stretch.*"
+            "*Gain, speed and course are from the first boat's side (+ = it gained toward the mark). "
+            "Course is height or depth plus not overstanding: how much of each metre sailed brought "
+            "the mark closer. Angle to wind is the track against the leg's wind axis (from the "
+            "boats' tacks or gybes); compare the two boats on the same stretch.*"
         ),
         "",
     ]
@@ -1998,11 +2084,14 @@ def pairs_html(fa: dict) -> str:
             f"the same tack or gybe for at least {PAIR_MIN_S} s, starting {PAIR_SETTLE_S} s after "
             "a mark or a tack or gybe.</li>"
             "<li>Both boats have the same wind, so what one gains is the boats: <strong>speed"
-            "</strong>, and <strong>angle</strong>: height on a beat (pointing against footing), "
-            "depth on a run (soaking against heading up).</li>"
-            "<li>Gain is progress up the course on a beat and down it on a run, from the GPS "
-            "tracks. The split into speed and angle is from each boat's average SOG and track "
-            "angle.</li>"
+            "</strong>, and <strong>course</strong>: height on a beat (pointing against footing), "
+            "depth on a run (soaking against heading up), and not sailing past the laylines.</li>"
+            "<li>Gain is distance to sail to the mark, from the GPS tracks: inside the laylines "
+            "that's rungs up the ladder (sailing lower loses rungs), and past a layline the "
+            "straight line back to the mark, so overstanding counts against the boat. Laylines "
+            "and rungs come from the boats' own tacking and gybing angles on that leg. The split "
+            "into speed and angle is from each boat's average SOG and how much of each metre it "
+            "sailed brought the mark closer.</li>"
             "<li><strong>Watch</strong> plays the stretch on that race's replay.</li></ul>"
         ),
         H.card(
@@ -2031,8 +2120,8 @@ def pairs_html(fa: dict) -> str:
                 win = na if p["gain_m"] >= 0 else nb
                 rel = p["rel"][0]
                 where = (
-                    f"{abs(rel['ahead_m'])} m {'ahead' if rel['ahead_m'] >= 0 else 'behind'}, "
-                    f"{abs(rel['windward_m'])} m {'to windward' if rel['windward_m'] >= 0 else 'to leeward'}"
+                    f"{abs(rel['ahead_m'])} m {'less' if rel['ahead_m'] >= 0 else 'more'} to sail, "
+                    f"{abs(rel['windward_m'])} m {'further up' if rel['windward_m'] >= 0 else 'further down'} the ladder"
                 )
                 rows.append(
                     {
@@ -2046,9 +2135,9 @@ def pairs_html(fa: dict) -> str:
                         "Length": _mmss(p["duration_s"]),
                         f"{na} at the start": where,
                         "Gained": f'<span class="gain">{html.escape(win)} {abs(p["gain_m"])} m</span>',
-                        "Speed / angle": f"{p['gain_speed_m']:+} / {p['gain_angle_m']:+} m",
+                        "Speed / course": f"{p['gain_speed_m']:+} / {p['gain_angle_m']:+} m",
                         "SOG": f"{ba['sog']} / {bb['sog']} kt",
-                        "Angle": f"{ba['angle']:.0f}° / {bb['angle']:.0f}°",
+                        "Angle to wind": f"{ba['angle']:.0f}° / {bb['angle']:.0f}°",
                         "Heel": f"{ba['heel']:.0f}° / {bb['heel']:.0f}°"
                         if ba["heel"] is not None and bb["heel"] is not None
                         else "–",
@@ -2069,7 +2158,7 @@ def pairs_html(fa: dict) -> str:
         body += (
             '<h3>Stretch by stretch: why the gain</h3><p class="chart-hint">Open a stretch for '
             "the reason in numbers, a table of both boats, and every channel second by second. "
-            "Pointing is the track (GPS) angle to straight up or down the course; the compass "
+            "Pointing is the track (GPS) angle to straight up or down the wind; the compass "
             "heading is dotted, and differs between boats' sensors.</p>"
             + "".join(stretch_html(fa, r, p) for r, p in stretches(fa, a, b))
         )
@@ -2090,9 +2179,9 @@ def stretches(fa: dict, a: str, b: str):
 
 STRETCH_ROWS = [  # key, label, unit, decimals, better (+1 higher, -1 lower, 0 neither)
     ("sog", "SOG", "kt", 2, 1),
-    ("vmg", "VMG along the course", "kt", 2, 1),
-    ("angle", "Track angle to the course", "°", 1, -1),
-    ("hdg_angle", "Heading angle to the course*", "°", 1, 0),
+    ("vmg", "VMC: speed toward the mark", "kt", 2, 1),
+    ("angle", "Track angle to the wind axis", "°", 1, -1),
+    ("hdg_angle", "Heading angle to the wind axis*", "°", 1, 0),
     ("slip", "Slip (track − heading)*", "°", 1, 0),
     ("heel", "Heel", "°", 1, 0),
     ("trim", "Trim, fore-aft*", "°", 1, 0),
@@ -2136,8 +2225,8 @@ def stretch_html(fa: dict, r: dict, p: dict) -> str:
 
     def rel(x):
         return (
-            f"{abs(x['ahead_m'])} m {'ahead' if x['ahead_m'] >= 0 else 'behind'}, "
-            f"{abs(x['windward_m'])} m {'to windward' if x['windward_m'] >= 0 else 'to leeward'}"
+            f"{abs(x['ahead_m'])} m {'less' if x['ahead_m'] >= 0 else 'more'} to sail, "
+            f"{abs(x['windward_m'])} m {'further up' if x['windward_m'] >= 0 else 'further down'} the ladder"
         )
 
     table = (
@@ -2156,7 +2245,7 @@ def stretch_html(fa: dict, r: dict, p: dict) -> str:
         "zeroed differently: compare how they change, not the two boats' values (trim differs "
         "by several degrees between these boats; heel on one tack can carry a degree or two). "
         "The track angle is from GPS and doesn't depend on them. Better: faster, or closer "
-        "to straight up (beat) or down (run) the course. Wind shadow: within "
+        "to straight up (beat) or down (run) the wind. Wind shadow: within "
         f"{SHADOW_M} m and {SHADOW_DEG}° of straight downwind of the other boat, taking the "
         "course axis as the wind.</p>"
         '<div class="st-body">'
@@ -2292,6 +2381,7 @@ def write_html(
         + "<footer>Numbers from analyze.py and fleet.py. Speeds are over ground. "
         "Times are local to the event.</footer></main>"
         f'<script type="application/json" id="fleet-data">{data}</script>{lib}'
+        f"<script>{(Path(__file__).parent / 'ladder.js').read_text()}</script>"
         f"<script>{FLEET_JS}</script>{cur[1] if cur else ''}</body></html>"
     )
     path = out / "fleet.html"

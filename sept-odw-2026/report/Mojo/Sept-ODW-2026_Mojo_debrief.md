@@ -19,8 +19,8 @@
    - Together that's 33 s of the day's 198 s deficit before the first beat had started.
    - **Next time:** Call time on distance from −60 s. Hold the speed until the bow says two lengths, then kill it, and be sheeting on at −8 s whatever the boats around you are doing.
    - **Drill:** Timed runs from a stop to full speed at a buoy, until the crew knows today's number of lengths per 10 s.
-2. **Upwind speed: 969 gained 120 m on pure speed side by side**
-   - 33 minutes within 200 m on the same tack: 969 gained 79 m net. It gained 120 m on speed and gave 41 m back on height.
+2. **Upwind speed: 969 gained 146 m on pure speed side by side**
+   - 33 minutes within 200 m on the same tack: 969 gained 90 m net toward the mark. It gained 146 m on speed and gave 56 m back by sailing lower, so its footing still paid.
    - 969 averaged about 0.12 kt faster upwind in every race (5.99/5.95/5.79 against 5.86/5.82/5.68).
    - Our heel dropped across the day (19.4° to 17.8°) while 969 stayed at 19–21°. In R2 beat 2 we sailed at 17.4° against 969's 19.5°.
    - **Next time:** When the boat next to you is footing away, drop the traveller a touch and bear off 1–2° to get the heel back to 19–20° before you worry about height.
