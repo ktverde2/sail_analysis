@@ -12,7 +12,7 @@
 1. **Mojo: starts 15 s and 24 s late in Races 2 and 3**
    - **Next time:** Call time on distance from −60 s, and be sheeting on at −8 s.
 2. **Mojo: 121 s lost to 969 on the beats in Races 2–3**
-   - **Next time:** Get the heel back to 19–20° and foot 1–2° when you're level with 969, and judge it by whether the gap to the mark stops growing.
+   - **Next time:** Power up for the chop (traveller up, more twist, deeper jib foot, the setup the 2026 Worlds leaders used off Point Loma), get the heel back to 19–20° and foot 1–2° when you're level with 969. Judge it by whether the gap to the mark stops growing.
 3. **969: leeward roundings, 52 m lost toward the marks each**
    - **Next time:** Go in wide and come out tight, so the exit is at 5+ kt.
 
@@ -42,6 +42,15 @@
 - **Race 3:** Mojo's 24 s late start, then 47 s more lost upwind. The run cost another 51 s from 0.14 nm of extra distance.
 
 [[chart:replay]]
+
+**Against the 2026 Worlds benchmark** (same water, three weeks earlier; see the [2026 Worlds report](https://etchells.org.au/blogs/news/valuable-insights-from-billy-merrington-at-the-2026-worlds))
+| Worlds standard | Mojo | 969 |
+|---|---|---|
+| 1–2 m behind the line at full speed at the gun | Race 1 met it (2.2 m, 5.8 kt). Races 2–3 were 31 m at 4.8 kt and 17 m at 3.8 kt | Full speed every time (5.6–5.8 kt) but 3.5, 4.8 and 7.8 m back: about 1–3 s given away each start |
+| At least three timed line runs, burn time kept current | Sailed along the line a lot before the start, but the tracks can't show whether those runs were timed | Almost no line runs in the tracks |
+| Start near the middle, towards the favoured end, in clear air, and judge it at the first mark | Pin was favoured by 8 m in Race 1, and 32–33 m in Races 2–3. Mojo won the pin in Race 1 (20 s up at the mark). In Race 3 it was at the pin (14%) but 17 m back and slow | Started 70–80% up from the pin, on the unfavoured half, and still led at the first mark by 42 s and 68 s in Races 2–3 |
+- The Worlds' main lesson for the line is the one our data shows: speed at the gun and a clear lane were worth more than the favoured end. 969 gave away 30 m of line bias in Races 2 and 3 and still reached the first mark well ahead, because it was at full speed and Mojo wasn't.
+- The Worlds leaders sailed with more power in the chop. 969's footing mode, 90 m gained toward the mark side by side, looks like that. Mojo's falling heel and 3.3° more leeway look like the opposite.
 
 **Data notes**
 - Only these two boats were tracked. Order and gaps are among them, not official results.

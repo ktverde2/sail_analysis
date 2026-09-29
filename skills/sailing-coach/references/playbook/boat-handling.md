@@ -25,5 +25,7 @@ Tacks, gybes, sets and drops. Our maneuver table measures entry speed, minimum s
 ## Crew roles
 - Clear roles reduce the noise: one trimmer owns the upwind mode, the kite trimmer calls height downwind, the tactician takes short-term control in tactical moments. [N4]
 - In the start, the helm steers and the crew call time, distance and the go (see `starts.md`).
+- In the chop at the 2026 Worlds, the best teams had at least two crew fully on speed, which freed the third (or fourth) from the trim loop to look up the course: tactics, the fleet, what's coming. When everyone is chasing a tenth of a knot, nobody is looking ahead. The lowers are the foredeck's job, so they have to feel the power the helm and trimmers feel. [W26]
+- **Data:** side choices that ignored a persistent shift, or sailing into a header without tacking (`wind shifts and tack calls`), suggest nobody had their head out of the boat.
 
-Sources: [B1] North Sails, how to improve your tacks · [B2] Sailing World, keelboat tacking made easy · [N1] North Sails, Etchells speed guide · [N2] North Sails, Etchells tuning guide · [N3] North Sails, Etchells speedy tips · [N4] North Sails, Etchells speed reading (2018 Worlds) · [R4] Sailing World, tactical gate roundings. Links in `../sources.md`.
+Sources: [W26] Etchells Australia, 2026 San Diego Worlds report · [B1] North Sails, how to improve your tacks · [B2] Sailing World, keelboat tacking made easy · [N1] North Sails, Etchells speed guide · [N2] North Sails, Etchells tuning guide · [N3] North Sails, Etchells speedy tips · [N4] North Sails, Etchells speed reading (2018 Worlds) · [R4] Sailing World, tactical gate roundings. Links in `../sources.md`.

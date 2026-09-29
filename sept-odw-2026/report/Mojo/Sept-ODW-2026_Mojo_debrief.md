@@ -20,12 +20,14 @@
    - Race 3: 6.4 kt at −30 s, then down to 2.4 kt by −10 s. 17 m back at the gun, doing 3.8 kt.
    - That's 33 s of the day's 198 s deficit before the first beat had started.
    - **Next time:** Call time on distance from −60 s. Hold the speed until the bow says two lengths, then kill it, and be sheeting on at −8 s whatever the boats around you are doing.
+   - **Benchmark:** the 2026 Worlds leaders on this same water were 1–2 m behind the line at full speed at the gun. Race 1 met it (2 m, 5.8 kt). Races 2–3 were 31 m and 17 m back at 4.8 and 3.8 kt. Their route there was at least three timed runs along the line in the last minutes, and a burn time that gets re-checked, not set once.
+   - In Race 3 you were at the favoured pin, which was worth about 33 m, but arrived slow and 17 m back, so the bias was lost. Speed at the gun matters more than the end: 969 started at the unfavoured end at full speed and led by 68 s at the first mark.
    - **Drill:** Timed runs from a stop to full speed at a buoy, until the crew knows today's number of lengths per 10 s.
 2. **Beats: 121 s lost to 969 upwind in Races 2–3**
    - 969's VMC to the windward mark was higher on 4 of the 6 beats: 4.25–4.62 kt against our 4.10–4.46 kt in Races 2 and 3. Race 1's second beat was level.
    - Side by side, 969 gained 90 m toward the mark in 33 minutes. Its extra speed was worth 146 m and its lower course cost it 56 m, so the footing paid: it got to the mark sooner.
    - Why, in the numbers: our heel dropped through the day (19.4° to 17.8°) while 969 held 19–21°, and we slipped 3.3° more to leeward than 969 in the same water.
-   - **Next time:** When the boat next to you is footing away, drop the traveller a touch and bear off 1–2° to get the heel back to 19–20°. It only counts if the gap to the mark stops growing, so check it against the boat beside you, not the speedo.
+   - **Next time:** Add power, don't take it off. In the chop at the 2026 Worlds, the leaders sailed with the traveller high (up to about 300 mm above centre), more mainsail twist, a deeper jib foot and the jib car slightly outboard. Try that set-up and bear off 1–2° to get the heel back to 19–20°. It only counts if the gap to the mark stops growing, so check it against the boat beside you, not the speedo.
 3. **Race 3 run: 51 s lost from sailing extra distance**
    - Faster over the ground (6.06 against 5.79 kt), but VMC to the gate was only 4.99 kt against 969's 5.39. We sailed 1.16 nm to 969's 1.02 nm, with 3 gybes to its 1.
    - That run doubled the gap, from 1:08 to 1:59.
@@ -57,6 +59,7 @@
 - There's no wind channel. Wind direction is estimated from our tacking headings. 969's heading reads about 11° off its track (see the Current page).
 - Only Mojo and 969 were tracked, so the order and gaps here are between those two boats, not race results.
 
-**Two questions**
+**Three questions**
 - In Race 3, what happened between −30 s and −10 s? Were you blocked, or was that a deliberate stall?
 - Did anything change in the rig or the crew weight for the afternoon races? Heel came down steadily after Race 1.
+- Were the runs along the line before each start timed, and who owns the burn time? The Worlds standard is three timed runs, with the burn time re-called up to the gun.

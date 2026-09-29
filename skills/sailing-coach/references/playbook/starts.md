@@ -5,6 +5,8 @@ Why it matters more in an Etchells: the hull is long and heavy, so a boat that i
 ## What a good start is
 - Front row, at full speed, in clear air, able to take the first shift. One boat sitting on the weather hip takes away the option to tack on the first header, which wastes an otherwise good start. [S2]
 - **Data:** `late (s)`, `SOG at gun`, `accel ±5 s` (positive = accelerating through the gun), line position. Good: under ~2 s late, SOG near upwind target, positive acceleration.
+- The benchmark at the 2026 Worlds in San Diego: the top boats hit the line 1–2 m back at full speed at the gun, start after start, with GPS line tools making that repeatable. [W26]
+- **Data:** `below_line_+0s_m` of 2 m or less with `sog_+0s` at 95% or more of the race's steady upwind SOG meets it.
 
 ## Time on distance
 - Know how long the boat takes to reach full speed from a slow luff in each wind range, and build the approach backward from the gun: distance ÷ speed, minus the acceleration time. [S1, S3]
@@ -12,6 +14,8 @@ Why it matters more in an Etchells: the hull is long and heavy, so a boat that i
 - The bow calls distance to the line; one person calls time. A good line sight plus a clear time call is worth more than anything else in the last minute. [N2]
 - **Data:** metres behind the line at −60/−30/0 s and seconds late. A consistent lateness race to race is a timing habit, not bad luck. `coach_calcs.py tod` converts metres to seconds.
 - **Cue:** "Go point by the card, not by feel." Drill: repeated timed runs at a buoy, from a stop to full speed, until the crew knows the number for today's wind. [N1, S1]
+- At the Worlds the leaders made at least three timed runs along the line in the last minutes before the start to set the burn time, and kept re-checking it as the breeze, its angle and the chop changed. A burn time from ten minutes ago is stale. Know the line length and the time to sail it. [W26]
+- **Data:** the prestart track shows whether the boat sailed along the line, not whether the runs were timed; ask. Consistent lateness with long spells parked on the line suggests the burn time wasn't current.
 
 ## Final approach
 - Etchells don't turn quickly (rudder on the skeg). Avoid big bear-aways on starboard in the last ~45 s; hold a close-hauled-ish angle with the jib eased or half-luffing and let the helm find the build angle in the last ~15 s. [N2]
@@ -30,9 +34,10 @@ Why it matters more in an Etchells: the hull is long and heavy, so a boat that i
 - Short line or bias under ~5° → start near the middle and keep both sides. Big fleet or bias of 15–20° → start close to the favored end but a third of the way down, not in the pile-up at the end. [S2]
 - When the favored end and the favored side disagree: on a short beat treat the bias as the first shift and take it; on a longer beat, favor getting to the side. [S4]
 - Big-fleet experience: leverage-seeking starts at the ends produced big scores; starting near the middle where the line was less crowded, and working to the favored side up the first beat, was more consistent. [N3, N2]
-- **Data:** line position (0 = pin, 100% = boat end) against the side we sailed on the first beat (`% right of rhumb`) and the beat's wind trend. Starting at the boat end and then fighting to go left, or vice versa, is worth a note.
+- At the 2026 Worlds the approach that worked was conservative: start around the middle, leaning toward the geometrically favoured end, where the line is least crowded, rather than fighting for the end. Aim for clear air, full speed and options, and for the position you want at the top of the first beat, not the first 50 m. [W26]
+- **Data:** line position (0 = pin, 100% = boat end) against the side we sailed on the first beat (`% right of rhumb`) and the beat's wind trend. Starting at the boat end and then fighting to go left, or vice versa, is worth a note. Judge it by the gap at the first mark, not the bias won: a start that gives up line bias but is on time, at full speed, toward the paying side can still lead at the top.
 
 ## Plan B
 - Know the bail-out before the sequence starts: if the lane closes with ~20 s to go, get onto port behind the row early and duck to a clear lane toward the favored side, rather than sitting in bad air. [S3]
 
-Sources: [N1] North Sails, Etchells speed guide · [N2] North Sails, Etchells speedy tips · [N3] North Sails, Etchells speed reading (2018 Worlds) · [S1] SailZing, execute the start · [S2] Sailing World, starts done right · [S3] Sailmon, advanced start strategies · [S4] Sailing World, when line bias and course favor disagree. Links in `../sources.md`.
+Sources: [W26] Etchells Australia, 2026 San Diego Worlds report · [N1] North Sails, Etchells speed guide · [N2] North Sails, Etchells speedy tips · [N3] North Sails, Etchells speed reading (2018 Worlds) · [S1] SailZing, execute the start · [S2] Sailing World, starts done right · [S3] Sailmon, advanced start strategies · [S4] Sailing World, when line bias and course favor disagree. Links in `../sources.md`.

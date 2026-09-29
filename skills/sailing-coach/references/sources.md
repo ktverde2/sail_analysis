@@ -8,7 +8,7 @@ Distil, don't copy: keep each point to a sentence or two, say how it shows up in
 
 Add links below (one per line, with a note if you like). They get read, distilled into the playbook, then moved to **Ingested**.
 
-- https://etchells.org.au/blogs/news/valuable-insights-from-billy-merrington-at-the-2026-worlds: 2026 Etchells Worlds recap, San Diego. Kevin's pick as a benchmark for comparing performance on the same waters. Not read yet: etchells.org.au was blocked by the network policy (2026-09-29). Once read, distil it into the playbook (San Diego venue notes, modes, rig, strategy) and compare it against the event reports.
+-
 
 ## Couldn't read
 
@@ -18,10 +18,11 @@ Add links below (one per line, with a note if you like). They get read, distille
 
 ## Ingested
 
-Read 2026-09-23.
+Read 2026-09-23; the 2026 Worlds report on 2026-09-29.
 
 | Source | Playbook file(s) | Topics |
 |---|---|---|
+| [Etchells Australia, 2026 San Diego Worlds report (P. Merrington, 11 Sep 2026)](https://etchells.org.au/blogs/news/valuable-insights-from-billy-merrington-at-the-2026-worlds) | starts, etchells-technique, boat-handling | Worlds starting benchmark (1–2 m back at full speed), three timed line runs, mid-line low-density starts, San Diego power setup for chop, simpler rig programme (lowers not caps), two crew on speed |
 | [North Sails, Etchells tuning guide](https://www.northsails.com/blogs/north-sails-blog/etchells-tuning-guide) | etchells-technique, downwind, boat-handling | Base rig, rake, shrouds, jib lead and leech bands, downwind rig and pole |
 | [North Sails, Etchells speed guide](https://www.northsails.com/blogs/north-sails-blog/north-sails-etchells-speed-guide) | etchells-technique, starts, downwind, boat-handling, roundings | Balance, jib ranges, crew, downwind, gybes, set routine, drops, starting drills |
 | [North Sails, Etchells speedy tips](https://www.northsails.com/blogs/north-sails-blog/etchells-speedy-tips) | starts, upwind-strategy, roundings, etchells-technique | Line sights, straight starting, layline within 10 lengths, early drops, smooth vs. bumpy setup |

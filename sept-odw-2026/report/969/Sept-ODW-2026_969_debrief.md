@@ -8,9 +8,10 @@
 - **Starts: 2–3 s late in every race, at 5.6–5.8 kt at the gun**
   - Started in the middle to boat end of the line each time (70–80% from the pin).
   - Accelerated through the gun in Races 1–2 (+1.0 and +1.9 kt).
+  - Against the 2026 Worlds benchmark (1–2 m back at full speed), the speed was there, but 969 was 3.5, 4.8 and 7.8 m back, which is about 1–3 s left on the line each race. The pin was favoured by 32–33 m in Races 2–3, and 969 still led at the first mark by 42 s and 68 s from the other end, so speed and a clear lane beat the bias, as it did at the Worlds.
 - **Beats: first to the windward mark on 4 of 6 beats**
   - VMC to the mark 4.25–4.62 kt in Races 2 and 3, against Mojo's 4.10–4.46 kt.
-  - Side by side, 90 m gained on Mojo toward the mark in 33 minutes: sailing lower cost 56 m, and the extra speed won back 146 m. The footing paid.
+  - Side by side, 90 m gained on Mojo toward the mark in 33 minutes: sailing lower cost 56 m, and the extra speed won back 146 m. The footing paid. It matches the powered-up mode the 2026 Worlds leaders sailed in the chop off Point Loma.
   - Race 3, first beat: faster and higher at once, 45 m gained toward the mark in 6.5 minutes.
 - **Leeward roundings: 52 m lost toward the marks on average, better than Mojo's 61 m**
 
@@ -41,5 +42,6 @@
 - There's no wind channel. 969's heading reads about 11° left of its track on every heading, about the local magnetic variation.
 - Only Mojo and 969 were tracked, so the order and gaps here are between those two boats, not race results.
 
-**Question**
+**Questions**
 - What upwind mode were you in? Tacking angle by compass was 70–78°, against Mojo's 64–68°. It looks like a deliberate footing mode, and it paid to the mark.
+- Did you do timed runs along the line? The tracks show almost none, yet you were 1–3 s late every time. The Worlds standard is three timed runs in the last minutes, with the burn time kept current. That would close the last 3–8 m.
