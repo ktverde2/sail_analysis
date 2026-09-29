@@ -8,7 +8,7 @@ Distil, don't copy: keep each point to a sentence or two, say how it shows up in
 
 Add links below (one per line, with a note if you like). They get read, distilled into the playbook, then moved to **Ingested**.
 
--
+- https://etchells.org.au/blogs/news/valuable-insights-from-billy-merrington-at-the-2026-worlds: 2026 Etchells Worlds recap, San Diego. Kevin's pick as a benchmark for comparing performance on the same waters. Not read yet: etchells.org.au was blocked by the network policy (2026-09-29). Once read, distil it into the playbook (San Diego venue notes, modes, rig, strategy) and compare it against the event reports.
 
 ## Couldn't read
 
