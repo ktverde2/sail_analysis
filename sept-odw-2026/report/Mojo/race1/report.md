@@ -73,13 +73,13 @@ Metres lost toward the marks: VMC (speed toward this mark, then the next) from 3
 | # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | m lost | Closest to mark m | Gate | vs best m |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | windward | 15:10 | layline tack 3 s out | 6.3 | 5.47 | 6.85 | 27 | 18.5 | 5.1 | – | 1.6 |
-| 2 | leeward | 25:00 | last gybe 1 s out | 6.65 | 4.88 | 4.67 | 46 | 57.9 | 6.1 | right-hand mark (looking downwind) | 0.0 |
+| 2 | leeward | 25:00 | last gybe 1 s out | 6.65 | 4.88 | 4.67 | 46 | 57.9 | 6.1 | right-hand mark (looking downwind) | 15.2 |
 | 3 | windward | 39:15 | layline tack 5 s out | 6.44 | 5.18 | 6.81 | 15 | 18.6 | 7.2 | – | 1.7 |
 
 vs best: metres more than the best rounding of the same type in this analysis. The goal is zero lost; the best is the next milestone.
 
 - #1 windward: Reached off at 152° to the wind for the first 15–40 s after the mark (your best exited at 166°). Bear away all the way to the run angle first, then set.
-- #2 leeward: Your best of this type so far: the benchmark to beat. The goal is still zero. Passed 6 m from the mark. Wide in, tight out: leave it about a boat length (3 m) away on the exit.
+- #2 leeward: Passed 6 m from the mark. Wide in, tight out: leave it about a boat length (3 m) away on the exit.
 - #3 windward: Reached off at 154° to the wind for the first 15–40 s after the mark (your best exited at 166°). Bear away all the way to the run angle first, then set.
 
 ## Upwind vs. targets

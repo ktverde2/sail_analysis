@@ -155,6 +155,36 @@ def fit_boat(f: pd.DataFrame) -> dict | None:
     }
 
 
+SUSPECT_CROSS_KT = 0.25  # a boat's current this far from the other boats' in the same race
+SUSPECT_SHARE = 0.75  # ...in this share of its races: the boat's compass, not the water
+
+
+def compass_check(fits: dict, per_race: list[dict]) -> None:
+    """Every boat in the same race sailed the same water, so their cross-course currents should
+    agree. A boat that reads a different current race after race (against at least two other
+    boats) has a heading error that changes with heading, like an uncompensated compass: flag it
+    in fits[boat]["suspect"], and keep it off the current map and out of the fleet comparisons.
+    Negative slip (the track to windward of the heading) is the same error showing upwind."""
+    by_race: dict[str, dict[str, float]] = {}
+    for p in per_race:
+        by_race.setdefault(p["race"], {})[p["boat"]] = p["cross_kt"]
+    for b, fb in fits.items():
+        diffs = []
+        for cur in by_race.values():
+            others = [v for o, v in cur.items() if o != b]
+            if b in cur and len(others) >= 2:
+                diffs.append(cur[b] - float(np.median(others)))
+        if len(diffs) < 2:
+            continue
+        off = [d for d in diffs if abs(d) >= SUSPECT_CROSS_KT]
+        if len(off) >= SUSPECT_SHARE * len(diffs):
+            why = (f"reads {abs(float(np.median(diffs))):.2f} kt more current across the course than the "
+                   f"other boats in {len(off)} of {len(diffs)} races")
+            if fb["slip"] < -1:
+                why += f", and its track runs {abs(fb['slip']):.1f}° to windward of its heading upwind"
+            fb["suspect"] = why
+
+
 # --- page data ---------------------------------------------------------------------------------
 
 
@@ -172,6 +202,7 @@ def build(drifts: list[dict], boat_order: list[str]) -> dict | None:
                 fr = fit_boat(gr)
                 if fr:
                     per_race.append({"boat": b, "race": race, **fr})
+    compass_check(fits, per_race)
     f = f[f.boat.isin(fits)].copy()
     if f.empty:
         return None
@@ -181,6 +212,7 @@ def build(drifts: list[dict], boat_order: list[str]) -> dict | None:
     sq = _square(f, f.offset)
     left = np.radians(f["corr"] - f.slip * f.up * f.sgn) * f.sog  # what the current is left to explain
     f["cross"] = np.where(np.abs(sq) >= MIN_SQUARE, left / np.where(sq == 0, np.nan, sq), np.nan)
+    f.loc[f.boat.map(lambda b: bool(fits[b].get("suspect"))), "cross"] = np.nan  # not on the map
 
     # Course frame: metres, rotated so the median upwind axis points up the page
     lat0, lon0 = f.lat.mean(), f.lon.mean()

@@ -649,7 +649,11 @@ def course_legs(race: Race) -> list[dict] | None:
     finish = next((c for c in race.course if c["type"] == "FinishLine"), None)
     if not marks or race.gun is None:
         return None
-    t, times = race.gun, [race.gun]
+    # Leg 1 starts at the boat's own start (first line crossing after the gun), as Njord's does
+    line = next((c for c in race.course if c["type"] == "StartLine"), None)
+    crossed = _line_crossing(df, line, race.gun) if line and line.get("coord2") else None
+    first = crossed if crossed is not None and crossed - race.gun < pd.Timedelta(minutes=2) else race.gun
+    t, times = race.gun, [first]
     for el in marks:
         g = df[(df.t > t + pd.Timedelta(seconds=60)) & df.Lat.notna()]
         d = np.min(
@@ -683,7 +687,6 @@ def course_legs(race: Race) -> list[dict] | None:
                 "start": a,
                 "end": b,
                 "axis": leg_axis,
-                "detected": True,
             }
         )
     return legs

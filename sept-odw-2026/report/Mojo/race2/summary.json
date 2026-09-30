@@ -555,9 +555,9 @@
       "offset_s": null,
       "mark_dist_m": 6.2,
       "gate_side": "right-hand mark (looking downwind)",
-      "vs_best_m": 0.1,
-      "best_ref": "Race 1 #2",
-      "best_m": 57.9,
+      "vs_best_m": 15.3,
+      "best_ref": "Race 5 #2",
+      "best_m": 42.7,
       "is_best": false,
       "tips": [
         "Passed 6 m from the mark. Wide in, tight out: leave it about a boat length (3 m) away on the exit."

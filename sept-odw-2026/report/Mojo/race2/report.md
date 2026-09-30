@@ -75,7 +75,7 @@ Metres lost toward the marks: VMC (speed toward this mark, then the next) from 3
 | # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | m lost | Closest to mark m | Gate | vs best m |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | windward | 14:54 | layline tack 164 s out | 6.09 | 5.59 | 6.45 | 16 | 16.9 | 5.0 | – | 0.0 |
-| 2 | leeward | 24:47 | no gybe on the run | 5.72 | 4.34 | 5.37 | 25 | 58.0 | 6.2 | right-hand mark (looking downwind) | 0.1 |
+| 2 | leeward | 24:47 | no gybe on the run | 5.72 | 4.34 | 5.37 | 25 | 58.0 | 6.2 | right-hand mark (looking downwind) | 15.3 |
 | 3 | windward | 39:43 | layline tack 29 s out | 5.77 | 4.61 | 4.86 | 50 | 78.7 | 4.0 | – | 61.8 |
 
 vs best: metres more than the best rounding of the same type in this analysis. The goal is zero lost; the best is the next milestone.

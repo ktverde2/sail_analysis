@@ -81,12 +81,12 @@ Metres lost toward the marks: VMC (speed toward this mark, then the next) from 3
 | # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | m lost | Closest to mark m | Gate | vs best m |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | 1 | windward | 14:48 | layline tack 3 s out | 5.93 | 4.67 | 5.76 | 52 | 27.4 | 4.0 | – | 10.5 |
-| 2 | leeward | 26:03 | last gybe 237 s out | 6.19 | 3.78 | 5.37 | 36 | 68.1 | 9.1 | left-hand mark (looking downwind) | 10.2 |
+| 2 | leeward | 26:03 | last gybe 237 s out | 6.19 | 3.78 | 5.37 | 36 | 68.1 | 9.1 | left-hand mark (looking downwind) | 25.4 |
 
 vs best: metres more than the best rounding of the same type in this analysis. The goal is zero lost; the best is the next milestone.
 
 - #1 windward: Reached off at 135° to the wind for the first 15–40 s after the mark (your best exited at 166°). Bear away all the way to the run angle first, then set. Took 52 s to settle on the run (best 16 s). Pole and halyard ready on the layline, so the set happens as you bear away. Speed dropped 21% through the turn (5.93 → 4.67 kt; best 8%). A smoother, rounder turn keeps more of it.
-- #2 leeward: Came out at 40° to the wind, low and wide (your best exited at 33°). Finish the turn close to close-hauled; the wide entry is what makes a tight exit possible. Speed dropped 39% through the turn (6.19 → 3.78 kt; best 27%). A smoother, rounder turn keeps more of it. Passed 9 m from the mark. Wide in, tight out: leave it about a boat length (3 m) away on the exit.
+- #2 leeward: Came out at 40° to the wind, low and wide (your best exited at 23°). Finish the turn close to close-hauled; the wide entry is what makes a tight exit possible. Passed 9 m from the mark. Wide in, tight out: leave it about a boat length (3 m) away on the exit. Tacked 1 s after the mark, so its cost is in this number. Fine if it was for clear air or the favoured side; otherwise hold the lane until you're up to speed.
 
 ## Upwind vs. targets
 Not computed: wind speed not trustworthy (no TWS channel); pass --tws, e.g. --tws 8-10.

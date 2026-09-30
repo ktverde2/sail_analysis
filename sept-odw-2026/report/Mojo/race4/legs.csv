@@ -1,0 +1,5 @@
+leg,type,start_s,duration_s,distance_sailed_nm,straight_nm,extra_pct,ideal_nm,extra_vs_ideal_m,track_angle,sog_avg,sog_steady,vmc_avg,vmc_steady,closing_steady,maneuvers,heel_abs_avg,heel_abs_std,trim_avg,tacking_angle,twd_est,vmg_steady,twa_steady,gybes,tacks,pct_time_stbd,sog_stbd,heel_stbd,pct_time_port,sog_port,heel_port
+1,upwind,6,1220,1.4,1.0,39.8,1.41,-10,48.2,4.14,4.26,2.77,2.84,4.16,6,11.2,3.3,3.5,81.3,274.0,2.83,41.2,0,6,33,3.81,9.5,67,4.48,12.0
+2,downwind,1227,973,1.33,0.95,40.6,1.3,59,45.6,4.91,4.97,3.37,3.42,4.96,2,3.3,2.1,-1.2,,,3.37,128.7,2,0,53,5.45,3.0,47,4.43,3.5
+3,upwind,2201,876,1.21,0.95,28.1,1.18,56,38.8,4.97,5.06,3.8,3.97,5.07,3,13.6,2.8,3.2,64.5,279.5,3.92,32.3,0,3,36,5.05,13.3,64,5.07,13.7
+4,downwind,3078,764,1.09,1.0,8.5,1.04,100,20.1,5.13,5.15,4.68,4.72,5.04,1,2.2,1.5,-1.6,,,4.66,157.7,1,0,47,5.03,1.9,53,5.26,2.5

@@ -47,21 +47,26 @@ function CurrentMap(root, D) {
           `(the unit already gives true heading); otherwise the unit is mounted or calibrated off. Wind directions and tacking ` +
           `headings from this boat are shifted by the same amount.`);
     }
-    if (D.boats.length > 1) {
-      const s = D.boats.map(b => [b, D.fits[b].slip]).sort((a, c) => c[1] - a[1]);
+    for (const b of D.boats.filter(b => D.fits[b].suspect))
+      notes.push(`<b>${b}'s compass doesn't match its track the same way on every heading:</b> it ${D.fits[b].suspect}. ` +
+        `The water was the same for every boat, so that's the heading sensor (uncompensated deviation, or the unit moving), not current. ` +
+        `${b} is left off the map and out of the comparisons below; judge its angles over the ground (COG), not by its compass.`);
+    const good = D.boats.filter(b => !D.fits[b].suspect);
+    if (good.length > 1) {
+      const s = good.map(b => [b, D.fits[b].slip]).sort((a, c) => c[1] - a[1]);
       const [hi, lo] = [s[0], s[s.length - 1]];
       if (hi[1] - lo[1] >= 1.5)
         notes.push(`<b>${hi[0]} slips ${(hi[1] - lo[1]).toFixed(1)}° more than ${lo[0]} upwind</b> (${hi[1].toFixed(1)}° against ${lo[1].toFixed(1)}°). ` +
           `They sailed the same water, so the difference is leeway, not current: usually pinching, or too little speed for the angle.`);
-      const c = D.boats.map(b => D.fits[b].cross_kt);
+      const c = good.map(b => D.fits[b].cross_kt);
       if (c.every(v => Math.abs(v) < 0.2))
-        notes.push(`<b>No measurable current across the course.</b> The boats' estimates (${D.boats.map(b => `${b} ${sgn(D.fits[b].cross_kt, 2)} kt`).join(", ")}) ` +
+        notes.push(`<b>No measurable current across the course.</b> The boats' estimates (${good.map(b => `${b} ${sgn(D.fits[b].cross_kt, 2)} kt`).join(", ")}) ` +
           `are within the noise (about ±0.2 kt). Any current ran along the wind, which shows up in slip and speed, not here.`);
       else if (c.every(v => v > 0) || c.every(v => v < 0))
         notes.push(`<b>Current across the course: about ${Math.abs(c.reduce((a, v) => a + v, 0) / c.length).toFixed(2)} kt toward the ` +
           `${c[0] > 0 ? "right" : "left"} side</b> (looking upwind), and every boat agrees.`);
       else
-        notes.push(`<b>The boats disagree on the current across the course</b> (${D.boats.map(b => `${b} ${sgn(D.fits[b].cross_kt, 2)} kt`).join(", ")}): treat it as unmeasured.`);
+        notes.push(`<b>The boats disagree on the current across the course</b> (${good.map(b => `${b} ${sgn(D.fits[b].cross_kt, 2)} kt`).join(", ")}): treat it as unmeasured.`);
     }
     // One boat drifting differently on its two gybes, in water another boat didn't find: a compass error
     const corr = (b, m, p) => (D.breakdown.find(x => x.boat === b && x.mode === m && x.side === p) || {}).corr;
@@ -169,7 +174,8 @@ function CurrentMap(root, D) {
     }
     if (C && R.length) {
       const pred = R.reduce((s, r) => s + r.across, 0) / R.length;
-      const meas = D.boats.length ? D.boats.reduce((s, b) => s + D.fits[b].cross_kt, 0) / D.boats.length : null;
+      const ok = D.boats.filter(b => !D.fits[b].suspect);
+      const meas = ok.length ? ok.reduce((s, b) => s + D.fits[b].cross_kt, 0) / ok.length : null;
       const side = v => (v > 0 ? "right" : "left");
       if (meas != null) {
         if (Math.abs(pred) < 0.25 && Math.abs(meas) < 0.25)

@@ -1,0 +1,10 @@
+time_s,kind,onto,leg,entry_sog,min_sog,speed_loss_kt,speed_loss_pct,recovery_s,distance_lost_m,heading_change,note,call_m
+11,Tack,Port,1,5.98,3.66,2.33,39,7,8.6,111,,6.8
+477,Tack,Stbd,1,6.04,4.17,1.87,31,12,3.5,-109,,-6.0
+717,Tack,Port,1,5.8,4.11,1.68,29,9,2.9,84,,-1.8
+756,Tack,Stbd,1,5.79,4.08,1.71,29,11,-2.9,-81,double (<30 s apart; loss numbers overlap),13.3
+784,Tack,Port,1,5.56,4.01,1.55,28,10,4.7,91,double (<30 s apart; loss numbers overlap),5.5
+838,Tack,Stbd,1,5.44,4.07,1.37,25,7,-24.4,-84,from past the layline (ending an overstand),-43.5
+1848,Tack,Port,3,5.97,3.85,2.12,35,13,10.8,82,,3.4
+2355,Tack,Stbd,3,5.65,4.15,1.49,26,7,-29.2,-112,from past the layline (ending an overstand),-28.2
+3022,Gybe,Port,4,6.33,5.45,0.88,14,9,-11.0,-14,from past the layline (ending an overstand),5.3
