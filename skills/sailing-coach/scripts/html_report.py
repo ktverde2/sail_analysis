@@ -804,6 +804,10 @@ def roundings_page(runs) -> str:
         + '<p class="facts">Metres lost toward the marks: VMC (speed toward this mark, then the next) from 30 s '
         "before to 60 s after the rounding, against the steady VMC of the leg before and after. Settled: 10 s "
         "VMC back to 90% of the next leg's.</p>"
+        '<p class="facts">Each track map opens zoomed on the mark: the dashed circle is the zone (three Etchells '
+        "lengths, 28 m, where mark-room applies) and the open circle is where the boat entered it. "
+        "<em>Wider view</em> shows the minute either side. The fleet report shows the roundings where "
+        "boats arrived together.</p>"
         + table
     ) + card(TIGHT_ROUNDINGS)
     for d, s in runs:

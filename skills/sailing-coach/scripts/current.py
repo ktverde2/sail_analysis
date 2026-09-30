@@ -186,6 +186,84 @@ def compass_check(fits: dict, per_race: list[dict]) -> None:
             fb["suspect"] = why
 
 
+T2T_MIN_N = 15  # steady samples (2 s apart) on each tack of a leg to compare them
+T2T_SIG_KT = 0.1  # a speed difference between tacks smaller than this is noise
+
+
+def tack_to_tack(f: pd.DataFrame, fits: dict) -> dict:
+    """Port against starboard on every leg, per boat: speed over ground and drift.
+
+    A current across the course makes one tack faster over the ground and the other slower. Each
+    leg's SOG difference is turned into the cross-course current that would explain it (dSOG over
+    how differently the two tracks point across the course), so the compass never enters it. The
+    drift (each boat's own compass offset and slip removed) gives a second, independent estimate.
+    Real current shows on every boat, holds from a beat to the run after it (same sign across the
+    course) and agrees with the drift; waves or pressure on one tack don't."""
+    rows = []
+    for (b, race, leg, mode), g in f.groupby(["boat", "race", "leg", "mode"]):
+        if b not in fits:
+            continue
+        st, pt = g[g.side == "S"], g[g.side == "P"]
+        if len(st) < T2T_MIN_N or len(pt) < T2T_MIN_N:
+            continue
+        def unit(x):
+            a = np.radians(x.cog.to_numpy())
+            v = np.array([np.mean(np.sin(a)), np.mean(np.cos(a))])
+            return v / (np.linalg.norm(v) or 1)
+        dv = unit(st) - unit(pt)
+        th = math.radians(float(g["axis"].iloc[0]) + 90)  # right across the course, looking upwind
+        across = math.sin(th) * dv[0] + math.cos(th) * dv[1]
+        d_sog = float(st.sog.median() - pt.sog.median())
+        c_sog = d_sog / across if abs(across) >= 0.3 else None
+        fb = fits[b]
+        sq = _square(g, fb["offset"])
+        left = np.radians(g.drift - fb["offset"] - fb["slip"] * g.up * g.sgn) * g.sog
+        ok = np.abs(sq) >= MIN_SQUARE
+        c_drift = float(np.median(left[ok] / sq[ok])) if ok.sum() >= 10 else None
+        rows.append({
+            "boat": b, "race": race, "leg": int(leg), "mode": mode,
+            "sog_s": round(float(st.sog.median()), 2), "sog_p": round(float(pt.sog.median()), 2),
+            "d_sog": round(d_sog, 2),
+            "c_sog": None if c_sog is None else round(c_sog, 2),
+            "c_drift": None if c_drift is None else round(c_drift, 2),
+            "suspect": bool(fb.get("suspect")),
+        })
+    t = pd.DataFrame(rows)
+    out = {"rows": rows}
+    if t.empty:
+        return out
+    good = t[~t.suspect]
+    # 1. shared: on each beat, do all boats show the same faster tack?
+    beats = t[(t["mode"] == "U") & (t.d_sog.abs() >= T2T_SIG_KT)]
+    shared = [g.d_sog.gt(0).nunique() == 1 for _, g in beats.groupby(["race", "leg"]) if len(g) >= 2]
+    out["shared"] = {"n": len(shared), "same": int(sum(shared))}
+    ub = t[t["mode"] == "U"]
+    out["faster_up"] = {"stbd": int((ub.d_sog >= T2T_SIG_KT).sum()), "port": int((ub.d_sog <= -T2T_SIG_KT).sum()),
+                        "n": int(len(ub)), "mean_kt": round(float(ub.d_sog.mean()), 2)}
+    # 2. held from beats to runs: a current's sign in the course frame doesn't depend on the leg
+    held = []
+    for (b, race), g in good.dropna(subset=["c_sog"]).groupby(["boat", "race"]):
+        u, dn = g[g["mode"] == "U"].c_sog, g[g["mode"] == "D"].c_sog
+        if len(u) and len(dn):
+            held.append(bool(np.sign(u.median()) == np.sign(dn.median())))
+    out["held"] = {"n": len(held), "same": int(sum(held))}
+    # runs of one race disagreeing with each other is the clearest tell
+    flips = []
+    for (b, race), g in good[good["mode"] == "D"].dropna(subset=["c_sog"]).groupby(["boat", "race"]):
+        if len(g) >= 2:
+            flips.append(bool(g.c_sog.gt(0).nunique() > 1))
+    out["run_flips"] = {"n": len(flips), "flipped": int(sum(flips))}
+    # 3. the drift agrees?
+    both = good.dropna(subset=["c_sog", "c_drift"])
+    out["agree"] = {
+        "n": int(len(both)),
+        "r": round(float(both.c_sog.corr(both.c_drift)), 2) if len(both) >= 6 else None,
+        "sog_median": round(float(both.c_sog.median()), 2) if len(both) else None,
+        "drift_median": round(float(both.c_drift.median()), 2) if len(both) else None,
+    }
+    return out
+
+
 # --- page data ---------------------------------------------------------------------------------
 
 
@@ -207,6 +285,7 @@ def build(drifts: list[dict], boat_order: list[str]) -> dict | None:
     f = f[f.boat.isin(fits)].copy()
     if f.empty:
         return None
+    t2t = tack_to_tack(f, fits)
     f["offset"] = f.boat.map(lambda b: fits[b]["offset"])
     f["slip"] = f.boat.map(lambda b: fits[b]["slip"])
     f["corr"] = f.drift - f.offset  # drift with the compass offset removed
@@ -271,6 +350,7 @@ def build(drifts: list[dict], boat_order: list[str]) -> dict | None:
         "races": races,
         "fits": fits,
         "per_race": per_race,
+        "t2t": t2t,
         "breakdown": breakdown,
         "legs": legs,
         "marks": uniq,
@@ -351,6 +431,18 @@ def fragment(extra_class: str = "") -> str:
       difference in leeway. Current <b>across</b> the course can be measured, and so can where the set was stronger.</p>
     <div class="tk-tablewrap" style="margin-top:8px"><table class="tk-cmp" data-r="fits"></table></div>
     <div data-r="fitnotes"></div>
+  </div>
+  <div class="tk-card">
+    <h2>Tack to tack: speed and drift</h2>
+    <p class="tk-note" style="font-size:14px;color:var(--tk-ink2)">A current across the course makes one tack faster over the ground
+      and the other slower, and pushes both tracks the same way. Comparing port with starboard on the same leg, for the same boat,
+      takes the compass out of the speed test completely (each boat's compass is calibrated differently). Real current shows up on
+      every boat, holds from a beat to the run after it, and agrees with the drift. Waves or pressure on one tack don't.</p>
+    <div class="tk-legend" data-r="leg-t2t"></div>
+    <div class="tk-chart" data-r="t2t"></div>
+    <p class="tk-note">Each dot is one boat on one leg: its median SOG on starboard minus port (steady sailing only). Circles: beats;
+      diamonds: runs. Hover for the current across the course each would imply, and what the drift says.</p>
+    <div data-r="t2tnotes"></div>
   </div>
   <div class="tk-card" data-r="noaa-card" hidden>
     <h2>Tide and current from NOAA</h2>

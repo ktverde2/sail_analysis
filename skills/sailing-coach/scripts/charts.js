@@ -314,6 +314,7 @@
     const a = Math.abs(Math.round(t));
     return (t < 0 ? '−' : '+') + Math.floor(a / 60) + ':' + String(a % 60).padStart(2, '0');
   }
+  const ZONE_M = 3 * 9.3;  // RRS zone: three hull lengths (Etchells LOA 9.3 m)
   function fit(xs, ys, pad) {
     xs = xs.filter(v => v !== null); ys = ys.filter(v => v !== null);
     return [[Math.min(...xs) - pad, Math.max(...xs) + pad], [Math.min(...ys) - pad, Math.max(...ys) + pad]];
@@ -402,32 +403,75 @@
       }), CONFIG);
     },
 
-    // The minute either side of a rounding, coloured by time from it
+    // The rounding, zoomed on the mark: the zone (three hull lengths), when the boat entered it,
+    // and the minute either side coloured by time from the rounding (a button widens the view)
     roundTrack(el, d, c) {
       const s = d.series, r = d.roundings.find(x => x.n === +el.dataset.n);
       const { idx, g } = pick(d, (i, t) => t >= r.time_s - 60 && t <= r.time_s + 60);
       const rel = i => s.t[i] - r.time_s;
-      const [xr, yr] = fit(g(s.x), g(s.y), 25);
+      const wide = fit(g(s.x), g(s.y), 25);
       const at = d.idxAt(r.time_s);
-      // the leg that comes into this mark
+      // the mark rounded: the course point nearest the boat at the rounding (a gate: both its marks get a zone)
+      let mark = null, markEl = null;
+      d.course.filter(e => e.type === 'Mark' || e.type === 'Gate').forEach(e => e.pts.forEach(p => {
+        const dd = Math.hypot(p[0] - s.x[at], p[1] - s.y[at]);
+        if (!mark || dd < mark.d) { mark = { x: p[0], y: p[1], d: dd }; markEl = e; }
+      }));
+      const shapes = [], ann = [];
+      let zin = null;
+      if (mark) {
+        markEl.pts.forEach(p => shapes.push({ type: 'circle', xref: 'x', yref: 'y', x0: p[0] - ZONE_M, x1: p[0] + ZONE_M,
+          y0: p[1] - ZONE_M, y1: p[1] + ZONE_M, line: { color: c.ink2 || c.line, width: 1, dash: 'dash' } }));
+        ann.push({ x: mark.x, y: mark.y + ZONE_M, text: 'zone (3 lengths, ' + Math.round(ZONE_M) + ' m)', showarrow: false, yshift: 8,
+          font: { size: 10, color: c.ink2 || c.line } });
+        // zone entry: walk back from the rounding while the boat is inside the zone
+        const inZone = i => s.x[i] !== null && Math.hypot(s.x[i] - mark.x, s.y[i] - mark.y) <= ZONE_M;
+        let k = idx.indexOf(at);
+        if (k >= 0 && inZone(idx[k])) {
+          while (k > 0 && inZone(idx[k - 1])) k -= 1;
+          zin = idx[k];
+        }
+      }
+      // zoomed view: the zone and the track from 15 s before zone entry to 20 s after the rounding
+      let zoom = wide;
+      if (mark) {
+        const from = (zin !== null ? s.t[zin] : r.time_s - 20) - 15, to = r.time_s + 20;
+        const zi = idx.filter(i => s.t[i] >= from && s.t[i] <= to && s.x[i] !== null);
+        const xs = zi.map(i => s.x[i]).concat([mark.x - ZONE_M, mark.x + ZONE_M]);
+        const ys = zi.map(i => s.y[i]).concat([mark.y - ZONE_M, mark.y + ZONE_M]);
+        const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+        const half = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) / 2 + 10;
+        zoom = [[cx - half, cx + half], [cy - half, cy + half]];
+      }
       const into = d.legs.reduce((b, l) => (Math.abs(l.start_s + l.duration_s - r.time_s) < Math.abs(b.start_s + b.duration_s - r.time_s) ? l : b), d.legs[0]);
       const tr = [
         { x: g(s.x), y: g(s.y), mode: 'lines', line: { color: c.line, width: 1 }, hoverinfo: 'skip' },
         { x: g(s.x), y: g(s.y), mode: 'markers', text: idx.map(i => s.hover[i] + '<br>Rounding ' + relClock(rel(i))),
           hovertemplate: '%{text}<extra></extra>',
-          marker: { size: 6, color: idx.map(rel), colorscale: c.seq, cmin: -60, cmax: 60, showscale: !narrow(),
+          marker: { size: 7, color: idx.map(rel), colorscale: c.seq, cmin: -60, cmax: 60, showscale: !narrow(),
             colorbar: { title: { text: 's from rounding', side: 'right' }, thickness: 10, len: 0.7, outlinewidth: 0 } } },
         ...courseTraces(d, c),
         { x: [s.x[at]], y: [s.y[at]], mode: 'markers', marker: { size: 12, color: c.orange, line: { color: c.card, width: 2 } },
           text: [s.hover[at]], hovertemplate: 'Rounding<br>%{text}<extra></extra>' },
-        ...ladderFor(d, c, into ? [into.leg] : []),
       ];
-      Plotly.newPlot(el, tr, withLadder(tr, layout(c, {
-        title: title(c, 'Track, a minute either side (orange = rounding)', 'Track ±60 s'),
-        xaxis: axis(c, { title: 'metres (upwind is up)', zeroline: false, range: xr }),
-        yaxis: axis(c, { scaleanchor: 'x', zeroline: false, range: yr }),
-        hovermode: 'closest', height: mapHeight(el, xr, yr, 300, 460),
-      }), c), CONFIG);
+      if (zin !== null) tr.push({ x: [s.x[zin]], y: [s.y[zin]], mode: 'markers', marker: { size: 13, symbol: 'circle-open', color: c.ink, line: { width: 2 } },
+        text: [s.hover[zin] + '<br>' + relClock(rel(zin)) + ' before the rounding'], hovertemplate: 'Into the zone<br>%{text}<extra></extra>' });
+      tr.push(...ladderFor(d, c, into ? [into.leg] : []));
+      const lay = withLadder(tr, layout(c, {
+        title: title(c, 'At the mark' + (zin !== null ? ' · into the zone (○) ' + (r.time_s - s.t[zin]) + ' s before rounding' : ''), 'At the mark'),
+        xaxis: axis(c, { title: 'metres (upwind is up)', zeroline: false, range: zoom[0] }),
+        yaxis: axis(c, { scaleanchor: 'x', zeroline: false, range: zoom[1] }),
+        shapes, annotations: ann, hovermode: 'closest', height: mapHeight(el, zoom[0], zoom[1], 300, 460),
+      }), c);
+      if (mark) lay.updatemenus = (lay.updatemenus || []).concat([{
+        type: 'buttons', direction: 'right', showactive: false, active: -1,
+        x: 1.0, xanchor: 'right', y: 1.0, yanchor: 'top',
+        pad: { t: 2, b: 2, l: 0, r: 0 }, bgcolor: c.card || 'rgba(0,0,0,0)', bordercolor: c.line, borderwidth: 1,
+        font: { size: 11, color: c.ink },
+        buttons: [{ label: 'Wider view (±60 s)', method: 'relayout',
+          args: [{ 'xaxis.range': wide[0], 'yaxis.range': wide[1] }], args2: [{ 'xaxis.range': zoom[0], 'yaxis.range': zoom[1] }] }],
+      }]);
+      Plotly.newPlot(el, tr, lay, CONFIG);
     },
 
     // Speed and VMG through a rounding, against the steady VMG of the legs either side

@@ -31,11 +31,18 @@
 
 *Also worth a look:*
 - **Race 4, first beat: 1:49 lost to 1216 and 54 s to 969**
-  - The wind went about 11° left and we worked the right (80% of the beat right of the rhumb line), with 6 tacks. 1216 stayed in the middle.
+  - The wind went 15° left two minutes after the start and kept backing (25° in all by the top). We worked the right (80% of the beat right of the rhumb line), with 6 tacks. 1216 was out on the left when it came.
 - **Race 5, last beat: 4:35 lost to 969 in a dying right shift**
-  - The wind went about 40–60° right as it faded. 969 was on the right, and we were in the middle (58%). See the Race 5 replay on the fleet page.
+  - The wind went 20–35° right as it faded. 969 went right first and stayed there. We went right, then sailed the lifted starboard tack back to the left while the wind was still going right. See the Race 5 wind chart on the fleet page.
 - **Race 2, second windward rounding: 79 m lost toward the marks**
   - 27 m of it in the 30 s before the mark (pinching up to it), then 50 s to settle on the run.
+
+**What the wind did, and where we were** (from all three boats' GPS tracks, so no compass error; magnetic)
+- **Race 1, beat 1: the left paid, and we were on it.** The wind went 16° left (273° to 258°). We were the least far right of the three, fastest up the beat, and gained 29 s on 1216, which was 220 m further right. The shift alone was worth about 26 s. The pin start set that up.
+- **Races 2 and 3: no side paid.** Steady or oscillating (±4°). The 47 s lost on Race 3's first beat and 51 s on its run were speed and distance, not the wind.
+- **Race 4, beat 1: the new wind came on the left, and we went right.** 15° left at two minutes, 25° by the top. We started mid-line (42%), about 150 m right of 1216, and tacked onto port with everyone at about two minutes. When 1216 went furthest left, it gained 56 s on 969, the furthest right; the shift alone was worth about 53 s.
+- **Race 5, last beat: we left the new wind.** From about 35 minutes the wind went right, from 280° to 304–316°. We were 280 m right by 38 minutes, then tacked back across to the left (200 m left by 50 minutes) on the lifted starboard tack while it was still right. 969 stayed right and gained 4:35.
+- **Next time:** A shift of 10° or more that holds for two or three minutes is the new wind, not an oscillation. Get to that side (sail the header toward it first) before you tack back. In a dying breeze, the side the wind is going to usually has the pressure too.
 
 **Start scorecard**
 | Race | Back at −60 s | Late (s) | Line pos | Back at gun | SOG at −30 s / gun | Accel (±5 s) |

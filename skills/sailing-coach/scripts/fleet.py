@@ -70,7 +70,8 @@ DETAIL_SMOOTH_S = 15
 
 def load_fleet(data_dir: Path, reports_dir: Path, tz: str | None = None) -> list[dict]:
     boats = []
-    for d in sorted(p for p in data_dir.iterdir() if p.is_dir()):
+    # same order (so the same colour for each boat) as the Current, Tacks and Gybes pages
+    for d in sorted((p for p in data_dir.iterdir() if p.is_dir()), key=lambda p: (p.name != "Mojo", p.name)):
         races = {}
         for csv in sorted(d.glob("race*.csv")):
             summ = reports_dir / d.name / csv.stem / "summary.json"
@@ -183,6 +184,272 @@ def tacking_angles(g: pd.DataFrame, leg_start) -> dict:
         "ta_cog": ta_cog,
         "slip_per_tack": round((ta_cog - ta_hdg) / 2, 1),
     }
+
+
+# ---------------------------------------------------------------- wind and sides
+
+WIND_BIN_S = 60  # the fleet's wind is a median of every boat's estimate in each minute
+WIND_SETTLE_S = 25  # skip this long after a mark, a tack or a gybe
+WIND_MIN_SAMPLES = 20  # a minute needs this many boat-seconds
+XTE_STEP_S = 10  # "who was where" series step
+PAID_S = 10  # a side "paid" when the boat furthest on it beat the boat furthest the other way by this
+
+
+def fleet_wind(per_second: dict, names: dict, leg_types: list[str], origins, targets) -> dict:
+    """The wind through each leg from every boat's GPS track, and which side paid.
+
+    Compass-free: on each leg, each boat's two tacks (or gybes) give its angle over the ground.
+    Every second on one of them, the wind is that track turned by half the boat's own angle, so
+    compass calibration, leeway and a steady current all drop out. The fleet's wind in each minute
+    is the median of every boat's estimate. Shift patterns use analyze.py's thresholds."""
+    rows = []
+    for bid, g0 in per_second.items():
+        for li, lt in enumerate(leg_types):
+            leg = g0[g0.leg == li]
+            if leg.empty:
+                continue
+            g = leg[
+                (leg.since_leg > WIND_SETTLE_S)
+                & (leg.since_side > WIND_SETTLE_S)
+                & (leg.index < leg.index.max() - WIND_SETTLE_S)
+                & (leg.SOG > 1.5)
+            ]
+            a, b = g[g.side < 0], g[g.side > 0]
+            if len(a) < 30 or len(b) < 30:
+                continue
+            ma, mb = _circ_mean(a.COG), _circ_mean(b.COG)
+            mid = _circ_mean([ma, mb])  # up (or down) the course between the two tracks
+            w = pd.concat([a.COG + A.adiff(ma, mid), b.COG + A.adiff(mb, mid)])
+            if lt == "downwind":
+                w = w + 180  # wind blows from the opposite way to the run
+            rows.append(pd.DataFrame({"s": w.index, "w": np.mod(w.to_numpy(), 360), "boat": bid, "leg": li}))
+    if not rows:
+        return {}
+    f = pd.concat(rows, ignore_index=True)
+    f["bin"] = (f.s // WIND_BIN_S) * WIND_BIN_S
+    series = []
+    for t, g in f.groupby("bin"):
+        if len(g) >= WIND_MIN_SAMPLES:
+            series.append({"s": int(t + WIND_BIN_S / 2), "twd": round(_circ_mean(g.w) % 360, 1),
+                           "n": int(g.boat.nunique())})
+    legs = []
+    for li, g in f.groupby("leg"):
+        tr = [(t, _circ_mean(x.w) % 360) for t, x in g.groupby("bin") if len(x) >= WIND_MIN_SAMPLES]
+        if len(tr) < 4:
+            continue
+        t = np.array([v[0] for v in tr], float)
+        rel = A.adiff(tr[0][1], [v[1] for v in tr]).astype(float)
+        mins = (t - t[0]) / 60
+        slope, icpt = np.polyfit(mins, rel, 1)
+        trend = float(slope * mins[-1])
+        osc = float(np.std(rel - (slope * mins + icpt)))
+        if abs(trend) >= 5 and abs(trend) > 1.5 * osc:
+            pattern = f"persistent {'right' if trend > 0 else 'left'} shift"
+        elif osc >= 3:
+            pattern = "oscillating"
+        else:
+            pattern = "steady"
+        # each boat's side of the rhumb line (+ right looking at the mark) and its time on the leg
+        ox, oy = origins[li]
+        tx, ty = targets[li] if li < len(targets) else (ox, oy)
+        L = math.hypot(tx - ox, ty - oy) or 1.0
+        ux, uy = (tx - ox) / L, (ty - oy) / L
+        sides = {}
+        for bid, g0 in per_second.items():
+            leg = g0[g0.leg == li]
+            if leg.empty:
+                continue
+            xte = (leg.x - ox) * uy - (leg.y - oy) * ux
+            sides[bid] = {
+                "mean_m": round(float(xte.mean())),
+                "pct_right": round(float((xte > 0).mean() * 100)),
+                "secs": int(leg.index.max() - leg.index.min()),
+            }
+        best = min(v["secs"] for v in sides.values()) if sides else None
+        for v in sides.values():
+            v["vs_best_s"] = v["secs"] - best
+        twd0 = _circ_mean([v[1] for v in tr[:2]]) % 360
+        twd1 = _circ_mean([v[1] for v in tr[-2:]]) % 360
+        net = float(A.adiff(twd0, twd1))
+        paid = None
+        if pattern.startswith("persistent") and len(sides) >= 2:
+            fav = "right" if trend > 0 else "left"
+            order = sorted(sides, key=lambda k: sides[k]["mean_m"], reverse=(fav == "right"))
+            far, other = order[0], order[-1]
+            gain = sides[other]["secs"] - sides[far]["secs"]
+            # what the shift alone was worth: lateral separation turned into ladder rungs by the
+            # net shift, at the leg's speed toward the mark
+            sep = abs(sides[far]["mean_m"] - sides[other]["mean_m"])
+            speed = L / max(min(v["secs"] for v in sides.values()), 1)  # m/s along the rhumb line
+            worth = sep * math.sin(math.radians(abs(net))) / speed
+            verdict = (
+                "too close together to matter" if worth < PAID_S
+                else "paid" if gain >= PAID_S
+                else "didn't pay" if gain <= -PAID_S
+                else "even"
+            )
+            paid = {
+                "side": fav,
+                "boat": names[far],
+                "vs": names[other],
+                "gain_s": int(gain),
+                "sep_m": round(sep),
+                "worth_s": round(worth),
+                "verdict": verdict,
+            }
+        legs.append({
+            "leg": li + 1,
+            "type": leg_types[li],
+            "start_s": int(t[0]),
+            "end_s": int(t[-1] + WIND_BIN_S),
+            "twd_start": round(twd0, 1),
+            "twd_end": round(twd1, 1),
+            "net_deg": round(net, 1),
+            "left_deg": round(float(-min(rel.min(), 0))),
+            "right_deg": round(float(max(rel.max(), 0))),
+            "trend_deg": round(trend, 1),
+            "oscillation_deg": round(osc, 1),
+            "pattern": pattern,
+            "boats": sides,
+            "paid": paid,
+        })
+    # each boat's distance from the rhumb line of the leg it's on (+ right looking at the mark)
+    xte = {}
+    for bid, g0 in per_second.items():
+        g = g0[g0.index % XTE_STEP_S == 0]
+        ss, mm = [], []
+        for s_, row in zip(g.index, g.itertuples()):
+            li = int(row.leg)
+            ox, oy = origins[li]
+            tx, ty = targets[li] if li < len(targets) else (ox, oy)
+            L = math.hypot(tx - ox, ty - oy) or 1.0
+            ss.append(int(s_))
+            mm.append(round(float(((row.x - ox) * (ty - oy) - (row.y - oy) * (tx - ox)) / L)))
+        xte[bid] = {"s": ss, "m": mm}
+    return {"series": series, "legs": legs, "xte": xte}
+
+
+# ---------------------------------------------------------------- close roundings
+
+ETCHELLS_LOA_M = 9.3
+ZONE_M = 3 * ETCHELLS_LOA_M  # RRS zone: three hull lengths of the boat nearer the mark
+CLOSE_ROUNDING_S = 30  # boats rounding within this of each other get a close-up
+ROUNDING_WINDOW_S = (-60, 40)
+
+
+def close_roundings(
+    per_second: dict, names: dict, marks_xy: list[list], labels: list[str], passes: dict, axis: float
+) -> list[dict]:
+    """Every mark where two or more boats rounded within CLOSE_ROUNDING_S of each other: tracks
+    around it, who entered the zone first, and whether they were overlapped then (from GPS, so
+    to about a metre or two: good for a debrief, not a protest)."""
+    out = []
+    for j, pts in enumerate(marks_xy):
+        order = sorted((passes[b][j], b) for b in passes if j < len(passes[b]))
+        groups, cur = [], [order[0]] if order else []
+        for prev, nxt in zip(order, order[1:]):
+            if nxt[0] - prev[0] <= CLOSE_ROUNDING_S:
+                cur.append(nxt)
+            else:
+                groups.append(cur)
+                cur = [nxt]
+        if cur:
+            groups.append(cur)
+        for grp in groups:
+            if len(grp) < 2:
+                continue
+            t0 = grp[0][0] + ROUNDING_WINDOW_S[0]
+            t1 = grp[-1][0] + ROUNDING_WINDOW_S[1]
+            boats = {}
+            for tp, bid in grp:
+                g = per_second[bid]
+                w = g[(g.index >= t0) & (g.index <= t1)]
+                if w.empty:
+                    continue
+                d = np.min([np.hypot(w.x - px, w.y - py) for px, py in pts], axis=0)
+                k = int(np.argmin(np.abs(w.index - tp)))
+                near = int(np.argmin([math.hypot(w.x.iloc[k] - px, w.y.iloc[k] - py) for px, py in pts]))
+                inside = np.flatnonzero(d <= ZONE_M)
+                before = inside[inside <= k]
+                zin = zout = None
+                if len(before):
+                    i = before[-1]
+                    while i > 0 and d[i - 1] <= ZONE_M:
+                        i -= 1
+                    zin = int(w.index[i])
+                    e = before[-1]
+                    while e + 1 < len(d) and d[e + 1] <= ZONE_M:
+                        e += 1
+                    zout = int(w.index[e])
+                boats[bid] = {
+                    "name": names[bid],
+                    "pass_s": int(tp),
+                    "zone_in_s": zin,
+                    "zone_out_s": zout,
+                    "closest_m": round(float(d.min()), 1),
+                    "mark": near,
+                    "t": [int(v) for v in w.index],
+                    "x": [round(float(v), 1) for v in w.x],
+                    "y": [round(float(v), 1) for v in w.y],
+                    "sog": [None if pd.isna(v) else round(float(v), 2) for v in w.SOG],
+                    "cog": [None if pd.isna(v) else round(float(v)) for v in w.COG],
+                }
+            if len(boats) < 2:
+                continue
+            # the moment the first boat reaches the zone: where is everyone else?
+            ins = [(v["zone_in_s"], k) for k, v in boats.items() if v["zone_in_s"] is not None]
+            at = min(ins)[0] if ins else grp[0][0]
+            first = min(ins)[1] if ins else grp[0][1]
+            fb = boats[first]
+            i0 = fb["t"].index(at) if at in fb["t"] else 0
+            fx, fy, fc = fb["x"][i0], fb["y"][i0], fb["cog"][i0]
+            mx, my = pts[fb["mark"]]
+            fb["at_first_zone"] = {"to_mark_m": round(math.hypot(fx - mx, fy - my), 1)}
+            h = math.radians((fc or 0) - axis)  # the first boat's course in the course frame
+            ux, uy = math.sin(h), math.cos(h)
+            for k, v in boats.items():
+                if k == first or at not in v["t"]:
+                    continue
+                i = v["t"].index(at)
+                dx, dy = v["x"][i] - fx, v["y"][i] - fy
+                along = dx * ux + dy * uy  # + ahead of the first boat, along its course
+                rel = ("rounded the other gate mark" if v["mark"] != fb["mark"]
+                       else "overlapped" if abs(along) < ETCHELLS_LOA_M
+                       else "clear astern" if along < 0 else "clear ahead")
+                v["at_first_zone"] = {
+                    "dist_m": round(math.hypot(dx, dy), 1),
+                    "behind_m": round(-along, 1),
+                    "abeam_m": round(abs(dx * uy - dy * ux), 1),
+                    "to_mark_m": round(math.hypot(v["x"][i] - mx, v["y"][i] - my), 1),
+                    "relation": rel,
+                }
+            # closest approach between each pair, and when
+            pairs = []
+            ids = list(boats)
+            for a_i, a in enumerate(ids):
+                for b in ids[a_i + 1:]:
+                    ta = dict(zip(boats[a]["t"], zip(boats[a]["x"], boats[a]["y"])))
+                    tb = dict(zip(boats[b]["t"], zip(boats[b]["x"], boats[b]["y"])))
+                    common = sorted(set(ta) & set(tb))
+                    if not common:
+                        continue
+                    dd = [math.hypot(ta[t][0] - tb[t][0], ta[t][1] - tb[t][1]) for t in common]
+                    k = int(np.argmin(dd))
+                    pairs.append({"a": a, "b": b, "closest_m": round(dd[k], 1), "at_s": int(common[k]),
+                                  "same_mark": boats[a]["mark"] == boats[b]["mark"]})
+            out.append({
+                "pairs": pairs,
+                "mark": labels[j] if j < len(labels) else f"Mark {j + 1}",
+                "j": j,
+                "pts": [[round(float(px), 1), round(float(py), 1)] for px, py in pts],
+                "zone_m": ZONE_M,
+                "t0": int(t0),
+                "t1": int(t1),
+                "first_in": first,
+                "first_in_s": int(at),
+                "boats": boats,
+            })
+    return out
 
 
 # ---------------------------------------------------------------- side by side
@@ -607,6 +874,8 @@ def race_fleet(stem: str, entries: list[tuple[dict, dict]]) -> dict:
             },
         }
         if course_xy is None:
+            race_axis = A.upwind_axis(race) or 0.0
+            mag_var = summ.get("mag_var")
             course_xy = [
                 {"type": c["type"], "pts": [list(map(float, xy(*p))) for p in A._course_points(c)]}
                 for c in race.course
@@ -657,6 +926,12 @@ def race_fleet(stem: str, entries: list[tuple[dict, dict]]) -> dict:
         b["time_split_s"] = {k: round(v) for k, v in split.items()}
     leg_types = [lg["type"] for lg in ref_legs[:n]]
     ladders = race_ladders(per_second, course_xy, origins_xy, leg_types)
+    names = {k: b["name"] for k, b in boats.items()}
+    marks_xy = [c["pts"] for c in course_xy if c["type"] in ("Mark", "Gate")]
+    wind = fleet_wind(per_second, names, leg_types, origins_xy, targets_xy)
+    closes = close_roundings(
+        per_second, names, marks_xy, labels, {k: b["passes_s"] for k, b in boats.items()}, race_axis
+    )
     return {
         "stem": stem,
         "race": race_name,
@@ -667,6 +942,10 @@ def race_fleet(stem: str, entries: list[tuple[dict, dict]]) -> dict:
         "course": course_xy,
         "targets": targets_xy,
         "ladders": ladders,
+        "axis": round(race_axis, 1),
+        "mag_var": mag_var,
+        "wind": wind,
+        "close_roundings": closes,
         "boats": boats,
         "pairs": place_pairs(
             side_by_side(per_second, leg_types, ladders), per_second, origins_xy, targets_xy, stem
@@ -825,6 +1104,76 @@ def _mmss(s):
 
 def _plus(s):
     return "–" if s is None else "0" if s == 0 else f"+{_mmss(s)}"
+
+
+def _deg(v, r) -> str:
+    mv = r.get("mag_var")
+    return f"{((v - mv) % 360 if mv is not None else v):.0f}°"
+
+
+def wind_md(r: dict) -> list[str]:
+    """Wind through each leg (from the boats' tracks) and which side paid."""
+    W = r.get("wind") or {}
+    if not W.get("legs"):
+        return []
+    nth = "magnetic" if r.get("mag_var") is not None else "true"
+    names = {k: b["name"] for k, b in r["boats"].items()}
+    L = [
+        "",
+        f"**Wind and sides** (wind from every boat's GPS tracks, {nth}; side: metres from the rhumb line on "
+        "average, + right looking at the mark)",
+        "",
+        "| Leg | Wind start → end | Swing (left / right) | Pattern | Where the boats were (time vs fastest) | What paid |",
+        "|---|---|---|---|---|---|",
+    ]
+    for lg in W["legs"]:
+        name = r["leg_names"][lg["leg"] - 1] if lg["leg"] - 1 < len(r.get("leg_names", [])) else f"Leg {lg['leg']}"
+        where = ", ".join(
+            f"{names[k]} {v['mean_m']:+d} m ({'+' + str(v['vs_best_s']) + ' s' if v['vs_best_s'] else 'fastest'})"
+            for k, v in sorted(lg["boats"].items(), key=lambda kv: kv[1]["mean_m"])
+        )
+        p = lg.get("paid")
+        if p and p["verdict"] == "too close together to matter":
+            what = (f"{p['side']}, but the boats were {p['sep_m']} m apart across the course: the shift was worth "
+                    f"about {p['worth_s']} s, so speed decided it")
+        elif p:
+            what = (f"{p['side']} {p['verdict']}: {p['boat']}, furthest {p['side']} ({p['sep_m']} m further than "
+                    f"{p['vs']}), {'gained' if p['gain_s'] >= 0 else 'lost'} {abs(p['gain_s'])} s; the shift alone was "
+                    f"worth about {p['worth_s']} s")
+        elif lg["pattern"] == "oscillating":
+            what = f"no side: oscillating ±{lg['oscillation_deg']:.0f}°, the shifts paid, not a side"
+        else:
+            what = "no side: steady, speed and lanes decided it"
+        L.append(
+            f"| {name} | {_deg(lg['twd_start'], r)} → {_deg(lg['twd_end'], r)} | {lg['left_deg']}° / {lg['right_deg']}° "
+            f"| {lg['pattern']} ({lg['trend_deg']:+.0f}° trend) | {where} | {what} |"
+        )
+    return L
+
+
+def close_md(r: dict) -> list[str]:
+    C = r.get("close_roundings") or []
+    if not C:
+        return []
+    L = ["", f"**Close roundings** (tracked boats within {CLOSE_ROUNDING_S} s of each other at a mark; zone = 3 lengths, "
+         f"{ZONE_M:.0f} m; overlap from GPS)", ""]
+    for c in C:
+        t0 = c["boats"][c["first_in"]]["pass_s"]
+        first = c["boats"][c["first_in"]]["name"]
+        parts = []
+        for k, b in c["boats"].items():
+            z = b.get("at_first_zone") or {}
+            rel = z.get("relation")
+            txt = f"{b['name']} rounded {b['pass_s'] - t0:+d} s"
+            if rel and k != c["first_in"]:
+                txt += f" ({rel} when {first} reached the zone" + (
+                    f", {abs(z['behind_m']):.0f} m {'behind' if z['behind_m'] >= 0 else 'ahead'})" if rel != "rounded the other gate mark" else ")")
+            parts.append(txt)
+        close = min(c["pairs"], key=lambda p: p["closest_m"]) if c.get("pairs") else None
+        if close:
+            parts.append(f"closest: {c['boats'][close['a']]['name']} and {c['boats'][close['b']]['name']} {close['closest_m']:.0f} m")
+        L.append(f"- {c['mark']}: " + "; ".join(parts) + ".")
+    return L
 
 
 def write_md(fa: dict, out: Path, title: str) -> str:
@@ -998,6 +1347,7 @@ def write_md(fa: dict, out: Path, title: str) -> str:
                 )
                 + " |"
             )
+        L += wind_md(r) + close_md(r)
     L += [
         "",
         (
@@ -1099,6 +1449,145 @@ FLEET_JS = r"""
       const lay = base(r.race + ': seconds behind the first tracked boat at each mark', 340, el);
       lay.yaxis.autorange = 'reversed'; lay.yaxis.title = 's behind';
       Plotly.newPlot(el, traces, lay, CONFIG);
+    },
+    // Wind through the race from every boat's tracks (compass-free), and where each boat was
+    wind(el, r) {
+      const W = r.wind;
+      if (!W || !W.series || !W.series.length) { el.textContent = 'Not enough steady sailing to estimate the wind.'; return; }
+      const mv = r.mag_var == null ? 0 : r.mag_var, nth = r.mag_var == null ? '° true' : '° mag';
+      const m = v => ((v - mv) % 360 + 360) % 360;
+      // unwrap around the race's median so a wind near 360/0 doesn't jump
+      const ref = m(W.series[Math.floor(W.series.length / 2)].twd);
+      const un = v => ref + (((m(v) - ref) % 360 + 540) % 360 - 180);
+      const muted = css('--ink2'), line = css('--line');
+      const tr = [{ x: W.series.map(p => p.s / 60), y: W.series.map(p => un(p.twd)), mode: 'lines+markers', name: 'wind (fleet)',
+        line: { color: css('--ink'), width: 2 }, marker: { size: 5 }, yaxis: 'y',
+        customdata: W.series.map(p => [Math.round(m(p.twd)), p.n]),
+        hovertemplate: '%{x:.0f} min: wind from %{customdata[0]}' + nth + '<br>%{customdata[1]} boat(s)<extra></extra>' }];
+      for (const id of Object.keys(r.boats)) {
+        const b = r.boats[id], xs = (W.xte || {})[id];
+        if (!xs) continue;
+        tr.push({ x: xs.s.map(s => s / 60), y: xs.m, mode: 'lines', name: b.name, yaxis: 'y2',
+          line: { color: col(b), width: 2 }, hovertemplate: '<b>' + b.name + '</b> %{x:.0f} min: %{y} m ' +
+          '<extra></extra>', customdata: xs.m });
+      }
+      // shade the beats (from the first boat to start each leg to the last to finish it)
+      const shapes = [];
+      const B = Object.values(r.boats);
+      r.leg_types.forEach((t, j) => {
+        if (t !== 'upwind') return;
+        const a = Math.min(...B.map(b => b.legs[j] ? b.legs[j].start_s : Infinity)) / 60;
+        const z = Math.max(...B.map(b => b.legs[j] ? b.legs[j].end_s : -Infinity)) / 60;
+        if (isFinite(a) && isFinite(z)) shapes.push({ type: 'rect', xref: 'x', yref: 'paper', x0: a, x1: z, y0: 0, y1: 1,
+          fillcolor: muted, opacity: 0.07, line: { width: 0 }, layer: 'below' });
+      });
+      shapes.push({ type: 'line', xref: 'paper', x0: 0, x1: 1, yref: 'y2', y0: 0, y1: 0, line: { color: muted, width: 1, dash: 'dot' } });
+      const lay = base(r.race + ': wind from the boats’ tracks, and where each boat was (shaded = beats)', 480, el);
+      lay.grid = { rows: 2, columns: 1, roworder: 'top to bottom' };
+      lay.yaxis = Object.assign(lay.yaxis, { title: 'wind from (' + nth.slice(2) + ')', domain: [0.56, 1] });
+      lay.yaxis2 = { title: 'm from rhumb line<br>(+ right, looking at the mark)', domain: [0, 0.44], gridcolor: line, zerolinecolor: muted, anchor: 'x' };
+      lay.xaxis.title = 'minutes from the gun'; lay.xaxis.anchor = 'y2';
+      lay.shapes = shapes; lay.hovermode = 'x unified';
+      Plotly.newPlot(el, tr, lay, CONFIG);
+    },
+    // Boats rounding a mark close together: tracks, the zone and a time slider
+    marks(el, r) {
+      const C = r.close_roundings || [];
+      if (!C.length) { el.textContent = 'No two tracked boats rounded a mark within 30 s of each other.'; return; }
+      el.classList.remove('chart');
+      C.forEach((c, ci) => {
+        const ids = Object.keys(c.boats).sort((a, b) => c.boats[a].pass_s - c.boats[b].pass_s), t0 = c.boats[c.first_in].pass_s;
+        const rel = s => { const d = Math.round(s - t0); return (d >= 0 ? '+' : '−') + Math.abs(d) + ' s'; };
+        const card = document.createElement('div');
+        card.className = 'mk-card';
+        const title = document.createElement('h3');
+        title.className = 'leg';
+        title.textContent = r.race + ', ' + c.mark + ': ' + ids.map(id => c.boats[id].name + ' ' + rel(c.boats[id].pass_s)).join(' · ');
+        card.appendChild(title);
+        const plot = document.createElement('div');
+        card.appendChild(plot);
+        const ctl = document.createElement('div');
+        ctl.className = 'rp-ctl';
+        ctl.innerHTML = '<button type="button">▶ Play</button><input type="range" style="flex:1" min="' + c.t0 + '" max="' + c.t1 + '" step="1" value="' + (c.first_in_s || t0) + '"><span class="mk-t"></span>';
+        card.appendChild(ctl);
+        const facts = document.createElement('div');
+        card.appendChild(facts);
+        el.appendChild(card);
+        const muted = css('--ink2'), line = css('--line'), ink = css('--ink');
+        // zoom: the mark(s), the zone and every track from 20 s before the first boat enters to 15 s after the last rounds
+        const lo = (c.first_in_s || t0) - 20, hi = Math.max(...ids.map(id => c.boats[id].pass_s)) + 15;
+        let xs = [], ys = [];
+        c.pts.forEach(p => { xs.push(p[0] - c.zone_m, p[0] + c.zone_m); ys.push(p[1] - c.zone_m, p[1] + c.zone_m); });
+        ids.forEach(id => { const b = c.boats[id]; b.t.forEach((t, i) => { if (t >= lo && t <= hi) { xs.push(b.x[i]); ys.push(b.y[i]); } }); });
+        const pad = 12, cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+        const half = Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) / 2 + pad;
+        const shapes = c.pts.map(p => ({ type: 'circle', xref: 'x', yref: 'y', x0: p[0] - c.zone_m, x1: p[0] + c.zone_m,
+          y0: p[1] - c.zone_m, y1: p[1] + c.zone_m, line: { color: muted, width: 1, dash: 'dash' } }));
+        const tr = [];
+        ids.forEach(id => {
+          const b = c.boats[id], bc = col(FLEET.day[id] || r.boats[id]);
+          tr.push({ x: b.x, y: b.y, mode: 'lines', name: b.name, line: { color: bc, width: 2 }, opacity: 0.55,
+            customdata: b.t.map((t, i) => [rel(t), b.sog[i]]),
+            hovertemplate: '<b>' + b.name + '</b> %{customdata[0]}<br>%{customdata[1]} kt<extra></extra>' });
+        });
+        tr.push({ x: c.pts.map(p => p[0]), y: c.pts.map(p => p[1]), mode: 'markers', name: 'mark', showlegend: false,
+          marker: { size: 13, symbol: 'triangle-up', color: ink }, hovertemplate: 'mark<extra></extra>' });
+        const moving = tr.length;
+        ids.forEach(id => {
+          const b = c.boats[id], bc = col(FLEET.day[id] || r.boats[id]);
+          tr.push({ x: [null], y: [null], mode: 'markers+text', showlegend: false, text: [b.name], textposition: 'top center',
+            textfont: { color: bc, size: 11 }, marker: { symbol: 'arrow-wide', size: 16, color: bc, angle: 0, line: { color: ink, width: 1 } },
+            hoverinfo: 'skip' });
+        });
+        const lay = base('', 460, plot);
+        delete lay.title;
+        lay.margin.t = 10;
+        lay.xaxis = Object.assign(lay.xaxis, { range: [cx - half, cx + half], title: 'metres (upwind is up)', zeroline: false });
+        lay.yaxis = Object.assign(lay.yaxis, { range: [cy - half, cy + half], scaleanchor: 'x', zeroline: false });
+        lay.shapes = shapes;
+        lay.annotations = c.pts.map(p => ({ x: p[0], y: p[1] + c.zone_m, text: 'zone, 3 lengths', showarrow: false, yshift: 8,
+          font: { size: 10, color: muted } }));
+        Plotly.newPlot(plot, tr, lay, CONFIG);
+        const slider = ctl.querySelector('input'), label = ctl.querySelector('.mk-t'), btn = ctl.querySelector('button');
+        function at(t) {
+          const x = [], y = [], ang = [];
+          ids.forEach(id => {
+            const b = c.boats[id];
+            let k = b.t.indexOf(t);
+            if (k < 0) k = b.t.reduce((best, v, i) => (Math.abs(v - t) < Math.abs(b.t[best] - t) ? i : best), 0);
+            x.push([b.x[k]]); y.push([b.y[k]]); ang.push(b.cog[k] == null ? 0 : ((b.cog[k] - r.axis) % 360 + 360) % 360);
+          });
+          Plotly.restyle(plot, { x, y, 'marker.angle': ang }, ids.map((_, i) => moving + i));
+          label.textContent = ' ' + rel(t) + ' from the first rounding';
+        }
+        slider.addEventListener('input', () => at(+slider.value));
+        let timer = null;
+        btn.addEventListener('click', () => {
+          if (timer) { clearInterval(timer); timer = null; btn.textContent = '▶ Play'; return; }
+          if (+slider.value >= c.t1) slider.value = c.t0;
+          btn.textContent = '❚❚ Pause';
+          timer = setInterval(() => {
+            slider.value = +slider.value + 1; at(+slider.value);
+            if (+slider.value >= c.t1) { clearInterval(timer); timer = null; btn.textContent = '▶ Play'; }
+          }, 120);
+        });
+        at(+slider.value);
+        // facts
+        const first = c.boats[c.first_in];
+        const rows = ids.map(id => {
+          const b = c.boats[id], z = b.at_first_zone || {};
+          const where = id === c.first_in ? 'first into the zone' :
+            (z.relation ? z.relation + (z.relation === 'rounded the other gate mark' ? '' : ', ' + Math.abs(z.behind_m) + ' m ' + (z.behind_m >= 0 ? 'behind' : 'ahead') + ', ' + z.abeam_m + ' m abeam') : '–');
+          return '<tr><td>' + b.name + '</td><td>' + (b.zone_in_s == null ? '–' : rel(b.zone_in_s)) + '</td><td>' + rel(b.pass_s) +
+            '</td><td>' + (b.zone_out_s == null ? '–' : rel(b.zone_out_s)) + '</td><td>' + b.closest_m + ' m</td><td>' + where + '</td></tr>';
+        }).join('');
+        const pairs = (c.pairs || []).map(p => c.boats[p.a].name + ' and ' + c.boats[p.b].name + ': ' + p.closest_m + ' m apart at ' + rel(p.at_s) +
+          (p.same_mark ? '' : ' (different gate marks)')).join('; ');
+        facts.innerHTML = '<table><thead><tr><th>Boat</th><th>Into zone</th><th>Rounded</th><th>Out of zone</th><th>Closest to mark</th>' +
+          '<th>When ' + first.name + ' reached the zone</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+          '<p class="chart-hint">Closest approach: ' + pairs + '. Times are from the first boat’s rounding. The zone is three Etchells lengths (' +
+          Math.round(c.zone_m) + ' m). Overlap is judged from GPS (a metre or two): good for a debrief, not a protest.</p>';
+      });
     },
     // Official places in each race, out of the whole fleet
     places(el) {
@@ -1775,6 +2264,9 @@ def _replay(stem: str | None = None) -> str:
 
 
 REPLAY_CSS = """
+.mk-card { margin: 12px 0 22px; }
+.mk-card table { font-size: 0.86rem; }
+.mk-t { font-variant-numeric: tabular-nums; min-width: 12em; }
 .replay { margin: 8px 0 16px; }
 .rp-races { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
 .rp-races button, .rp-ctl button, .rp-ctl select { font: inherit; font-size: 0.88rem; color: var(--ink);
@@ -1843,7 +2335,8 @@ p.why { margin: 8px 0; }
 # [[chart:replay]] puts the race replay there, with a button for each race; [[chart:pairmap]]
 # the map of where the boats sailed side by side.
 TAKEAWAY_CHARTS = ("places", "split", "beats", "angles", "sides", "heel", "exits", "tacks")
-CHART_LINE = re.compile(r"^\[\[chart:(\w+)\]\]\s*$")
+RACE_CHARTS = ("wind", "marks", "gaps")  # [[chart:wind:race4]] in a debrief: that race's chart
+CHART_LINE = re.compile(r"^\[\[chart:(\w+)(?::(\w+))?\]\]\s*$")
 
 
 def debrief_html(md: str) -> str:
@@ -1862,6 +2355,8 @@ def debrief_html(md: str) -> str:
             out.append('<div class="pairmap"></div>')
         elif m.group(1) in TAKEAWAY_CHARTS:
             out.append(_chart(m.group(1)))
+        elif m.group(1) in RACE_CHARTS and m.group(2):
+            out.append(_chart(m.group(1), m.group(2)))
     out.append(H.md_to_html("\n".join(chunk)))
     return "".join(out)
 
@@ -2317,6 +2812,15 @@ def write_html(
             "or drag the slider; the panel shows each boat at that moment.</p>"
             + _chart("gaps", r["stem"])
             + _replay(r["stem"])
+            + "<h3>Wind and sides</h3>"
+            + _chart("wind", r["stem"])
+            + (
+                "<h3>Close roundings</h3>"
+                '<p class="chart-hint">Drag the slider or press play. Arrows point along each boat\u2019s course; '
+                "the dashed circle is the zone.</p>" + _chart("marks", r["stem"])
+                if r.get("close_roundings")
+                else ""
+            )
             + H.md_to_html(sec.split("\n", 1)[1])
         )
     pages.append(

@@ -12,7 +12,7 @@
 - **Saturday's starts: 2–3 s late in every race, at 5.6–5.8 kt at the gun**
   - Started 70–80% up from the pin, on the unfavoured half, and still led at the first mark by 31 s and 68 s in Races 2–3. Speed and a clear lane beat the bias, as it did at the Worlds.
 - **Race 5's last beat: on the right when the wind went right**
-  - 84% of the beat right of the rhumb line while the dying breeze went about 40–60° right: 18:36, against Mojo's 23:11 and 1216's 28:06.
+  - The dying breeze went 20–35° right from about 35 minutes (280° to 304–316° mag). 969 went right first (400 m right by 36 minutes) and stayed there: 18:36, against Mojo's 23:11 and 1216's 28:06. The shift was worth about 2 minutes against 1216. The rest was the breeze holding on the right.
 - **Race 4 comeback: 57 s behind 1216 at the first mark, won by 35 s**
   - The first run took back 50 s (VMC 3.46 kt, the best of the three), and the second beat 47 s more.
 
@@ -26,13 +26,20 @@
    - On Saturday 969 hit the speed half of the Worlds benchmark, but it was 3.5–7.8 m back. On Sunday it hit neither half.
    - **Next time:** In light air, start the build earlier: the boat takes longer to accelerate. Time a run from a stop to full speed in the pre-start, and use that number, not Saturday's.
 3. **Race 4 first beat: 55 s lost to 1216, working the right while the wind went left**
-   - 86% of the beat right of the rhumb line while the headings trended about 20° left. 1216 stayed in the middle and led at the mark.
+   - The wind went 15° left two minutes after the start and 25° by the top. 969 worked the right (550 m right at 10 minutes) and was the furthest right of the three. 1216 was on the left and led at the mark; the shift alone was worth about 53 s of its 56 s.
    - It's the same as Saturday's Race 1 first beat (right side, left trend, 20 s lost to Mojo).
    - **Next time:** If the first minutes of headings show a steady left trend, stay on the left side. It's twice now.
 
 *Also worth a look:*
 - **Leeward roundings: 56 m lost toward the marks on average**
   - Race 5: came out pinching at 25° to the wind, and speed dropped 56% through the turn (3.1 to 1.4 kt). In light air, foot out of the mark until speed is back.
+
+**What the wind did, and where 969 was** (from all three boats' GPS tracks, so no compass error; magnetic)
+- **Race 1, beat 1:** the wind went 16° left and 969 worked the right: 19 s lost to Mojo, which was 100 m further left.
+- **Races 2 and 3: steady or oscillating (±4°), no side paid.** 969 won both on speed, which is the cleanest proof of its upwind edge.
+- **Race 4, beat 1:** 15° left at two minutes, and 969 went right: 56 s lost to 1216 on the left. It's the same pattern as Race 1's first beat: the right on a left-shifting first beat. 969 won Race 4 back on the run and the second beat, which were steady.
+- **Race 5, last beat:** the wind went right as it died, and 969 got to the right first and stayed. That's the right call: in a persistent shift, get to the side it's going to before tacking back.
+- **Next time:** Check the headings for the first 2–3 minutes after the start. If they've gone 10° left and held, that's the new wind: stay left.
 
 **Start scorecard**
 | Race | Back at −60 s | Late (s) | Line pos | Back at gun | SOG at gun | Accel (±5 s) |

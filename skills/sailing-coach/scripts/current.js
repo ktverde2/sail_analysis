@@ -207,6 +207,49 @@ function CurrentMap(root, D) {
   }
 
   // ---- upwind/downwind x port/starboard -------------------------------------------------------
+  // ---- tack to tack: SOG port vs starboard, and whether it looks like current ---------------
+  function t2t() {
+    const T = D.t2t;
+    if (!T || !T.rows || !T.rows.length) { $("t2t").textContent = "Not enough steady sailing on both tacks."; return; }
+    const races = [...new Set(T.rows.map(r => r.race))].sort((a, b) => a.length - b.length || (a < b ? -1 : 1));
+    const legKey = r => short(r.race) + " L" + r.leg;
+    const order = [...new Set(races.flatMap(rc => T.rows.filter(r => r.race === rc).sort((a, b) => a.leg - b.leg).map(legKey)))];
+    const tr = D.boats.map(b => {
+      const rows = T.rows.filter(r => r.boat === b);
+      return { x: rows.map(legKey), y: rows.map(r => r.d_sog), type: "scatter", mode: "markers", name: b + (D.fits[b].suspect ? " (compass suspect)" : ""),
+        marker: { size: 9, color: css(boatVar(b)), symbol: rows.map(r => (r.mode === "U" ? "circle" : "diamond")), line: { width: 0 } },
+        text: rows.map(r => `<b>${b}</b> · ${r.race}, leg ${r.leg} (${r.mode === "U" ? "beat" : "run"})<br>SOG starboard ${r.sog_s.toFixed(2)} · port ${r.sog_p.toFixed(2)} kt` +
+          `<br>As current: ${r.c_sog == null ? "–" : sgn(r.c_sog, 2, " kt")} across · drift says ${r.c_drift == null ? "–" : sgn(r.c_drift, 2, " kt")}`),
+        hovertemplate: "%{text}<extra></extra>" };
+    });
+    Plotly.react($("t2t"), tr, base({
+      margin: { l: 52, r: 10, t: 10, b: 40 }, height: 300,
+      xaxis: axis("", { type: "category", categoryorder: "array", categoryarray: order }),
+      yaxis: axis("SOG starboard − port (kt)"),
+      shapes: [{ type: "line", xref: "paper", x0: 0, x1: 1, y0: 0, y1: 0, line: { color: css("--tk-muted"), width: 1 } }],
+    }), CFG);
+    $("leg-t2t").innerHTML = D.boats.map(b => `<span><i class="tk-dot" style="background:var(${boatVar(b)})"></i>${b}</span>`).join("") +
+      `<span>● beat</span><span>◆ run</span>`;
+    const n = [], fu = T.faster_up || {}, sh = T.shared || {}, he = T.held || {}, rf = T.run_flips || {}, ag = T.agree || {};
+    if (fu.n) {
+      const tk = fu.mean_kt < 0 ? "port" : "starboard";
+      n.push(`<b>Upwind, ${tk} was the faster tack over the ground</b>: ${tk === "port" ? fu.port : fu.stbd} of ${fu.n} beats (boat by boat), ` +
+        `${Math.abs(fu.mean_kt).toFixed(2)} kt on average.` + (sh.n ? ` On ${sh.same} of ${sh.n} beats where the tacks differed, every boat agreed, ` +
+        `so it's the water, the waves or the wind, not the boats.` : ""));
+    }
+    const current = he.n && he.same / he.n >= 0.7 && ag.r != null && ag.r >= 0.5;
+    const parts = [];
+    if (he.n) parts.push(`it held from the beat to the run in ${he.same} of ${he.n} races`);
+    if (rf.n) parts.push(`the two runs of the same race disagreed in ${rf.flipped} of ${rf.n}`);
+    if (ag.r != null) parts.push(`and it ${Math.abs(ag.r) < 0.3 ? "doesn't line up with" : ag.r > 0 ? "lines up with" : "runs against"} the drift (r = ${ag.r.toFixed(2)}, ${ag.n} legs)`);
+    if (parts.length)
+      n.push(current
+        ? `<b>It behaves like current:</b> ${parts.join(", ")}. About ${sgn(ag.sog_median, 2, " kt")} across the course (+ toward the right, looking upwind).`
+        : `<b>It doesn't behave like current:</b> ${parts.join(", ")}. A current would favour the same side of the course on beats and runs and show in the drift. ` +
+          `More likely waves (one tack sailing into the sea) or pressure. Coach it as a mode question on that tack, not a current to play.`);
+    $("t2tnotes").innerHTML = n.length ? "<ul>" + n.map(x => `<li>${x}</li>`).join("") + "</ul>" : "";
+  }
+
   function breakdown() {
     const cols = [["U", "P", "Upwind port"], ["U", "S", "Upwind starboard"], ["D", "P", "Downwind port"], ["D", "S", "Downwind starboard"]];
     const cell = (b, m, p) => {
@@ -377,7 +420,7 @@ function CurrentMap(root, D) {
 
   function render() {
     if (!root.offsetParent) return; // hidden page: Plotly can't size charts yet
-    fits(); noaaPart(); breakdown(); legs(); segs(); renderMap();
+    fits(); t2t(); noaaPart(); breakdown(); legs(); segs(); renderMap();
   }
   render();
   window.addEventListener("hashchange", () => setTimeout(render, 0));

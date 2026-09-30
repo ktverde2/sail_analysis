@@ -7,7 +7,7 @@
 **What went well**
 - **Race 4: pin start at full speed, first to the first two marks**
   - The pin was favoured by 77 m. 1216 was there 4 s late, 5.8 m back and doing 6.1 kt at the gun: close to the 2026 Worlds standard of 1–2 m back at full speed.
-  - It stayed in the middle of the first beat (55% right of the rhumb line) while the wind went left, and led 969 by 57 s at the top.
+  - The wind went 15° left two minutes after the start. 1216 was already 320 m out on the left, the furthest of the three, and led 969 by 57 s at the top.
 - **Windward roundings: the best of the three boats, 36 m lost toward the marks on average**
   - Race 1: 14 m and 1 m. Race 2: 28 m. Race 3: 28 m.
 - **Fastest legs:** the second beat in Races 1 and 3, and the last run in Races 2 and 4.
@@ -31,13 +31,20 @@
 
 *Also worth a look:*
 - **Race 5, last beat: 9:30 lost, on the left while the wind went right**
-  - 4% of the beat right of the rhumb line while the dying breeze went about 40–60° right. 969 was on the right and took 18:36, against 1216's 28:06.
+  - From about 35 minutes the dying breeze went 20–35° right (280° to 304–316° mag). 1216 sailed the lifted starboard tack out to the left (470 m left by 44 minutes), away from the new wind. 969 went right first and took 18:36, against 1216's 28:06. The shift was worth about 2 minutes; the rest was the breeze holding on the right.
   - When the headings have trended one way for two or three minutes in a fading breeze, get to that side.
 - **Runs sailed long: Race 3 and Race 5**
   - Race 3: 1.16 nm sailed against 969's 1.02, 48 s lost. Race 5: 0.98 nm against 0.86 with 3 gybes, 2:37 lost.
   - Sail the angle that gets you to the gate, and gybe on the shifts and pressure.
 - **Laylines on Saturday: 4 overstood**
   - Races 1–3: overstood by 6–18°. The cost shows in VMC to the mark on those beats.
+
+**What the wind did, and where 1216 was** (from all three boats' GPS tracks, so 1216's compass doesn't affect it; magnetic)
+- **Race 1, beat 1:** the wind went 16° left, and 1216 was the furthest right (330 m on average): 29 s lost to Mojo, of which the shift was worth about 26 s.
+- **Races 2 and 3: steady or oscillating, no side paid.** The time lost there was speed.
+- **Race 4, beat 1: the left paid, and 1216 was on it.** The pin start put 1216 furthest left when the wind went 15° left at two minutes: 56 s gained on 969, worth about 53 s from the shift alone.
+- **Race 5, last beat: 1216 left the new wind.** It sailed the lift to the left while the wind went right. Mojo did the same, less far.
+- **Next time:** A shift of 10° or more that holds for two or three minutes is the new wind. Sail toward it (the header first) before tacking back.
 
 **Start scorecard**
 | Race | Back at −60 s | Late (s) | Line pos | Back at gun | SOG at −30 s / gun | Accel (±5 s) |
