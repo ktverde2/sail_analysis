@@ -7,7 +7,7 @@ function TackOverlay(root, DATA) {
   const S = { boat: "All", race: "All", onto: "All", pct: 10, angle: "cog", sel: null, speed: HAS_VMC ? "vmc" : "sog" };
   const $ = r => root.querySelector(`[data-r="${r}"]`);
   const css = n => getComputedStyle(root).getPropertyValue(n).trim();
-  const boatVar = b => (DATA.boats.indexOf(b) === 0 ? "--tk-series-1" : "--tk-series-2");
+  const boatVar = b => `--tk-series-${Math.min(Math.max(DATA.boats.indexOf(b), 0), 3) + 1}`;
   const med = a => {
     const v = a.filter(x => x != null && !isNaN(x)).sort((p, q) => p - q);
     if (!v.length) return null;

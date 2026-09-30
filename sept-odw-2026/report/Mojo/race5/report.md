@@ -4,7 +4,7 @@ Gun 2026-09-27 14:00:00 (America/Los_Angeles), race 53.0 min. Speed source: SOG.
 
 ## Data quality
 - Wind: NOT trusted (TWS changes by under 0.02 kt a second 100% of the time (a smoothed model feed, not measured on board)).
-- Wind direction estimated from tacking headings: 297.1°.
+- Wind direction estimated from tacking headings: 286.3° magnetic.
 - Speeds are over ground; current moves them. Compare tacks before coaching small differences.
 
 ## Start
@@ -19,11 +19,11 @@ Gun 2026-09-27 14:00:00 (America/Los_Angeles), race 53.0 min. Speed source: SOG.
 Legs: Njord course.
 Straight: mark to mark. Ideal: shortest path at our average angle to the wind over the ground (leeway included) in steady wind; m vs ideal is the extra we sailed.
 
-| Leg | Type | Time | VMC to mark | VMC steady | Sailed nm | Straight nm | +% vs straight | m vs ideal | SOG | SOG steady | Maneuvers | Heel (abs) | Heel sd | Tacking ∠ | TWD est | SOG stbd/port | Heel stbd/port | % stbd |
+| Leg | Type | Time | VMC to mark | VMC steady | Sailed nm | Straight nm | +% vs straight | m vs ideal | SOG | SOG steady | Maneuvers | Heel (abs) | Heel sd | Tacking ∠ | TWD est (mag) | SOG stbd/port | Heel stbd/port | % stbd |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | upwind | 17:40 | 2.68 | 2.77 | 1.1 | 0.82 | 33.7 | 39 | 3.74 | 3.83 | 4 | 9.4 | 2.3 | 73.8 | 289.4 | 3.23/4.19 | 8.8/9.7 | 37 |
+| 1 | upwind | 17:40 | 2.68 | 2.77 | 1.1 | 0.82 | 33.7 | 39 | 3.74 | 3.83 | 4 | 9.4 | 2.3 | 73.8 | 278.6 | 3.23/4.19 | 8.8/9.7 | 37 |
 | 2 | downwind | 11:59 | 3.79 | 3.84 | 0.85 | 0.76 | 12.0 | 50 | 4.23 | 4.25 | 1 | 2.0 | 1.4 | – | – | 4.6/3.78 | 2.1/1.9 | 58 |
-| 3 | upwind | 23:20 | 1.93 | 1.96 | 1.05 | 0.75 | 40.2 | 124 | 2.71 | 2.74 | 3 | 8.2 | 2.2 | 68.3 | 304.8 | 2.46/3.13 | 7.9/8.6 | 58 |
+| 3 | upwind | 23:20 | 1.93 | 1.96 | 1.05 | 0.75 | 40.2 | 124 | 2.71 | 2.74 | 3 | 8.2 | 2.2 | 68.3 | 294.0 | 2.46/3.13 | 7.9/8.6 | 58 |
 
 ## Maneuvers
 - Gybes: 1, avg entry 4.59 kt, avg loss 0.93 kt (20%), avg recovery 7.0 s, avg 2.7 m lost (total 3 m).
@@ -45,10 +45,10 @@ Metres toward the mark. Handling: the dip against a baseline from the VMC before
 ## Wind shifts and tack calls
 Wind direction from headings: heading ± half the tacking angle. Shifts are relative to each beat's median; + is a right shift (veer), − a left shift (back). A puff that lets the boat point higher also reads as a lift, so treat single 3–4° calls as soft.
 
-| Leg | Median wind | Trend over beat | Oscillation | Pattern | % right of rhumb | Max left/right m | Headed > 5° without tacking |
+| Leg | Median wind (magnetic) | Trend over beat | Oscillation | Pattern | % right of rhumb | Max left/right m | Headed > 5° without tacking |
 |---|---|---|---|---|---|---|---|
-| 1 | 289° | +16° | ±4° | persistent right shift | 69 | 215/398 | 223 s |
-| 3 | 305° | +48° | ±8° | persistent right shift | 57 | 201/302 | 0 s |
+| 1 | 279° | +16° | ±4° | persistent right shift | 69 | 215/398 | 223 s |
+| 3 | 294° | +48° | ±8° | persistent right shift | 57 | 201/302 | 0 s |
 
 - Leg 1: Wind went right 16° over the beat, which pays the right; we worked the right (69% of the time right of the rhumb line) - right call.
 - Leg 3: Wind went right 48° over the beat, which pays the right; we worked the middle (57% of the time right of the rhumb line) - the other side should have paid.

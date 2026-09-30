@@ -3,8 +3,8 @@
 Gun 2026-09-26 14:05:00 (America/Los_Angeles), race 49.8 min. Speed source: SOG.
 
 ## Data quality
-- Wind: NOT trusted (no TWS channel).
-- Wind direction estimated from tacking headings: 266.3°.
+- Wind: NOT trusted (TWS changes by under 0.02 kt a second 100% of the time (a smoothed model feed, not measured on board)).
+- Wind direction estimated from tacking headings: 255.6° magnetic.
 - Speeds are over ground; current moves them. Compare tacks before coaching small differences.
 
 ## Start
@@ -19,11 +19,11 @@ Gun 2026-09-26 14:05:00 (America/Los_Angeles), race 49.8 min. Speed source: SOG.
 Legs: Njord course.
 Straight: mark to mark. Ideal: shortest path at our average angle to the wind over the ground (leeway included) in steady wind; m vs ideal is the extra we sailed.
 
-| Leg | Type | Time | VMC to mark | VMC steady | Sailed nm | Straight nm | +% vs straight | m vs ideal | SOG | SOG steady | Maneuvers | Heel (abs) | Heel sd | Tacking ∠ | TWD est | SOG stbd/port | Heel stbd/port | % stbd |
+| Leg | Type | Time | VMC to mark | VMC steady | Sailed nm | Straight nm | +% vs straight | m vs ideal | SOG | SOG steady | Maneuvers | Heel (abs) | Heel sd | Tacking ∠ | TWD est (mag) | SOG stbd/port | Heel stbd/port | % stbd |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | upwind | 14:09 | 4.62 | 4.67 | 1.4 | 1.12 | 25.4 | 91 | 5.94 | 6.0 | 3 | 21.8 | 3.5 | 68.3 | 262.7 | 5.76/6.13 | 21.5/22.0 | 36 |
+| 1 | upwind | 14:09 | 4.62 | 4.67 | 1.4 | 1.12 | 25.4 | 91 | 5.94 | 6.0 | 3 | 21.8 | 3.5 | 68.3 | 252.0 | 5.76/6.13 | 21.5/22.0 | 36 |
 | 2 | downwind | 9:48 | 6.19 | 6.27 | 1.06 | 1.02 | 3.7 | 45 | 6.48 | 6.53 | 1 | 3.0 | 2.1 | – | – | 6.58/6.32 | 3.1/2.9 | 80 |
-| 3 | upwind | 14:19 | 4.26 | 4.35 | 1.39 | 1.02 | 36.1 | 109 | 5.82 | 5.89 | 4 | 20.0 | 4.1 | 77.0 | 269.8 | 5.83/5.93 | 19.7/20.2 | 46 |
+| 3 | upwind | 14:19 | 4.26 | 4.35 | 1.39 | 1.02 | 36.1 | 109 | 5.82 | 5.89 | 4 | 20.0 | 4.1 | 77.0 | 259.1 | 5.83/5.93 | 19.7/20.2 | 46 |
 | 4 | downwind | 11:30 | 5.81 | 5.88 | 1.2 | 1.12 | 7.8 | 94 | 6.27 | 6.29 | 0 | 2.5 | 2.0 | – | – | 6.2/6.45 | 2.5/2.5 | 66 |
 
 ## Maneuvers
@@ -45,10 +45,10 @@ Metres toward the mark. Handling: the dip against a baseline from the VMC before
 ## Wind shifts and tack calls
 Wind direction from headings: heading ± half the tacking angle. Shifts are relative to each beat's median; + is a right shift (veer), − a left shift (back). A puff that lets the boat point higher also reads as a lift, so treat single 3–4° calls as soft.
 
-| Leg | Median wind | Trend over beat | Oscillation | Pattern | % right of rhumb | Max left/right m | Headed > 5° without tacking |
+| Leg | Median wind (magnetic) | Trend over beat | Oscillation | Pattern | % right of rhumb | Max left/right m | Headed > 5° without tacking |
 |---|---|---|---|---|---|---|---|
-| 1 | 263° | -3° | ±2° | steady | 96 | 30/752 | 0 s |
-| 3 | 270° | +3° | ±2° | steady | 99 | 1/771 | 0 s |
+| 1 | 252° | -3° | ±2° | steady | 96 | 30/752 | 0 s |
+| 3 | 259° | +3° | ±2° | steady | 99 | 1/771 | 0 s |
 
 - Leg 1: Steady wind; no side was favored by shifts. We worked the right.
 - Leg 3: Steady wind; no side was favored by shifts. We worked the right.
@@ -82,7 +82,7 @@ vs best: metres more than the best rounding of the same type in this analysis. T
 - #3 windward: No single fault stands out: 1 m went before the mark and 36 m after. Same routine, a little smoother, to close the gap to your best.
 
 ## Upwind vs. targets
-Not computed: wind speed not trustworthy (no TWS channel); pass --tws, e.g. --tws 8-10.
+Not computed: wind speed not trustworthy (TWS changes by under 0.02 kt a second 100% of the time (a smoothed model feed, not measured on board)); pass --tws, e.g. --tws 8-10.
 
 ## Plots
 track.png, timeline.png, start.png, maneuvers.png

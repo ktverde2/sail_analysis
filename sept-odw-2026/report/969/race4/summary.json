@@ -14,7 +14,10 @@
     "Lon",
     "SOG",
     "COG",
+    "COG_Mag",
     "Heading",
+    "Heading_Mag",
+    "MagneticVariation",
     "Heel",
     "Trim",
     "TWS",
@@ -28,6 +31,7 @@
   ],
   "speed_source": "SOG",
   "upwind_axis": 294.0,
+  "mag_var": 10.7,
   "legs_source": "Njord course",
   "progress": "vmc",
   "wind": {

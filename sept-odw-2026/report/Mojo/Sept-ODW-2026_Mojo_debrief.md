@@ -1,5 +1,5 @@
 ## Sept ODW (Mojo): Sat 26 and Sun 27 Sep 2026, 5 races
-- Saturday: 3 races in the breeze, about 5.8 kt upwind over the ground. Sunday: 2 races, light and dying, 4.7 kt upwind in Race 4 and 3.3 kt in Race 5. Wind 275–305° by our compass. There's no wind sensor.
+- Saturday: 3 races in the breeze, about 5.8 kt upwind over the ground. Sunday: 2 races, light and dying, 4.7 kt upwind in Race 4 and 3.3 kt in Race 5. Wind 263–294° magnetic by our compass. There's no wind sensor.
 - Among the three tracked boats (with 969 and 1216), we were 1, 3, 3, 3, 2. That's 12 points, level with 1216 and ahead of it on time, and 9:54 behind the first tracked boat over the five races.
 - Where the time went: 33 s at the starts, 443 s upwind and 118 s downwind. Race 5's last beat alone was 275 s of the upwind.
 - Everything below is judged on getting to the mark: time between marks and VMC (speed toward the mark). Speed and heel only explain it.

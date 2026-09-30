@@ -14,9 +14,15 @@
     "Lon",
     "SOG",
     "COG",
+    "COG_Mag",
     "Heading",
+    "Heading_Mag",
+    "MagneticVariation",
     "Heel",
     "Trim",
+    "TWS",
+    "TWA",
+    "TWD",
     "TimeToGunCalc",
     "BelowLineCalc",
     "Leg",
@@ -25,11 +31,13 @@
   ],
   "speed_source": "SOG",
   "upwind_axis": 288.0,
+  "mag_var": 10.7,
   "legs_source": "Njord course",
   "progress": "vmc",
   "wind": {
     "trusted": false,
-    "reason": "no TWS channel",
+    "reason": "TWS changes by under 0.02 kt a second 100% of the time (a smoothed model feed, not measured on board); 100% of samples are exactly 10 kt",
+    "tws_median": 10.0,
     "twd_estimated": 269.5
   },
   "start": {
@@ -310,7 +318,7 @@
   },
   "targets": {
     "available": false,
-    "reason": "wind speed not trustworthy (no TWS channel); pass --tws, e.g. --tws 8-10"
+    "reason": "wind speed not trustworthy (TWS changes by under 0.02 kt a second 100% of the time (a smoothed model feed, not measured on board); 100% of samples are exactly 10 kt); pass --tws, e.g. --tws 8-10"
   },
   "shifts": {
     "beats": [

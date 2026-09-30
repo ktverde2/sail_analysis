@@ -598,6 +598,10 @@ def upwind_page(runs) -> str:
                     "right": b.get("pct_time_right"),
                     "missed": b.get("missed_header_s"),
                     "split": f"{lg['sog_stbd']}/{lg['sog_port']}",
+                    # shown magnetic, like the compass
+                    "twd_est": (lg["twd_est"] - s["mag_var"]) % 360
+                    if lg.get("twd_est") is not None and s.get("mag_var") is not None
+                    else lg.get("twd_est"),
                 }
             )
         tg = s.get("targets") or {}
@@ -614,7 +618,7 @@ def upwind_page(runs) -> str:
             ("Heel", "heel_abs_avg"),
             ("Heel sd", "heel_abs_std"),
             ("Tacking ∠", "tacking_angle"),
-            ("Wind est", "twd_est"),
+            ("Wind est (mag)", "twd_est"),
             ("Pattern", "pattern"),
             ("Trend", "trend"),
             ("% right", "right"),

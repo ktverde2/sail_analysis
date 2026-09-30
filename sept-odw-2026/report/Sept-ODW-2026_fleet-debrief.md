@@ -1,5 +1,5 @@
 ## Sept ODW: Sat 26 and Sun 27 Sep 2026, fleet (tracked boats: Mojo, 969, 1216)
-- 5 races, all windward-leeward and westerly (270–290°). Saturday was the breezier day, with about 5.7–6.0 kt upwind over the ground. Sunday was light and dying, at 4.4–4.9 kt upwind in Race 4 and 3.3–3.6 kt in Race 5. None of the boats has a wind sensor.
+- 5 races, all windward-leeward in a westerly, about 265–280° magnetic at the starts (from the boats' tacking headings). Saturday was the breezier day, with about 5.7–6.0 kt upwind over the ground. Sunday was light and dying, at 4.4–4.9 kt upwind in Race 4 and 3.3–3.6 kt in Race 5. None of the boats has a wind sensor.
 - Among the three tracked boats, 969 won four races (2, 3, 4 and 5) and Mojo won Race 1. Mojo and 1216 tie on 12 points, and Mojo is ahead on time.
 - Over the five races, Mojo was 9:54 behind the first tracked boat and 1216 was 16:29 behind. Most of that went upwind: 443 s for Mojo and 688 s for 1216. Race 5's last beat alone cost Mojo 4:35 and 1216 9:30.
 - Everything is judged on getting to the mark first: time between marks, then VMC (speed toward the mark).
@@ -68,6 +68,6 @@
 - VMC: speed toward the next mark, measured up the ladder at the boats' own tacking or gybing angle, so overstanding counts against it. Metres gained or lost are distance still to sail to the mark.
 - Race 5: Njord's race end time (21:42:46) is before any boat finished, so the data was pulled to 22:05 and the finish taken from each boat's crossing of the finish line.
 - Njord's leg split missed 1216's leeward gate in Race 3. The legs there come from the course marks, the same way for all boats.
-- 969's heading reads 11° left of its track on every heading, about the local magnetic variation. 1216's compass disagrees with its track in a way that changes with heading, like an uncompensated compass. Compare both boats' angles over the ground. 1216 is left off the current map (see the Current page).
+- All directions are magnetic (variation 10.7° E). 969's compass reads 11° low on every heading, the size of the local variation: its unit looks to be subtracting variation from a heading that's already magnetic. 1216's compass disagrees with its track in a way that changes with heading, like an uncompensated compass. Compare both boats' angles over the ground. 1216 is left off the current map (see the Current page).
 - The files carry a TWS channel, but it's a smooth modelled value, identical on every boat on Sunday, so it isn't used. Breeze is judged from boat speed.
 - There was no measurable current across the course (Mojo −0.07 kt, 969 +0.03 kt).

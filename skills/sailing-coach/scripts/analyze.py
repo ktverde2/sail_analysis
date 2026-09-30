@@ -81,6 +81,31 @@ def adiff(a, b):
     return np.where(d > 180, d - 360, d)
 
 
+def magnetic_variation(df) -> float | None:
+    """Degrees east (true = magnetic + variation), from the boat's own true and magnetic channels.
+    Everything is computed in true (GPS geometry is true); directions are shown magnetic."""
+    for tru, mag_ in (("Heading", "Heading_Mag"), ("COG", "COG_Mag")):
+        if tru in df and mag_ in df:
+            ok = df[tru].notna() & df[mag_].notna()
+            if ok.sum() >= 60:
+                return round(float(np.median(adiff(df[mag_][ok], df[tru][ok]))), 1)
+    if "MagneticVariation" in df and df.MagneticVariation.notna().any():
+        return round(float(df.MagneticVariation.median()), 1)
+    return None
+
+
+def mag(v, res: dict):
+    """A true direction as the sailor reads it: magnetic when the variation is known."""
+    var = res.get("mag_var") if res else None
+    if v is None or (isinstance(v, float) and math.isnan(v)):
+        return None
+    return round(float((v - var) % 360), 1) if var is not None else v
+
+
+def north(res: dict) -> str:
+    return "magnetic" if res and res.get("mag_var") is not None else "true"
+
+
 def circ_mean(deg):
     r = np.radians(np.asarray(deg, dtype=float))
     r = r[~np.isnan(r)]
@@ -357,6 +382,8 @@ def analyze_race(race: Race, tws_override: float | None) -> dict:
         "channels": [c for c in df.columns if c[0].isupper() and df[c].notna().any()],
         "speed_source": "BoatSpeed" if "BoatSpeed" in df else "SOG",
         "upwind_axis": round(axis, 1) if axis is not None else None,
+        # true = magnetic + mag_var; stored directions are true, reports show them magnetic
+        "mag_var": magnetic_variation(df),
         "legs_source": legs_source if legs else None,
         # what gains and losses are measured in: VMC to the next mark, or (no marks) VMG
         "progress": "vmc" if progress == "closing" else progress,
@@ -1664,7 +1691,7 @@ def shifts_plot(race: Race, res: dict, out: Path, plt):
                 fontweight="bold" if c["verdict_kind"] in ("header", "lift") else None,
             )
         ax.set_ylabel("shift (°)\n+ right: stbd lifted")
-        ax.set_title(f"Leg {b['leg']}: median {b['twd_median']:.0f}°, {b['pattern']}")
+        ax.set_title(f"Leg {b['leg']}: median {mag(b['twd_median'], res):.0f}° {north(res)[:3]}, {b['pattern']}")
         ax.legend(loc="lower left", fontsize=8, ncol=3)
     axes[-1, 0].set_xlabel(
         "minutes from gun (dotted = tacks, labelled with the call; grey = headed > 5° without tacking)"
@@ -1890,6 +1917,8 @@ def plot_data(race: Race, res: dict) -> dict:
 
     x, y = xy(df.Lat.values, df.Lon.values)
     hdg = df.Heading if "Heading" in df else df.COG
+    if res.get("mag_var") is not None:
+        hdg = (hdg - res["mag_var"]) % 360  # shown magnetic
     leg_of = pd.Series(np.nan, index=df.index)
     for lg in res["legs"]:
         t0 = race.gun + pd.Timedelta(seconds=lg["start_s"])
@@ -1954,6 +1983,7 @@ def plot_data(race: Race, res: dict) -> dict:
     return {
         "race": res["race"],
         "progress": "VMC" if res.get("progress") == "vmc" else "VMG",
+        "north": north(res),  # the heading series is magnetic when the variation is known
         "series": series,
         "course": course,
         "legs": [
@@ -2151,7 +2181,7 @@ CALL_LABEL = {
 }
 
 
-def shifts_md(sh: dict | None) -> list[str]:
+def shifts_md(sh: dict | None, res: dict | None = None) -> list[str]:
     if not sh or not sh["beats"]:
         return []
     out = [
@@ -2166,7 +2196,7 @@ def shifts_md(sh: dict | None) -> list[str]:
             sh["beats"],
             [
                 ("Leg", "leg"),
-                ("Median wind", lambda r: f"{r['twd_median']:.0f}°"),
+                (f"Median wind ({north(res)})", lambda r: f"{mag(r['twd_median'], res):.0f}°"),
                 ("Trend over beat", lambda r: f"{r['trend_deg']:+.0f}°"),
                 ("Oscillation", lambda r: f"±{r['oscillation_deg']:.0f}°"),
                 ("Pattern", "pattern"),
@@ -2287,7 +2317,7 @@ def write_report(res: dict, out: Path):
         "",
         "## Data quality",
         f"- Wind: {'trusted' if w['trusted'] else 'NOT trusted'} ({w['reason']}).",
-        f"- Wind direction estimated from tacking headings: {w.get('twd_estimated')}°."
+        f"- Wind direction estimated from tacking headings: {mag(w.get('twd_estimated'), res)}° {north(res)}."
         if w.get("twd_estimated") is not None
         else "- Wind direction could not be estimated from tacking headings.",
         "- Speeds are over ground; current moves them. Compare tacks before coaching small differences."
@@ -2356,7 +2386,7 @@ def write_report(res: dict, out: Path):
                 ("Heel (abs)", "heel_abs_avg"),
                 ("Heel sd", "heel_abs_std"),
                 ("Tacking ∠", "tacking_angle"),
-                ("TWD est", "twd_est"),
+                (f"TWD est ({north(res)[:3]})", lambda r: mag(r.get("twd_est"), res)),
                 ("SOG stbd/port", lambda r: f"{r['sog_stbd']}/{r['sog_port']}"),
                 ("Heel stbd/port", lambda r: f"{r['heel_stbd']}/{r['heel_port']}"),
                 ("% stbd", "pct_time_stbd"),
@@ -2411,7 +2441,7 @@ def write_report(res: dict, out: Path):
         "was worth over the same 30 s (negative = gained, e.g. tacking off a header). They add up to "
         "the total against keeping the VMC it had.",
     ]
-    lines += shifts_md(res.get("shifts"))
+    lines += shifts_md(res.get("shifts"), res)
     lines += roundings_md(res.get("roundings"))
     lines += [
         "## Upwind vs. targets",
@@ -2646,7 +2676,7 @@ def _group_line(rs: list[dict]) -> str:
     tg = [_mid_target(r["targets"]) for r in rs]
     pct = [t["tgt_speed_pct"] for t in tg if t]
     heel = [_mean([lg["heel_abs_avg"] for lg in _up(r)]) for r in rs]
-    twd = [b["twd_median"] for r in rs for b in (r.get("shifts") or {}).get("beats", [])]
+    twd = [mag(b["twd_median"], r) for r in rs for b in (r.get("shifts") or {}).get("beats", [])]
     beats = [b for r in rs for b in (r.get("shifts") or {}).get("beats", [])]
     right = sum(1 for b in beats if (b.get("pct_time_right") or 0) > 60)
     trend_left = [b for b in beats if b["pattern"] == "persistent left shift"]
@@ -2655,7 +2685,7 @@ def _group_line(rs: list[dict]) -> str:
     layl = n.get("layline", 0)
     bits = [_n(len(rs), "race")]
     if twd:
-        bits.append(f"wind {_rng(twd, unit='°')}")
+        bits.append(f"wind {_rng(twd, unit='°')} {north(rs[0])}")
     if late:
         bits.append(f"starts {_rng(late)} s late")
     if pct:

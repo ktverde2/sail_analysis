@@ -10,6 +10,8 @@
   --tk-context: #c9c8c2;
   --tk-series-1: #2a78d6;
   --tk-series-2: #eb6834;
+  --tk-series-3: #1baf7a;
+  --tk-series-4: #eda100;
   --tk-hover: #eaf2fc;
 }
 @media (prefers-color-scheme: dark) {
@@ -24,6 +26,8 @@
     --tk-context: #4a4945;
     --tk-series-1: #3987e5;
     --tk-series-2: #d95926;
+    --tk-series-3: #199e70;
+    --tk-series-4: #c98500;
     --tk-hover: #1b2a3d;
   }
 }
@@ -38,6 +42,8 @@
   --tk-context: #4a4945;
   --tk-series-1: #3987e5;
   --tk-series-2: #d95926;
+  --tk-series-3: #199e70;
+  --tk-series-4: #c98500;
   --tk-hover: #1b2a3d;
 }
 /* Inside a sailing-coach report: take the report's own surfaces and ink */

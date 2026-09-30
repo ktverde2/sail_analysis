@@ -1,5 +1,5 @@
 ## Sept ODW (969): Sat 26 and Sun 27 Sep 2026, 5 races
-- Saturday: 3 races in the breeze, about 5.9 kt upwind over the ground. Sunday: 2 races, light and dying, 4.9 kt upwind in Race 4 and 3.6 kt in Race 5. Wind 263–296° by 969's compass, which reads about 11° off (see the Current page). There's no wind sensor.
+- Saturday: 3 races in the breeze, about 5.9 kt upwind over the ground. Sunday: 2 races, light and dying, 4.9 kt upwind in Race 4 and 3.6 kt in Race 5. Wind 252–285° magnetic by 969's compass, which reads about 11° low, so about 263–296° magnetic corrected (see the Current page). There's no wind sensor.
 - Among the three tracked boats (with Mojo and 1216), 969 was 2, 1, 1, 1, 1. It was only behind in Race 1, by 56 s.
 - Where Race 1's 56 s went: 1 s at the start, 19 s upwind, 36 s downwind.
 - Everything below is judged on getting to the mark: time between marks and VMC (speed toward the mark). Speed and heel only explain it.
@@ -52,7 +52,7 @@
 
 **Data notes**
 - VMC: speed toward the next mark, measured up the ladder at the boats' own tacking or gybing angle (overstanding counts against it). SOG is over the ground.
-- There's no wind channel. 969's heading reads about 11° left of its track on every heading, about the local magnetic variation, so it's probably being applied twice.
+- There's no wind channel. All directions are magnetic. 969's compass reads about 11° low on every heading (against its own magnetic track as well as the true one). That's the size of the local variation (10.7° E), so the unit looks to be subtracting variation from a heading that's already magnetic.
 - Race 5's data runs to 22:05, because Njord's race end (21:42:46) came before anyone finished.
 - Only Mojo, 969 and 1216 were tracked, so the order and gaps here are between those boats, not race results.
 
@@ -60,3 +60,4 @@
 - What upwind mode were you in? Tacking angle by compass was 70–84°, against Mojo's 64–73°. It looks like a deliberate footing mode, and it paid to the mark.
 - Did you do timed runs along the line? The tracks show almost none. The Worlds standard is three timed runs in the last minutes, with the burn time kept current.
 - What changed at the windward marks on Sunday? The approach and bear-away cost twice Saturday's.
+- Can you check the compass's variation setting? It reads about 11° below 969's magnetic track, so any headings you've noted this regatta are low by that much.

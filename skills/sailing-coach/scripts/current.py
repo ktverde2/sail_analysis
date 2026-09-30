@@ -65,6 +65,7 @@ def race_drift(df: pd.DataFrame, res: dict, course: list[dict], boat: str) -> di
         "stem": res.get("stem"),
         "axis": res.get("upwind_axis"),
         "twd": (res.get("wind") or {}).get("twd_estimated"),
+        "mag_var": res.get("mag_var"),  # true = magnetic + mag_var; the page shows magnetic
         "course": course,
         "samples": None,
     }
@@ -262,8 +263,10 @@ def build(drifts: list[dict], boat_order: list[str]) -> dict | None:
             uniq.append(m)
 
     r1 = lambda s, n=1: [None if pd.isna(v) else round(float(v), n) for v in s]
+    mvs = [d["mag_var"] for d in drifts if d.get("mag_var") is not None]
     return {
         "axis": round(axis, 1),
+        "mag_var": round(float(np.median(mvs)), 1) if mvs else None,
         "boats": boats,
         "races": races,
         "fits": fits,

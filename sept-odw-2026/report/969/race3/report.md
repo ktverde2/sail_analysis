@@ -3,8 +3,8 @@
 Gun 2026-09-26 15:15:00 (America/Los_Angeles), race 37.4 min. Speed source: SOG.
 
 ## Data quality
-- Wind: NOT trusted (no TWS channel).
-- Wind direction estimated from tacking headings: 269.5°.
+- Wind: NOT trusted (TWS changes by under 0.02 kt a second 100% of the time (a smoothed model feed, not measured on board); 100% of samples are exactly 10 kt).
+- Wind direction estimated from tacking headings: 258.8° magnetic.
 - Speeds are over ground; current moves them. Compare tacks before coaching small differences.
 
 ## Start
@@ -19,11 +19,11 @@ Gun 2026-09-26 15:15:00 (America/Los_Angeles), race 37.4 min. Speed source: SOG.
 Legs: Njord course.
 Straight: mark to mark. Ideal: shortest path at our average angle to the wind over the ground (leeway included) in steady wind; m vs ideal is the extra we sailed.
 
-| Leg | Type | Time | VMC to mark | VMC steady | Sailed nm | Straight nm | +% vs straight | m vs ideal | SOG | SOG steady | Maneuvers | Heel (abs) | Heel sd | Tacking ∠ | TWD est | SOG stbd/port | Heel stbd/port | % stbd |
+| Leg | Type | Time | VMC to mark | VMC steady | Sailed nm | Straight nm | +% vs straight | m vs ideal | SOG | SOG steady | Maneuvers | Heel (abs) | Heel sd | Tacking ∠ | TWD est (mag) | SOG stbd/port | Heel stbd/port | % stbd |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | upwind | 13:38 | 4.53 | 4.55 | 1.31 | 1.04 | 26.2 | 85 | 5.77 | 5.81 | 2 | 18.1 | 3.4 | 68.8 | 266.9 | 5.72/5.87 | 17.8/18.2 | 42 |
+| 1 | upwind | 13:38 | 4.53 | 4.55 | 1.31 | 1.04 | 26.2 | 85 | 5.77 | 5.81 | 2 | 18.1 | 3.4 | 68.8 | 256.2 | 5.72/5.87 | 17.8/18.2 | 42 |
 | 2 | downwind | 10:25 | 5.39 | 5.45 | 1.01 | 0.95 | 6.9 | 95 | 5.82 | 5.86 | 2 | 2.8 | 2.0 | – | – | 5.84/5.88 | 2.8/2.8 | 49 |
-| 3 | upwind | 13:17 | 4.25 | 4.42 | 1.25 | 0.94 | 32.6 | 143 | 5.64 | 5.77 | 5 | 19.0 | 4.0 | 71.4 | 272.0 | 5.77/5.78 | 20.2/17.8 | 50 |
+| 3 | upwind | 13:17 | 4.25 | 4.42 | 1.25 | 0.94 | 32.6 | 143 | 5.64 | 5.77 | 5 | 19.0 | 4.0 | 71.4 | 261.3 | 5.77/5.78 | 20.2/17.8 | 50 |
 
 ## Maneuvers
 - Tacks: 6, avg entry 5.86 kt, avg loss 1.95 kt (33%), avg recovery 17.3 s, avg 6.3 m lost (total 38 m); onto port 5.4 m vs onto stbd 6.8 m; 2 in double tacks/gybes left out of these averages.
@@ -45,10 +45,10 @@ Metres toward the mark. Handling: the dip against a baseline from the VMC before
 ## Wind shifts and tack calls
 Wind direction from headings: heading ± half the tacking angle. Shifts are relative to each beat's median; + is a right shift (veer), − a left shift (back). A puff that lets the boat point higher also reads as a lift, so treat single 3–4° calls as soft.
 
-| Leg | Median wind | Trend over beat | Oscillation | Pattern | % right of rhumb | Max left/right m | Headed > 5° without tacking |
+| Leg | Median wind (magnetic) | Trend over beat | Oscillation | Pattern | % right of rhumb | Max left/right m | Headed > 5° without tacking |
 |---|---|---|---|---|---|---|---|
-| 1 | 267° | +2° | ±2° | steady | 97 | 17/733 | 0 s |
-| 3 | 272° | +8° | ±5° | persistent right shift | 93 | 54/436 | 109 s |
+| 1 | 256° | +2° | ±2° | steady | 97 | 17/733 | 0 s |
+| 3 | 261° | +8° | ±5° | persistent right shift | 93 | 54/436 | 109 s |
 
 - Leg 1: Steady wind; no side was favored by shifts. We worked the right.
 - Leg 3: Wind went right 8° over the beat, which pays the right; we worked the right (93% of the time right of the rhumb line) - right call.
@@ -83,7 +83,7 @@ vs best: metres more than the best rounding of the same type in this analysis. T
 - #2 leeward: Took 40 s to settle upwind (best 20 s). Speed before height. Speed dropped 35% through the turn (5.81 → 3.8 kt; best 27%). A smoother, rounder turn keeps more of it. Passed 6 m from the mark. Wide in, tight out: leave it about a boat length (3 m) away on the exit.
 
 ## Upwind vs. targets
-Not computed: wind speed not trustworthy (no TWS channel); pass --tws, e.g. --tws 8-10.
+Not computed: wind speed not trustworthy (TWS changes by under 0.02 kt a second 100% of the time (a smoothed model feed, not measured on board); 100% of samples are exactly 10 kt); pass --tws, e.g. --tws 8-10.
 
 ## Plots
 track.png, timeline.png, start.png, maneuvers.png

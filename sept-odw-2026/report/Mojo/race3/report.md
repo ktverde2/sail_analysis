@@ -3,8 +3,8 @@
 Gun 2026-09-26 15:15:00 (America/Los_Angeles), race 39.2 min. Speed source: SOG.
 
 ## Data quality
-- Wind: NOT trusted (no TWS channel).
-- Wind direction estimated from tacking headings: 278.9°.
+- Wind: NOT trusted (TWS changes by under 0.02 kt a second 100% of the time (a smoothed model feed, not measured on board); 100% of samples are exactly 10 kt).
+- Wind direction estimated from tacking headings: 268.2° magnetic.
 - Speeds are over ground; current moves them. Compare tacks before coaching small differences.
 
 ## Start
@@ -19,11 +19,11 @@ Gun 2026-09-26 15:15:00 (America/Los_Angeles), race 39.2 min. Speed source: SOG.
 Legs: Njord course.
 Straight: mark to mark. Ideal: shortest path at our average angle to the wind over the ground (leeway included) in steady wind; m vs ideal is the extra we sailed.
 
-| Leg | Type | Time | VMC to mark | VMC steady | Sailed nm | Straight nm | +% vs straight | m vs ideal | SOG | SOG steady | Maneuvers | Heel (abs) | Heel sd | Tacking ∠ | TWD est | SOG stbd/port | Heel stbd/port | % stbd |
+| Leg | Type | Time | VMC to mark | VMC steady | Sailed nm | Straight nm | +% vs straight | m vs ideal | SOG | SOG steady | Maneuvers | Heel (abs) | Heel sd | Tacking ∠ | TWD est (mag) | SOG stbd/port | Heel stbd/port | % stbd |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | upwind | 14:24 | 4.26 | 4.43 | 1.33 | 1.04 | 28.4 | 76 | 5.53 | 5.63 | 4 | 17.5 | 3.7 | 63.5 | 279.6 | 5.53/5.69 | 16.1/18.3 | 38 |
+| 1 | upwind | 14:24 | 4.26 | 4.43 | 1.33 | 1.04 | 28.4 | 76 | 5.53 | 5.63 | 4 | 17.5 | 3.7 | 63.5 | 268.9 | 5.53/5.69 | 16.1/18.3 | 38 |
 | 2 | downwind | 11:14 | 4.99 | 5.07 | 1.14 | 0.95 | 20.7 | 73 | 6.09 | 6.16 | 3 | 3.9 | 3.1 | – | – | 6.08/6.27 | 2.9/5.2 | 58 |
-| 3 | upwind | 13:30 | 4.17 | 4.38 | 1.26 | 0.94 | 33.5 | 104 | 5.58 | 5.72 | 6 | 18.0 | 3.9 | 64.7 | 278.3 | 5.81/5.64 | 18.2/17.9 | 45 |
+| 3 | upwind | 13:30 | 4.17 | 4.38 | 1.26 | 0.94 | 33.5 | 104 | 5.58 | 5.72 | 6 | 18.0 | 3.9 | 64.7 | 267.6 | 5.81/5.64 | 18.2/17.9 | 45 |
 
 ## Maneuvers
 - Gybes: 1, avg entry 6.85 kt, avg loss 2.27 kt (33%), avg recovery 24.0 s, avg -0.5 m lost (total 0 m); 2 in double tacks/gybes left out of these averages.
@@ -50,10 +50,10 @@ Metres toward the mark. Handling: the dip against a baseline from the VMC before
 ## Wind shifts and tack calls
 Wind direction from headings: heading ± half the tacking angle. Shifts are relative to each beat's median; + is a right shift (veer), − a left shift (back). A puff that lets the boat point higher also reads as a lift, so treat single 3–4° calls as soft.
 
-| Leg | Median wind | Trend over beat | Oscillation | Pattern | % right of rhumb | Max left/right m | Headed > 5° without tacking |
+| Leg | Median wind (magnetic) | Trend over beat | Oscillation | Pattern | % right of rhumb | Max left/right m | Headed > 5° without tacking |
 |---|---|---|---|---|---|---|---|
-| 1 | 280° | -2° | ±4° | oscillating | 96 | 24/614 | 0 s |
-| 3 | 278° | -1° | ±4° | oscillating | 100 | 0/585 | 0 s |
+| 1 | 269° | -2° | ±4° | oscillating | 96 | 24/614 | 0 s |
+| 3 | 268° | -1° | ±4° | oscillating | 100 | 0/585 | 0 s |
 
 - Leg 1: Oscillating (±4°): tacking on the headers is what pays. We worked the right.
 - Leg 3: Oscillating (±4°): tacking on the headers is what pays. We worked the right.
@@ -89,7 +89,7 @@ vs best: metres more than the best rounding of the same type in this analysis. T
 - #2 leeward: Came out at 40° to the wind, low and wide (your best exited at 23°). Finish the turn close to close-hauled; the wide entry is what makes a tight exit possible. Passed 9 m from the mark. Wide in, tight out: leave it about a boat length (3 m) away on the exit. Tacked 1 s after the mark, so its cost is in this number. Fine if it was for clear air or the favoured side; otherwise hold the lane until you're up to speed.
 
 ## Upwind vs. targets
-Not computed: wind speed not trustworthy (no TWS channel); pass --tws, e.g. --tws 8-10.
+Not computed: wind speed not trustworthy (TWS changes by under 0.02 kt a second 100% of the time (a smoothed model feed, not measured on board); 100% of samples are exactly 10 kt); pass --tws, e.g. --tws 8-10.
 
 ## Plots
 track.png, timeline.png, start.png, maneuvers.png

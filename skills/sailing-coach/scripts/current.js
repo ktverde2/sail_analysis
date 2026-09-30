@@ -3,7 +3,7 @@ function CurrentMap(root, D) {
   const S = { metric: "cross", boat: "All", race: "All", mode: "All", side: "All", cell: 100 };
   const $ = r => root.querySelector(`[data-r="${r}"]`);
   const css = n => getComputedStyle(root).getPropertyValue(n).trim();
-  const boatVar = b => (D.boats.indexOf(b) === 0 ? "--tk-series-1" : "--tk-series-2");
+  const boatVar = b => `--tk-series-${Math.min(Math.max(D.boats.indexOf(b), 0), 3) + 1}`;
   const med = a => {
     const v = a.filter(x => x != null && !isNaN(x)).sort((p, q) => p - q);
     if (!v.length) return null;
@@ -13,6 +13,10 @@ function CurrentMap(root, D) {
   const pct = (a, p) => { const v = a.filter(x => x != null).sort((x, y) => x - y); return v.length ? v[Math.min(v.length - 1, Math.floor(p * v.length))] : null; };
   const sgn = (v, dp = 1, u = "") => (v == null ? "–" : (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(dp) + u);
   const short = r => r.replace("Race ", "R");
+  // Directions are stored true (GPS); show them magnetic, like the compass, when the variation is known
+  const MAG = D.mag_var != null;
+  const mdir = v => (v == null ? v : Math.round(((v - (MAG ? D.mag_var : 0)) % 360 + 360) % 360));
+  const NTH = MAG ? "° mag" : "° true";
   const CFG = { displaylogo: false, responsive: true, modeBarButtonsToRemove: ["select2d", "lasso2d", "autoScale2d"] };
   const axis = (title, extra) => Object.assign({
     title: { text: title, font: { size: 12 } }, gridcolor: css("--tk-grid"), zeroline: false,
@@ -43,9 +47,10 @@ function CurrentMap(root, D) {
       const o = D.fits[b].offset;
       if (Math.abs(o) >= 5)
         notes.push(`<b>${b}'s heading reads ${Math.abs(o).toFixed(0)}° ${o > 0 ? "left" : "right"} of its track on every heading.</b> ` +
-          `That's the compass, not the water: close to the local magnetic variation it usually means variation is added twice ` +
-          `(the unit already gives true heading); otherwise the unit is mounted or calibrated off. Wind directions and tacking ` +
-          `headings from this boat are shifted by the same amount.`);
+          `That's the compass, not the water. ` + (MAG && Math.abs(Math.abs(o) - D.mag_var) < 2
+            ? `It's the size of the local variation (${D.mag_var.toFixed(1)}°), so check the unit's variation setting: it looks like variation is being ${o > 0 ? "subtracted from" : "added to"} a heading that's already magnetic. `
+            : `The unit is mounted or calibrated off. `) +
+          `Wind directions and tacking headings from this boat are shifted by the same amount.`);
     }
     for (const b of D.boats.filter(b => D.fits[b].suspect))
       notes.push(`<b>${b}'s compass doesn't match its track the same way on every heading:</b> it ${D.fits[b].suspect}. ` +
@@ -100,7 +105,7 @@ function CurrentMap(root, D) {
     const C = N.current, T = N.tide;
     const src = [];
     if (C) src.push(`Current: <b>${C.station.name}</b> (${C.station.id}), ${C.station.km} km from the course` +
-      (C.station.depth_ft ? `, ${C.station.depth_ft} ft down` : "") + `. ${C.method}; flood toward ${C.flood_dir}°, ebb toward ${C.ebb_dir}°.`);
+      (C.station.depth_ft ? `, ${C.station.depth_ft} ft down` : "") + `. ${C.method}; flood toward ${mdir(C.flood_dir)}${NTH}, ebb toward ${mdir(C.ebb_dir)}${NTH}.`);
     if (T) src.push(`Tide: <b>${T.station.name}</b> (${T.station.id}), ${T.station.km} km, feet above ${T.datum}.`);
     src.push(`${N.source}, fetched ${N.fetched.slice(0, 10)}. Times are local.`);
     $("noaa-src").innerHTML = src.join(" ");
@@ -130,7 +135,7 @@ function CurrentMap(root, D) {
           textposition: "bottom center", textfont: { size: 10, color: css("--tk-muted") }, marker: { size: 8, color: css("--tk-ink2") },
           hovertemplate: "%{text}<extra></extra>" },
       ];
-      Plotly.react($("cur"), tr, lay(`kt (+ flood ${C.flood_dir}°, − ebb ${C.ebb_dir}°)`, {
+      Plotly.react($("cur"), tr, lay(`kt (+ flood ${mdir(C.flood_dir)}${NTH}, − ebb ${mdir(C.ebb_dir)}${NTH})`, {
         shapes: [...raceShapes(N), { type: "line", xref: "paper", x0: 0, x1: 1, y0: 0, y1: 0, line: { color: css("--tk-muted"), width: 1, dash: "dot" } }] }), CFG);
 
       // Predicted across the course against each boat's measurement per race
@@ -156,7 +161,7 @@ function CurrentMap(root, D) {
       const ph = [...new Set(R.map(phase))];
       const inWin = C.events.filter(e => e[0] >= R[0].start && e[0] <= R[R.length - 1].end);
       notes.push(`<b>${ph.length === 1 ? `All ${R.length > 1 ? R.length + " races" : "the racing"} on the ${ph[0]}` : "Races: " + R.map(r => `${short(r.race)} ${phase(r)}`).join(", ")}</b> at the station` +
-        (inWin.length ? `: ${inWin.map(e => (e[2] === "slack" ? `slack at ${hm(e[0])}` : `max ${e[2]} ${Math.abs(e[1]).toFixed(2)} kt toward ${e[2] === "flood" ? C.flood_dir : C.ebb_dir}° at ${hm(e[0])}`)).join(", ")}.` : "."));
+        (inWin.length ? `: ${inWin.map(e => (e[2] === "slack" ? `slack at ${hm(e[0])}` : `max ${e[2]} ${Math.abs(e[1]).toFixed(2)} kt toward ${mdir(e[2] === "flood" ? C.flood_dir : C.ebb_dir)}${NTH} at ${hm(e[0])}`)).join(", ")}.` : "."));
     }
     if (T && N.races.length) {
       const at = x => { let k = T.x.findIndex(t => t >= x); return k < 0 ? null : T.pred[k]; };
@@ -335,7 +340,7 @@ function CurrentMap(root, D) {
       { xref: "paper", yref: "paper", x: 0.98, y: 0.97, ax: -26 * nx, ay: 26 * ny, axref: "pixel", ayref: "pixel",
         showarrow: true, arrowhead: 2, arrowsize: 1, arrowwidth: 1.5, arrowcolor: muted, text: "N", font: { size: 11, color: muted } },
       { xref: "paper", yref: "paper", x: 0.01, y: 0.99, xanchor: "left", yanchor: "top", showarrow: false,
-        text: `↑ upwind (${Math.round(D.axis)}°)`, font: { size: 11, color: muted } },
+        text: `↑ upwind (${mdir(D.axis)}${NTH})`, font: { size: 11, color: muted } },
     ];
     // NOAA's predicted current for the race(s) in view, drawn in the map's frame (x across, y up)
     const NC = D.noaa && D.noaa.current && D.noaa.races.filter(r => r.across != null && (S.race === "All" || r.race === S.race));
@@ -347,7 +352,7 @@ function CurrentMap(root, D) {
         showarrow: spd >= 0.05, arrowhead: 2, arrowwidth: 2.5, arrowcolor: css("--tk-ink"),
         text: "", hovertext: "NOAA prediction at the station, not a measurement" },
         { xref: "paper", yref: "paper", x: 0.01, y: 0.01, xanchor: "left", yanchor: "bottom", showarrow: false, align: "left",
-          text: `NOAA, ${D.noaa.current.station.name}: ${spd.toFixed(2)} kt toward ${Math.round(brg)}°<br>(${S.race === "All" ? "average of the races" : S.race}, at the station)`,
+          text: `NOAA, ${D.noaa.current.station.name}: ${spd.toFixed(2)} kt toward ${mdir(brg)}${NTH}<br>(${S.race === "All" ? "average of the races" : S.race}, at the station)`,
           font: { size: 11, color: muted } });
     }
     const el = $("map");

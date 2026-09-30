@@ -46,7 +46,7 @@
     const P = d.progress || 'VMG';
     s.hover = s.t.map((t, i) =>
       '<b>' + clock(t) + '</b><br>SOG ' + f(s.sog[i], 2, ' kt') + '<br>' + P + ' ' + f(s.vmg[i], 2, ' kt') +
-      '<br>Heading ' + f(s.hdg[i], 0, '°') + '<br>Heel ' + f(s.heelAbs[i], 0, '°'));
+      '<br>Heading ' + f(s.hdg[i], 0, d.north === 'magnetic' ? '° mag' : '°') + '<br>Heel ' + f(s.heelAbs[i], 0, '°'));
     d.legType = {};
     d.legs.forEach(l => (d.legType[l.leg] = l.type));
     d.idxAt = t => { let b = 0; s.t.forEach((v, i) => { if (Math.abs(v - t) < Math.abs(s.t[b] - t)) b = i; }); return b; };
