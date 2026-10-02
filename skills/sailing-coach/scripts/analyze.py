@@ -81,6 +81,31 @@ def adiff(a, b):
     return np.where(d > 180, d - 360, d)
 
 
+BOAT_LENGTH_M = 9.3  # Etchells LOA (30 ft 6 in): distances gained or lost are also given in lengths
+
+
+def lengths(m) -> str | None:
+    """Metres as boat lengths: one decimal under 10, whole lengths above."""
+    if m is None or (isinstance(m, float) and math.isnan(m)):
+        return None
+    v = m / BOAT_LENGTH_M
+    return f"{v:.1f}" if abs(round(v, 1)) < 10 else f"{v:.0f}"
+
+
+def m_bl(m, signed: bool = False) -> str:
+    """'45 m (4.8 lengths)' for prose."""
+    if m is None or (isinstance(m, float) and math.isnan(m)):
+        return "–"
+    return f"{m:+.0f} m ({lengths(m)} lengths)" if signed else f"{m:.0f} m ({lengths(m)} lengths)"
+
+
+def mbl_cell(m) -> str | None:
+    """'45 (4.8)' for a table column headed 'm (lengths)'."""
+    if m is None or (isinstance(m, float) and math.isnan(m)):
+        return None
+    return f"{m:.0f} ({lengths(m)})"
+
+
 def magnetic_variation(df) -> float | None:
     """Degrees east (true = magnetic + variation), from the boat's own true and magnetic channels.
     Everything is computed in true (GPS geometry is true); directions are shown magnetic."""
@@ -924,7 +949,7 @@ def rounding_tips(r: dict, b: dict, maneuvers: list[dict]) -> list[str]:
     elif windward and before >= 15:
         tip(
             before,
-            f"Gave away {before:.0f} m in the 30 s before the mark. Keep target speed on ",
+            f"Gave away {m_bl(before)} in the 30 s before the mark. Keep target speed on ",
             "the layline; don't pinch up to the mark.",
         )
     if windward and slow_settle:
@@ -937,13 +962,13 @@ def rounding_tips(r: dict, b: dict, maneuvers: list[dict]) -> list[str]:
     if not windward and before >= 20:
         tip(
             before,
-            f"Lost {before:.0f} m on the way in. Drop earlier and set up wide so the turn ",
+            f"Lost {m_bl(before)} on the way in. Drop earlier and set up wide so the turn ",
             "starts before the mark, not at it.",
         )
     if not windward and (r.get("mark_dist_m") or 0) > 6:
         tip(
             after * 0.5,
-            f"Passed {r['mark_dist_m']:.0f} m from the mark. Wide in, tight out: leave ",
+            f"Passed {m_bl(r['mark_dist_m'])} from the mark. Wide in, tight out: leave ",
             "it about a boat length (3 m) away on the exit.",
         )
     if not windward and ex is not None and bex is not None and ex >= max(bex + 5, 38):
@@ -993,7 +1018,7 @@ def rounding_tips(r: dict, b: dict, maneuvers: list[dict]) -> list[str]:
     out = [t for _, t in tips[:3]]
     if not out and r is not b:
         out.append(
-            f"No single fault stands out: {before:.0f} m went before the mark and {after:.0f} m "
+            f"No single fault stands out: {m_bl(before)} went before the mark and {m_bl(after)} "
             "after. Same routine, a little smoother, to close the gap to your best."
         )
     if r is b:
@@ -1864,7 +1889,7 @@ def roundings_plot(race: Race, res: dict, out: Path, plt):
                 g.SOG.rolling(3, center=True, min_periods=1).mean(),
                 color=(BLUE, ORANGE, AQUA)[k % 3],
                 lw=1.8,
-                label=f"#{r['n']} at {_fmt_mmss(r['time_s'])}: {r['metres_lost']} m lost",
+                label=f"#{r['n']} at {_fmt_mmss(r['time_s'])}: {m_bl(r['metres_lost'])} lost",
             )
         ax.axvline(0, color=INK, lw=1, ls="--")
         ax.set_title(f"{kind.capitalize()} roundings")
@@ -2268,10 +2293,10 @@ def roundings_md(rs: list | None) -> list[str]:
                     ("SOG min", "sog_min"),
                     ("SOG out", "sog_exit"),
                     ("Settled s", "settle_s"),
-                    ("m lost", "metres_lost"),
-                    ("Closest to mark m", "mark_dist_m"),
+                    ("m lost (lengths)", lambda r: mbl_cell(r.get("metres_lost"))),
+                    ("Closest to mark m (lengths)", lambda r: mbl_cell(r.get("mark_dist_m"))),
                     ("Gate", "gate_side"),
-                    ("vs best m", "vs_best_m"),
+                    ("vs best m (lengths)", lambda r: mbl_cell(r.get("vs_best_m"))),
                 ],
             ),
             (
@@ -2330,14 +2355,14 @@ def write_report(res: dict, out: Path):
         late = s.get("late_s")
         lines += [
             (
-                f"- Distance behind line: {s.get('below_line_-60s_m')} m at -60 s, "
-                f"{s.get('below_line_-30s_m')} m at -30 s, {s.get('below_line_-10s_m')} m at -10 s, "
-                f"{s.get('below_line_+0s_m')} m at the gun."
+                f"- Distance behind line: {m_bl(s.get('below_line_-60s_m'))} at -60 s, "
+                f"{m_bl(s.get('below_line_-30s_m'))} at -30 s, {m_bl(s.get('below_line_-10s_m'))} at -10 s, "
+                f"{s.get('below_line_+0s_m')} m ({lengths(s.get('below_line_+0s_m'))} lengths) at the gun."
             ),
-            f"- Over the line at the gun by {s['ocs_at_gun_m']} m; back behind it at "
+            f"- Over the line at the gun by {s['ocs_at_gun_m']} m ({lengths(s['ocs_at_gun_m'])} lengths); back behind it at "
             f"+{s['ocs_returned_s']:.0f} s and restarted at +{s['late_s']:.0f} s."
             if s.get("ocs_returned_s") is not None and s.get("late_s") is not None
-            else f"- OCS at gun by {s['ocs_at_gun_m']} m (check the GPS antenna-to-bow offset)."
+            else f"- OCS at gun by {s['ocs_at_gun_m']} m ({lengths(s['ocs_at_gun_m'])} lengths; check the GPS antenna-to-bow offset)."
             if s.get("ocs_at_gun_m")
             else f"- On the line at the gun (within {OCS_TOLERANCE_M:g} m)."
             if late == 0
@@ -2379,7 +2404,7 @@ def write_report(res: dict, out: Path):
                 ("Sailed nm", "distance_sailed_nm"),
                 ("Straight nm", "straight_nm"),
                 ("+% vs straight", "extra_pct"),
-                ("m vs ideal", "extra_vs_ideal_m"),
+                ("m vs ideal (lengths)", lambda r: mbl_cell(r.get("extra_vs_ideal_m"))),
                 ("SOG", "sog_avg"),
                 ("SOG steady", "sog_steady"),
                 ("Maneuvers", "maneuvers"),
@@ -2398,10 +2423,10 @@ def write_report(res: dict, out: Path):
         lines.append(
             f"- {kind}s: {v['count']}, avg entry {v['entry_sog_avg']} kt, avg loss {v['speed_loss_avg_kt']} kt "
             f"({v['speed_loss_avg_pct']}%), avg recovery {v['recovery_avg_s']} s, "
-            f"avg {v['distance_lost_avg_m']} m lost (total {v['distance_lost_total_m']} m)"
+            f"avg {m_bl(v['distance_lost_avg_m'])} lost (total {m_bl(v['distance_lost_total_m'])})"
             + (
-                f"; onto port {v['distance_lost_avg_onto_port_m']} m vs onto stbd "
-                f"{v['distance_lost_avg_onto_stbd_m']} m"
+                f"; onto port {m_bl(v['distance_lost_avg_onto_port_m'])} vs onto stbd "
+                f"{m_bl(v['distance_lost_avg_onto_stbd_m'])}"
                 if "distance_lost_avg_onto_port_m" in v and "distance_lost_avg_onto_stbd_m" in v
                 else ""
             )
@@ -2430,8 +2455,8 @@ def write_report(res: dict, out: Path):
                 ("Min kt", "min_sog"),
                 ("Loss %", "speed_loss_pct"),
                 ("Recover s", "recovery_s"),
-                ("Handling m", "distance_lost_m"),
-                ("Call m", lambda r: r.get("call_m")),
+                ("Handling m (lengths)", lambda r: mbl_cell(r.get("distance_lost_m"))),
+                ("Call m (lengths)", lambda r: mbl_cell(r.get("call_m"))),
                 ("Note", "note"),
             ],
         ),
@@ -2655,7 +2680,7 @@ def _flags(r: dict) -> list[str]:
         out.append(f"deep tacks ({ms['speed_loss_avg_pct']}% loss)")
     for x in r.get("roundings") or []:
         if (x.get("metres_lost") or 0) >= ROUNDING_FLAG_M:
-            out.append(f"{x['type']} rounding #{x['n']} lost {x['metres_lost']:.0f} m")
+            out.append(f"{x['type']} rounding #{x['n']} lost {m_bl(x['metres_lost'])}")
     for b in (r.get("shifts") or {}).get("beats", []):
         wind = b["pattern"].split()[1] if b["pattern"].startswith("persistent") else None
         if wind and _side(b) not in ("middle", wind):
@@ -2710,7 +2735,7 @@ def _group_line(rs: list[dict]) -> str:
         k = [x["metres_lost"] for x in rr if x["type"] == kind]
         if k:
             bits.append(
-                f"{kind} roundings {np.mean(k):.0f} m lost on average ({_n(len(k), 'rounding')})"
+                f"{kind} roundings {m_bl(float(np.mean(k)))} lost on average ({_n(len(k), 'rounding')})"
             )
     return "; ".join(bits) + "."
 
@@ -2752,7 +2777,7 @@ def write_event(results: list[dict], out: Path):
                 "sog0": s.get("sog_+0s"),
                 "accel": s.get("accel_pm5s_kt"),
                 "tacks": ms.get("count"),
-                "tack_loss": ms.get("distance_lost_avg_m"),
+                "tack_loss": mbl_cell(ms.get("distance_lost_avg_m")),
                 # progress to the mark (VMC), then the speed that explains it
                 "up_vmc": _r(_mean([lg.get("vmc_avg") for lg in up]), 2) if up else None,
                 "dn_vmc": _r(_mean([lg.get("vmc_avg") for lg in r["legs"] if lg["type"] == "downwind"]), 2),
@@ -2786,7 +2811,7 @@ def write_event(results: list[dict], out: Path):
             ("Upwind VMC to mark", "up_vmc"),
             ("Downwind VMC to mark", "dn_vmc"),
             ("Tacks", "tacks"),
-            ("Avg m lost/tack (to the mark)", "tack_loss"),
+            ("Avg m lost/tack (lengths)", "tack_loss"),
             ("Upwind SOG", "up_sog"),
             ("Upwind heel (abs)", "up_heel"),
             ("Tacking ∠", "tack_angle"),

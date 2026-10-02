@@ -25,6 +25,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+
 HERE = Path(__file__).resolve().parent
 PRE, POST = 15, 40  # seconds shown either side of the middle of the turn
 ENTRY = (-10, -4)  # entry speed window, same as analyze.py
@@ -323,7 +324,8 @@ def fragment(kind: str, extra_class: str = "") -> str:
 
 
 def payload(items, boats, note, kind) -> str:
-    data = {"kind": kind, "words": WORDS[kind], "boats": boats, "items": items, "note": note}
+    data = {"kind": kind, "words": WORDS[kind], "boats": boats, "items": items, "note": note,
+            "boat_length_m": _boat_length()}
     return json.dumps(data, separators=(",", ":")).replace("</", "<\\/")
 
 
@@ -335,6 +337,13 @@ def plotly_tag(cdn: bool) -> str:
     if cdn:
         return f'<script src="{PLOTLY_CDN}"></script>'
     return "<script>" + (HERE / "vendor" / "plotly-basic.min.js").read_text() + "</script>"
+
+
+def _boat_length() -> float:
+    """Boat length for 'metres (lengths)': analyze.py's constant (imported late: analyze imports this)."""
+    import analyze
+
+    return analyze.BOAT_LENGTH_M
 
 
 def boat_order(boats) -> list[str]:

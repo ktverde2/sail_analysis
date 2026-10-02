@@ -30,6 +30,7 @@ from datetime import datetime
 from pathlib import Path
 
 import current as CU
+from analyze import lengths, m_bl, mbl_cell  # metres and boat lengths
 import maneuver_overlay as MO
 
 PLOTS = [
@@ -436,10 +437,10 @@ def starts_page(runs) -> str:
                 "late": late,
                 "pos": st.get("line_pos_pct_from_pin"),
                 "where": st.get("line_pos_label"),
-                "b60": st.get("below_line_-60s_m"),
-                "b30": st.get("below_line_-30s_m"),
-                "b10": st.get("below_line_-10s_m"),
-                "b0": st.get("below_line_+0s_m"),
+                "b60": mbl_cell(st.get("below_line_-60s_m")),
+                "b30": mbl_cell(st.get("below_line_-30s_m")),
+                "b10": mbl_cell(st.get("below_line_-10s_m")),
+                "b0": mbl_cell(st.get("below_line_+0s_m")),
                 "s30": st.get("sog_-30s"),
                 "s10": st.get("sog_-10s"),
                 "s0": st.get("sog_+0s"),
@@ -457,7 +458,7 @@ def starts_page(runs) -> str:
             ("Late (s)", "late"),
             ("Line pos % from pin", "pos"),
             ("End", "where"),
-            ("m back −60 s", "b60"),
+            ("m back (lengths) −60 s", "b60"),
             ("−30 s", "b30"),
             ("−10 s", "b10"),
             ("Gun", "b0"),
@@ -526,10 +527,10 @@ def maneuvers_page(runs) -> str:
             ("Loss %", "speed_loss_avg_pct"),
             ("Recover s", "recovery_avg_s"),
             ("Not recovered in 60 s", "not_recovered_in_60s"),
-            ("m lost avg", "distance_lost_avg_m"),
-            ("m lost total", "distance_lost_total_m"),
-            ("m lost onto port", "distance_lost_avg_onto_port_m"),
-            ("m lost onto stbd", "distance_lost_avg_onto_stbd_m"),
+            ("m lost avg (lengths)", lambda r: mbl_cell(r.get("distance_lost_avg_m"))),
+            ("m lost total (lengths)", lambda r: mbl_cell(r.get("distance_lost_total_m"))),
+            ("m lost onto port (lengths)", lambda r: mbl_cell(r.get("distance_lost_avg_onto_port_m"))),
+            ("m lost onto stbd (lengths)", lambda r: mbl_cell(r.get("distance_lost_avg_onto_stbd_m"))),
         ],
     )
     t2 = html_table(
@@ -560,7 +561,7 @@ def maneuvers_page(runs) -> str:
                 ("Min kt", "min_sog"),
                 ("Loss %", "speed_loss_pct"),
                 ("Recover s", "recovery_s"),
-                ("m lost", "distance_lost_m"),
+                ("m lost (lengths)", lambda r: mbl_cell(r.get("distance_lost_m"))),
                 ("Call", "call"),
                 ("Note", "note"),
             ],
@@ -723,7 +724,7 @@ def downwind_page(runs) -> str:
                 ("Min kt", "min_sog"),
                 ("Loss %", "speed_loss_pct"),
                 ("Recover s", "recovery_s"),
-                ("m lost", "distance_lost_m"),
+                ("m lost (lengths)", lambda r: mbl_cell(r.get("distance_lost_m"))),
             ],
         )
         if gybes
@@ -773,14 +774,14 @@ def roundings_page(runs) -> str:
             ("#", "n"),
             ("Type", "type"),
             ("From gun", lambda r: _mmss(r["time_s"])),
-            ("m lost", "metres_lost"),
-            ("vs your best", lambda r: _plus(r.get("vs_best_m"))),
+            ("m lost (lengths)", lambda r: mbl_cell(r.get("metres_lost"))),
+            ("vs your best", lambda r: _plus(r.get("vs_best_m")) + (f" ({lengths(r['vs_best_m'])})" if r.get("vs_best_m") else "") if r.get("vs_best_m") is not None else None),
             ("Approach", "approach"),
             ("SOG in", "sog_entry"),
             ("SOG min", "sog_min"),
             ("SOG out", "sog_exit"),
             ("Settled s", "settle_s"),
-            ("Closest to mark m", "mark_dist_m"),
+            ("Closest to mark m (lengths)", lambda r: mbl_cell(r.get("mark_dist_m"))),
             ("Gate", "gate_side"),
         ],
     )
@@ -792,9 +793,9 @@ def roundings_page(runs) -> str:
             best = min(k, key=lambda r: r["metres_lost"])
             summary.append(
                 f"<li><strong>{kind.capitalize()}:</strong> {len(k)} roundings, "
-                f"{sum(r['metres_lost'] for r in k) / len(k):.0f} m lost on average; best "
-                f"{html.escape(best['race'])} #{best['n']} ({best['metres_lost']:.0f} m), worst "
-                f"{html.escape(worst['race'])} #{worst['n']} ({worst['metres_lost']:.0f} m).</li>"
+                f"{m_bl(sum(r['metres_lost'] for r in k) / len(k))} lost on average; best "
+                f"{html.escape(best['race'])} #{best['n']} ({m_bl(best['metres_lost'])}), worst "
+                f"{html.escape(worst['race'])} #{worst['n']} ({m_bl(worst['metres_lost'])}).</li>"
             )
     goal = _rounding_goal(rows)
     body = card(
@@ -817,18 +818,18 @@ def roundings_page(runs) -> str:
         if interactive(d):
             inner = HINT + "".join(
                 f'<h3 class="leg">{r["type"].capitalize()} rounding #{r["n"]} · +{_mmss(r["time_s"])} from gun · '
-                f"{r['metres_lost']} m lost"
+                f"{m_bl(r['metres_lost'])} lost"
                 + (
                     " · your best"
                     if r.get("is_best")
-                    else f" · +{r['vs_best_m']:.0f} m vs your best"
+                    else f" · +{m_bl(r['vs_best_m'])} vs your best"
                     if r.get("vs_best_m") is not None
                     else ""
                 )
                 + f'</h3><p class="facts">{html.escape(_approach_text(r) or "")}; '
                 f"{r['sog_entry']} → {r['sog_min']} → {r['sog_exit']} kt; settled in {r['settle_s']} s"
                 + (
-                    f"; closest {r['mark_dist_m']} m from the mark"
+                    f"; closest {m_bl(r['mark_dist_m'])} from the mark"
                     if r.get("mark_dist_m") is not None
                     else ""
                 )
@@ -840,7 +841,7 @@ def roundings_page(runs) -> str:
             )
         else:
             inner = "".join(
-                f'<h3 class="leg">{r["type"].capitalize()} rounding #{r["n"]}: {r["metres_lost"]} m lost</h3>'
+                f'<h3 class="leg">{r["type"].capitalize()} rounding #{r["n"]}: {m_bl(r["metres_lost"])} lost</h3>'
                 + _tips_html(r)
                 for r in rs
             ) + figures([(d / "roundings.png", "Speed through the roundings")])
@@ -878,14 +879,14 @@ def _rounding_goal(rows: list[dict]) -> str:
         k = [r for r in rows if r["type"] == kind and r.get("metres_lost") is not None]
         if k:
             best = min(r["metres_lost"] for r in k)
-            parts.append(f"every {kind} rounding at or under {best:.0f} m")
+            parts.append(f"every {kind} rounding at or under {m_bl(best)}")
             saved += sum(r.get("vs_best_m") or 0 for r in k)
     if not parts:
         return ""
     return (
         '<p class="note"><strong>Goal: zero metres lost at every mark.</strong> Next milestone: '
         + " and ".join(parts)
-        + f" (your best so far). Matching your best everywhere would have saved about {saved:.0f} m.</p>"
+        + f" (your best so far). Matching your best everywhere would have saved about {m_bl(saved)}.</p>"
     )
 
 
@@ -912,7 +913,7 @@ def distance_card(runs, kind: str) -> str:
             ("Straight line nm", "straight_nm"),
             ("+% vs straight", "extra_pct"),
             ("Ideal at our angle nm", "ideal_nm"),
-            ("Extra vs ideal m", "extra_vs_ideal_m"),
+            ("Extra vs ideal m (lengths)", lambda r: mbl_cell(r.get("extra_vs_ideal_m"))),
             ("Track angle to wind", "track_angle"),
         ],
     )

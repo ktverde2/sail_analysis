@@ -11,7 +11,7 @@
 
 **Top 3 to work on**
 1. **Mojo and 1216: upwind speed against 969, both days**
-   - Side by side, 969 gained 191 m toward the mark on Mojo in 53 minutes, and 116 m on 1216 in 35 minutes. In both breezes, 969 got there by being faster, not higher.
+   - Side by side, 969 gained 191 m (21 lengths) toward the mark on Mojo in 53 minutes, and 116 m (12 lengths) on 1216 in 35 minutes. In both breezes, 969 got there by being faster, not higher.
    - **Next time:** Sail the mode that gets to the mark first. Test it against the boat next to you, and judge it on the gap to the mark, not the speedo.
 2. **Starts: late, or slow at the gun**
    - Saturday: Mojo was 15 s and 24 s late in Races 2–3, and 1216 was 13 s and 22 s late. 969 was 2–3 s late every time, at full speed.
@@ -29,12 +29,12 @@
 **Side by side upwind: 969 is faster, and gets to the mark sooner**
 | Pair | Saturday | Sunday |
 |---|---|---|
-| 969 on Mojo | 969 +88 m in 33 min: +143 m from speed, −55 m from course | 969 +103 m in 19 min: +146 m from speed, −43 m from course |
-| 969 on 1216 | 969 +15 m in 18 min: +109 m from speed, −94 m from course | 969 +101 m in 16 min: +54 m from speed, +47 m from course |
-| Mojo on 1216 | Mojo +89 m in 34 min: +73 m from speed, +16 m from course | Mojo +49 m in 19 min: −26 m from speed, +75 m from course |
+| 969 on Mojo | 969 +88 m (9.5 lengths) in 33 min: +143 m (15 lengths) from speed, −55 m (5.9 lengths) from course | 969 +103 m (11 lengths) in 19 min: +146 m (16 lengths) from speed, −43 m (4.6 lengths) from course |
+| 969 on 1216 | 969 +15 m (1.6 lengths) in 18 min: +109 m (12 lengths) from speed, −94 m (10 lengths) from course | 969 +101 m (11 lengths) in 16 min: +54 m (5.8 lengths) from speed, +47 m (5.1 lengths) from course |
+| Mojo on 1216 | Mojo +89 m (9.6 lengths) in 34 min: +73 m (7.8 lengths) from speed, +16 m (1.7 lengths) from course | Mojo +49 m (5.3 lengths) in 19 min: −26 m (2.8 lengths) from speed, +75 m (8.1 lengths) from course |
 - 969 sailed lower and faster than Mojo on both days, and it paid both days. It paid more on Sunday: 5.4 m a minute, against 2.7 on Saturday.
 - 1216 was the slowest of the three upwind. It made some of that back by pointing higher than 969 on Saturday, but not enough.
-- Downwind, side by side, it was close: 969 gained 36 m on Mojo over 14 minutes, and 1216 and Mojo were level.
+- Downwind, side by side, it was close: 969 gained 36 m (3.9 lengths) on Mojo over 14 minutes, and 1216 and Mojo were level.
 
 [[chart:pairmap]]
 
@@ -44,14 +44,14 @@
 | Starts | 969 | Saturday: 2–3 s late at 5.6–5.8 kt. Sunday: 5–8 s late, like everyone else |
 | Beats | 969 | Fastest to the mark on 5 of 10 beats, and never more than 55 s slower on any of the others |
 | Runs | 969 | Fastest on 4 of 8 runs, and 36 s lost downwind in five races. On Mojo's slow runs (Races 3 and 4), Mojo was faster over the ground but sailed 0.14 nm more |
-| Windward roundings | 1216 | 36 m lost toward the marks on average, against Mojo's 39 m and 969's 52 m |
-| Leeward roundings | Mojo | 55 m on average, against 969's 56 m and 1216's 70 m |
+| Windward roundings | 1216 | 36 m (3.9 lengths) lost toward the marks on average, against Mojo's 39 m (4.2 lengths) and 969's 52 m (5.6 lengths) |
+| Leeward roundings | Mojo | 55 m (5.9 lengths) on average, against 969's 56 m (6.0 lengths) and 1216's 70 m (7.5 lengths) |
 
 **Head to head**
 - **Race 1:** Mojo's pin start paid on a left-trending first beat, and it led at every mark. It won by 56 s from 969, with 1216 6 s further back.
 - **Race 2:** 969 started on time at full speed and was 31 s up at the first mark. Mojo (15 s late) and 1216 (13 s late) chased all race.
 - **Race 3:** 969 again, by 2:00. Mojo and 1216 started 24 s and 22 s late at the favoured pin, and both lost about another 50 s on the run by sailing extra distance.
-- **Race 4:** The pin was favoured by 77 m. 1216 won it at full speed and was already 320 m out on the left when the wind went 15° left two minutes in. It was 57 s up on 969 at the first mark. 969 took 50 s back on the run, and 47 s on the second beat, to win by 35 s. Mojo lost 1:49 on the first beat on the right, while the wind went left.
+- **Race 4:** The pin was favoured by 77 m (8.3 lengths). 1216 won it at full speed and was already 320 m out on the left when the wind went 15° left two minutes in. It was 57 s up on 969 at the first mark. 969 took 50 s back on the run, and 47 s on the second beat, to win by 35 s. Mojo lost 1:49 on the first beat on the right, while the wind went left.
 - **Race 5:** Mojo led at the first mark. 969 took the lead on the run and was on the right side of the last beat when the wind went right, to win by 4:46 over Mojo and 11:58 over 1216.
 
 [[chart:replay]]
@@ -59,7 +59,7 @@
 **What the wind did, and which side paid** (wind from all three boats' GPS tracks, so compass calibration doesn't matter; magnetic)
 - **Race 1, beat 1:** the wind went left 16° (273° to 258°). The left paid: Mojo, least far right, was fastest, and gained 29 s on 1216, 220 m further right. The shift alone was worth about 26 s, so this was the side, not speed.
 - **Race 1, beat 2 and Race 2:** steady, with no trend over any beat (swings of 4–9°). Speed and lanes decided these beats, not sides. That's where 969's speed edge shows most clearly.
-- **Race 3:** the first beat oscillated ±4° with no side paying. The run went 11° left, but the boats were only 60 m apart across the course (worth about 4 s), so the 50 s Mojo and 1216 lost there was the extra distance, not the shift.
+- **Race 3:** the first beat oscillated ±4° with no side paying. The run went 11° left, but the boats were only 60 m (6.5 lengths) apart across the course (worth about 4 s), so the 50 s Mojo and 1216 lost there was the extra distance, not the shift.
 - **Race 4, beat 1:** the biggest shift of the regatta. The wind went 15° left two minutes after the start, then backed to about 255° near the top: 25° in all. 1216 was out on the left when it came. It gained 56 s on 969, which worked 230 m further right, and the shift alone was worth about 53 s. Mojo was in between and lost 1:49.
 - **Race 5, last beat:** the wind went 20–35° right as it died. 969 went right first. See the top 3 above.
 
@@ -68,8 +68,8 @@
 [[chart:wind:race5]]
 
 **Close roundings** (two or more tracked boats within 30 s at a mark; the zone is three lengths, 28 m)
-- There were 11 in five races, but most were follow-the-leader. The trailing boat was always clear astern when the leader reached the zone, 12–93 m back, so there was no mark-room to argue about.
-- **The tight ones:** Race 5's windward mark (Mojo, then 1216 15 s later and 12 m behind at the zone, then 969; Mojo and 1216 came within 6.5 m). Race 3's windward mark (Mojo and 1216, 8 m). Race 5's leeward gate (969 and Mojo, 7.5 m). Race 1's second windward mark (1216 and 969, 8 m).
+- There were 11 in five races, but most were follow-the-leader. The trailing boat was always clear astern when the leader reached the zone, 12–93 m (1.3–10 lengths) back, so there was no mark-room to argue about.
+- **The tight ones:** Race 5's windward mark (Mojo, then 1216 15 s later and 12 m (1.3 lengths) behind at the zone, then 969; Mojo and 1216 came within 6.5 m (0.7 lengths)). Race 3's windward mark (Mojo and 1216, 8 m (0.9 lengths)). Race 5's leeward gate (969 and Mojo, 7.5 m (0.8 lengths)). Race 1's second windward mark (1216 and 969, 8 m (0.9 lengths)).
 - At the gates, the trailing boat went round the other mark in 4 of 5 close roundings. That's a good habit: it avoids the inside boat's mark-room and gets a clean exit.
 
 [[chart:marks:race5]]
@@ -77,8 +77,8 @@
 **Against the 2026 Worlds benchmark** (same water, three weeks earlier; see the [2026 Worlds report](https://etchells.org.au/blogs/news/valuable-insights-from-billy-merrington-at-the-2026-worlds))
 | Worlds standard | Mojo | 969 | 1216 |
 |---|---|---|---|
-| 1–2 m behind the line at full speed at the gun | Race 1 met it (2.2 m, 5.8 kt). Otherwise 7.5–31 m back at 3.8–4.8 kt | Saturday: full speed but 3.5–7.8 m back. Sunday: 4.3–6.5 m back at 2.6–4.1 kt | Races 1 and 4 at full speed (6.2 and 6.1 kt), 8.1 m and 5.8 m back. Races 2–3: 13 s and 22 s late |
-| Start towards the favoured end, in clear air, and judge it at the first mark | The pin was favoured in every race (by 9, 33, 34, 77 and 18 m). Mojo won it in Race 1 and led at the first mark | Started 60–80% up from the pin, on the unfavoured half, every race, and led at the first mark in Races 2–3 | At the pin in 4 of 5 races. Race 4, at full speed, led by 55 s at the first mark. Races 2–3, late and slow, didn't |
+| 1–2 m (0.1–0.2 lengths) behind the line at full speed at the gun | Race 1 met it (2.2 m (0.2 lengths), 5.8 kt). Otherwise 7.5–31 m (0.8–3.3 lengths) back at 3.8–4.8 kt | Saturday: full speed but 3.5–7.8 m (0.4–0.8 lengths) back. Sunday: 4.3–6.5 m (0.5–0.7 lengths) back at 2.6–4.1 kt | Races 1 and 4 at full speed (6.2 and 6.1 kt), 8.1 m (0.9 lengths) and 5.8 m (0.6 lengths) back. Races 2–3: 13 s and 22 s late |
+| Start towards the favoured end, in clear air, and judge it at the first mark | The pin was favoured in every race (by 9, 33, 34, 77 and 18 m: 1.0, 3.5, 3.7, 8.3 and 1.9 lengths). Mojo won it in Race 1 and led at the first mark | Started 60–80% up from the pin, on the unfavoured half, every race, and led at the first mark in Races 2–3 | At the pin in 4 of 5 races. Race 4, at full speed, led by 55 s at the first mark. Races 2–3, late and slow, didn't |
 - The favoured end only pays at full speed. 1216 at the pin in Race 4 (6.1 kt, 4 s late) led the fleet at the first mark. Mojo and 1216 at the same pin in Race 3 (3.4–3.8 kt, 22–24 s late) were over a minute behind 969, which started from the other end at full speed.
 - On Sunday no boat hit the benchmark except 1216 in Race 4. In light air, a timed approach matters more, because acceleration is slower.
 

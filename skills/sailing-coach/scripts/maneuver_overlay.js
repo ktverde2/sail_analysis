@@ -4,6 +4,10 @@ function TackOverlay(root, DATA) {
   const W = DATA.words, TACK = DATA.kind === "tack";
   // VMC (speed toward the mark) is what a maneuver is scored on; SOG explains it
   const HAS_VMC = DATA.items.some(d => d.vmc);
+  // distances gained or lost are also given in boat lengths
+  const BL = DATA.boat_length_m || 9.3;
+  const lens = m => { const x = Math.abs(m) / BL; return Math.round(x * 10) / 10 < 10 ? x.toFixed(1) : x.toFixed(0); };
+  const mL = m => (m == null ? "–" : `${Math.round(m)} m (${lens(m)} lengths)`);
   const S = { boat: "All", race: "All", onto: "All", pct: 10, angle: "cog", sel: null, speed: HAS_VMC ? "vmc" : "sog" };
   const $ = r => root.querySelector(`[data-r="${r}"]`);
   const css = n => getComputedStyle(root).getPropertyValue(n).trim();
@@ -135,7 +139,7 @@ function TackOverlay(root, DATA) {
       const hl = d => v.top.has(d.id) || S.sel === d.id;
       traces.push({
         x: pts.map(d => d[key]), y: pts.map(d => d.secs_lost), customdata: pts.map(d => d.id),
-        text: pts.map(d => `<b>${d.id}</b> · onto ${d.onto}<br>Angle ${f1(d[key])}° (${S.angle === "cog" ? "compass " + f1(d.hdg_angle) : "over ground " + f1(d.cog_angle)}°)<br>Time lost ${d.secs_lost} s · ${d.m_lost} m`),
+        text: pts.map(d => `<b>${d.id}</b> · onto ${d.onto}<br>Angle ${f1(d[key])}° (${S.angle === "cog" ? "compass " + f1(d.hdg_angle) : "over ground " + f1(d.cog_angle)}°)<br>Time lost ${d.secs_lost} s · ${mL(d.m_lost)}`),
         mode: "markers", type: "scatter", name: b,
         marker: {
           size: pts.map(d => (S.sel === d.id ? 16 : v.top.has(d.id) ? 13 : 9)),
@@ -209,7 +213,8 @@ function TackOverlay(root, DATA) {
       `<thead><tr><th>Median</th><th>Best ${S.pct}% (${T.length})</th><th>Rest (${R.length})</th><th>Difference</th></tr></thead><tbody>`
       + rows.map(r => {
         const good = r.d != null && r.dir !== 0 && Math.abs(r.d) >= r.thr && Math.sign(r.d) === r.dir;
-        return `<tr><td>${r.lab}</td><td class="${good ? "better" : ""}">${fmt(r.a, r.dp)}${r.u}</td><td>${fmt(r.b, r.dp)}${r.u}</td><td>${r.d == null ? "–" : (r.d > 0 ? "+" : "") + r.d.toFixed(r.dp) + r.u}</td></tr>`;
+        const L = x => (r.u === " m" && x != null ? ` (${lens(x)} L)` : "");
+        return `<tr><td>${r.lab}</td><td class="${good ? "better" : ""}">${fmt(r.a, r.dp)}${r.u}${L(r.a)}</td><td>${fmt(r.b, r.dp)}${r.u}${L(r.b)}</td><td>${r.d == null ? "–" : (r.d > 0 ? "+" : "") + r.d.toFixed(r.dp) + r.u + L(r.d)}</td></tr>`;
       }).join("") + "</tbody>";
 
     if (!R.length) { $("well").innerHTML = `<p class='tk-note'>Not enough ${W.many} in view to compare.</p>`; return; }
@@ -220,7 +225,7 @@ function TackOverlay(root, DATA) {
     // The result first: what the best ones cost toward the mark. Everything after explains it.
     if (TL.a != null && TL.b != null)
       out.push(`<b>${HAS_VMC ? "Cost toward the mark" : "Cost"}: ${f1(TL.a)} s against ${f1(TL.b)} s for the rest</b>` +
-        (ML.a != null ? ` (${f0(ML.a)} m against ${f0(ML.b)} m${HAS_VMC ? ": the dip in VMC through the turn, against a line from the VMC going in to the VMC once settled. What the change of tack itself gained or lost is the call, in the table" : ""}).` : ".") +
+        (ML.a != null ? ` (${mL(ML.a)} against ${mL(ML.b)}${HAS_VMC ? ": the dip in VMC through the turn, against a line from the VMC going in to the VMC once settled. What the change of tack itself gained or lost is the call, in the table" : ""}).` : ".") +
         (HAS_VMC ? "" : " No marks in this data, so this is measured in speed, not progress to the mark."));
     if (L.d != null && L.d <= -3) out.push(`<b>Kept more speed through the turn.</b> They lost ${f0(L.a)}% at the bottom against ${f0(L.b)}% for the rest (lowest ${M.a.toFixed(2)} kt against ${M.b.toFixed(2)} kt).`);
     if (E.d != null && E.d >= 0.1) out.push(`<b>Went in faster.</b> Entry speed was ${E.a.toFixed(2)} kt against ${E.b.toFixed(2)} kt: build speed before you put the helm down.`);
@@ -246,9 +251,9 @@ function TackOverlay(root, DATA) {
     const cols = [
       ["#", d => d.rank],
       [TACK ? "Tack" : "Gybe", d => `<i class="tk-dot" style="background:var(${boatVar(d.boat)})"></i>${d.id} ${v.top.has(d.id) ? '<span class="tk-badge">best ' + S.pct + "%</span>" : ""}`],
-      ["Onto", d => d.onto], ["Time lost (s)", d => f1(d.secs_lost)], ["Metres", d => f0(d.m_lost)],
+      ["Onto", d => d.onto], ["Time lost (s)", d => f1(d.secs_lost)], ["Metres (lengths)", d => (d.m_lost == null ? "–" : `${f0(d.m_lost)} (${lens(d.m_lost)})`)],
       ...(HAS_VMC ? [["VMC in → out kt", d => (d.vmc_in == null ? "–" : d.vmc_in.toFixed(2) + " → " + (d.vmc_out == null ? "–" : d.vmc_out.toFixed(2)))],
-        ["Call m", d => f0(d.call_m)]] : []),
+        ["Call m (lengths)", d => (d.call_m == null ? "–" : `${f0(d.call_m)} (${lens(d.call_m)})`)]] : []),
       ["Entry kt", d => d.entry.toFixed(2)], ["Lowest kt", d => d.min.toFixed(2)], ["Lost %", d => f0(d.loss_pct)],
       ["Back to 95% (s)", d => f0(d.t_rec)],
       ["Angle compass °", d => f0(d.hdg_angle)], ["Angle ground °", d => f0(d.cog_angle)], ["Turn s", d => f0(d.turn_s)],

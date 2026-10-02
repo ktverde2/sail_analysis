@@ -6,27 +6,27 @@
 
 **What went well**
 - **Race 4: pin start at full speed, first to the first two marks**
-  - The pin was favoured by 77 m. 1216 was there 4 s late, 5.8 m back and doing 6.1 kt at the gun: close to the 2026 Worlds standard of 1–2 m back at full speed.
+  - The pin was favoured by 77 m (8.3 lengths). 1216 was there 4 s late, 5.8 m (0.6 lengths) back and doing 6.1 kt at the gun: close to the 2026 Worlds standard of 1–2 m (0.1–0.2 lengths) back at full speed.
   - The wind went 15° left two minutes after the start. 1216 was already 320 m out on the left, the furthest of the three, and led 969 by 57 s at the top.
-- **Windward roundings: the best of the three boats, 36 m lost toward the marks on average**
-  - Race 1: 14 m and 1 m. Race 2: 28 m. Race 3: 28 m.
+- **Windward roundings: the best of the three boats, 36 m (3.9 lengths) lost toward the marks on average**
+  - Race 1: 14 m (1.5 lengths) and 1 m (0.1 lengths). Race 2: 28 m (3.0 lengths). Race 3: 28 m (3.0 lengths).
 - **Fastest legs:** the second beat in Races 1 and 3, and the last run in Races 2 and 4.
 
 **Top 3 to work on**
 1. **Upwind speed: the slowest of the three boats side by side**
-   - 969 gained 116 m toward the mark on 1216 in 35 minutes, and Mojo gained 138 m in 54 minutes.
-   - Saturday: slower than both (upwind SOG 5.65–5.76 kt, against 969's 5.79–5.99), at about the same heel as 969 (19.3–21.2° against 18.6–20.9°). 1216 pointed higher than 969 (+94 m from course) but gave back more in speed (−109 m).
-   - Sunday: 969 was faster and higher (+101 m in 16 minutes). Against Mojo, 1216 was faster but lower, and Mojo's height won (+49 m to Mojo).
+   - 969 gained 116 m (12 lengths) toward the mark on 1216 in 35 minutes, and Mojo gained 138 m (15 lengths) in 54 minutes.
+   - Saturday: slower than both (upwind SOG 5.65–5.76 kt, against 969's 5.79–5.99), at about the same heel as 969 (19.3–21.2° against 18.6–20.9°). 1216 pointed higher than 969 (+94 m (10 lengths) from course) but gave back more in speed (−109 m (12 lengths)).
+   - Sunday: 969 was faster and higher (+101 m (11 lengths) in 16 minutes). Against Mojo, 1216 was faster but lower, and Mojo's height won (+49 m (5.3 lengths) to Mojo).
    - **Next time:** Foot a little for speed: 969 got to the marks sooner by sailing lower and faster at the same heel. In the chop, try the power set-up the Worlds leaders used (traveller up, more twist, deeper jib foot). Judge it by whether the gap to the boat beside you stops growing.
-2. **Leeward roundings: 70 m lost toward the marks on average, the most of the three boats**
-   - Race 3: 98 m. 80 m of it was lost on the way in, passing 53 m wide of the mark, then a tack 28 s after it.
-   - Race 4: 84 m. Came out at 63° to the wind and took 43 s to settle upwind (the best was 20 s).
+2. **Leeward roundings: 70 m (7.5 lengths) lost toward the marks on average, the most of the three boats**
+   - Race 3: 98 m (11 lengths). 80 m (8.6 lengths) of it was lost on the way in, passing 53 m (5.7 lengths) wide of the mark, then a tack 28 s after it.
+   - Race 4: 84 m (9.0 lengths). Came out at 63° to the wind and took 43 s to settle upwind (the best was 20 s).
    - Races 1–2: out at 41–42° to the wind, low and wide.
    - **Next time:** Drop earlier and set up wide, so the turn starts before the mark. Go in wide and come out tight, close-hauled and about a boat length off the mark.
 3. **Starts in Races 2 and 3: 13 s and 22 s late at the pin**
-   - Race 2: 57 m back at −30 s and doing 3.7 kt, then 19 m back at the gun. The build started too late.
-   - Race 3: 6.5 kt at −30 s, down to 2.3 kt at −10 s, then 18 m back at 3.4 kt at the gun. Mojo did the same thing next to you (6.4 kt to 2.4 kt): it looks like a jam at the pin.
-   - Race 4 showed what a good pin start is worth. In Race 3 the pin was favoured by 34 m, and 969 started at the other end at full speed and led by 79 s at the first mark.
+   - Race 2: 57 m (6.1 lengths) back at −30 s and doing 3.7 kt, then 19 m (2.0 lengths) back at the gun. The build started too late.
+   - Race 3: 6.5 kt at −30 s, down to 2.3 kt at −10 s, then 18 m (1.9 lengths) back at 3.4 kt at the gun. Mojo did the same thing next to you (6.4 kt to 2.4 kt): it looks like a jam at the pin.
+   - Race 4 showed what a good pin start is worth. In Race 3 the pin was favoured by 34 m (3.7 lengths), and 969 started at the other end at full speed and led by 79 s at the first mark.
    - **Next time:** Three timed runs along the line and a burn time kept current. At a crowded pin, set up with a gap to leeward and start the build from further back, rather than stopping at the line.
 
 *Also worth a look:*
@@ -49,11 +49,11 @@
 **Start scorecard**
 | Race | Back at −60 s | Late (s) | Line pos | Back at gun | SOG at −30 s / gun | Accel (±5 s) |
 |---|---|---|---|---|---|---|
-| Race 1 | 74 m | 4 | 89% (boat) | 8.1 m | 5.4 / 6.2 kt | −1.0 kt |
-| Race 2 | 97 m | 13 | 7% (pin) | 19.1 m | 3.7 / 5.8 kt | +0.4 kt |
-| Race 3 | 34 m | 22 | 4% (pin) | 17.8 m | 6.5 / 3.4 kt | +0.1 kt |
-| Race 4 | 65 m | 4 | 10% (pin) | 5.8 m | 5.6 / 6.1 kt | −1.0 kt |
-| Race 5 | 51 m | 5 | 7% (pin) | 3.6 m | 2.3 / 3.5 kt | +1.1 kt |
+| Race 1 | 74 m (8.0 lengths) | 4 | 89% (boat) | 8.1 m (0.9 lengths) | 5.4 / 6.2 kt | −1.0 kt |
+| Race 2 | 97 m (10 lengths) | 13 | 7% (pin) | 19.1 m (2.1 lengths) | 3.7 / 5.8 kt | +0.4 kt |
+| Race 3 | 34 m (3.7 lengths) | 22 | 4% (pin) | 17.8 m (1.9 lengths) | 6.5 / 3.4 kt | +0.1 kt |
+| Race 4 | 65 m (7.0 lengths) | 4 | 10% (pin) | 5.8 m (0.6 lengths) | 5.6 / 6.1 kt | −1.0 kt |
+| Race 5 | 51 m (5.5 lengths) | 5 | 7% (pin) | 3.6 m (0.4 lengths) | 2.3 / 3.5 kt | +1.1 kt |
 
 **Race notes**
 - **Race 1:** Boat-end start, 4 s late at 6.2 kt. 32 s down at the first mark after working the far right, but second at the next two marks, with the fastest second beat. The last run cost 32 s (the slowest of the three) and second place. Third, 6 s behind 969.

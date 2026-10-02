@@ -331,7 +331,7 @@ def fleet_wind(per_second: dict, names: dict, leg_types: list[str], origins, tar
 
 # ---------------------------------------------------------------- close roundings
 
-ETCHELLS_LOA_M = 9.3
+ETCHELLS_LOA_M = A.BOAT_LENGTH_M
 ZONE_M = 3 * ETCHELLS_LOA_M  # RRS zone: three hull lengths of the boat nearer the mark
 CLOSE_ROUNDING_S = 30  # boats rounding within this of each other get a close-up
 ROUNDING_WINDOW_S = (-60, 40)
@@ -1134,10 +1134,10 @@ def wind_md(r: dict) -> list[str]:
         )
         p = lg.get("paid")
         if p and p["verdict"] == "too close together to matter":
-            what = (f"{p['side']}, but the boats were {p['sep_m']} m apart across the course: the shift was worth "
+            what = (f"{p['side']}, but the boats were {A.m_bl(p['sep_m'])} apart across the course: the shift was worth "
                     f"about {p['worth_s']} s, so speed decided it")
         elif p:
-            what = (f"{p['side']} {p['verdict']}: {p['boat']}, furthest {p['side']} ({p['sep_m']} m further than "
+            what = (f"{p['side']} {p['verdict']}: {p['boat']}, furthest {p['side']} ({A.m_bl(p['sep_m'])} further than "
                     f"{p['vs']}), {'gained' if p['gain_s'] >= 0 else 'lost'} {abs(p['gain_s'])} s; the shift alone was "
                     f"worth about {p['worth_s']} s")
         elif lg["pattern"] == "oscillating":
@@ -1167,11 +1167,11 @@ def close_md(r: dict) -> list[str]:
             txt = f"{b['name']} rounded {b['pass_s'] - t0:+d} s"
             if rel and k != c["first_in"]:
                 txt += f" ({rel} when {first} reached the zone" + (
-                    f", {abs(z['behind_m']):.0f} m {'behind' if z['behind_m'] >= 0 else 'ahead'})" if rel != "rounded the other gate mark" else ")")
+                    f", {A.m_bl(abs(z['behind_m']))} {'behind' if z['behind_m'] >= 0 else 'ahead'})" if rel != "rounded the other gate mark" else ")")
             parts.append(txt)
         close = min(c["pairs"], key=lambda p: p["closest_m"]) if c.get("pairs") else None
         if close:
-            parts.append(f"closest: {c['boats'][close['a']]['name']} and {c['boats'][close['b']]['name']} {close['closest_m']:.0f} m")
+            parts.append(f"closest: {c['boats'][close['a']]['name']} and {c['boats'][close['b']]['name']} {A.m_bl(close['closest_m'])}")
         L.append(f"- {c['mark']}: " + "; ".join(parts) + ".")
     return L
 
@@ -1295,8 +1295,8 @@ def write_md(fa: dict, out: Path, title: str) -> str:
         L += [
             "**Start**",
             "",
-            "| Boat | Late (s) | Line pos (from pin) | SOG at gun | Accel ±5 s | Back at −60 s |",
-            "|---|---|---|---|---|---|",
+            "| Boat | Late (s) | Line pos (from pin) | SOG at gun | Accel ±5 s | Back at −60 s | Back at gun |",
+            "|---|---|---|---|---|---|---|",
         ]
         for k in ids:
             s = bs[k]["start"]
@@ -1310,7 +1310,7 @@ def write_md(fa: dict, out: Path, title: str) -> str:
             L.append(
                 f"| {bs[k]['name']} | {late} | {s.get('line_pos_pct_from_pin')}% | "
                 f"{s.get('sog_+0s')} kt | {s.get('accel_pm5s_kt')} kt | "
-                f"{s.get('below_line_-60s_m')} m |"
+                f"{A.m_bl(s.get('below_line_-60s_m'))} | {A.m_bl(s.get('below_line_+0s_m'))} |"
             )
         L += [
             "",
@@ -1333,7 +1333,7 @@ def write_md(fa: dict, out: Path, title: str) -> str:
                 )
         L += [
             "",
-            "**Roundings (metres lost toward the marks, each boat against its own steady VMC)**",
+            "**Roundings (metres lost toward the marks, boat lengths in brackets; each boat against its own steady VMC)**",
             "",
             "| Boat | " + " | ".join(r["marks"][: len(bs[ids[0]]["roundings"])]) + " |",
             "|---|" + "---|" * len(bs[ids[0]]["roundings"]),
@@ -1342,7 +1342,7 @@ def write_md(fa: dict, out: Path, title: str) -> str:
             L.append(
                 f"| {bs[k]['name']} | "
                 + " | ".join(
-                    "–" if x.get("metres_lost") is None else f"{x['metres_lost']:.0f}"
+                    "–" if x.get("metres_lost") is None else A.mbl_cell(x["metres_lost"])
                     for x in bs[k]["roundings"]
                 )
                 + " |"
@@ -1380,6 +1380,10 @@ FLEET_JS = r"""
   }
   function clock(t) { return t < 0 ? '−' + mmss(t) + ' to gun' : '+' + mmss(t); }
   function signed(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v) + ' s'; }
+  // metres with boat lengths (Etchells, 9.3 m): '45 m (4.8 lengths)'
+  const BOAT_LENGTH_M = %BL%;
+  function lens(v) { const x = Math.abs(v) / BOAT_LENGTH_M; return Math.round(x * 10) / 10 < 10 ? x.toFixed(1) : x.toFixed(0); }
+  function mbl(v) { return v == null ? '–' : Math.round(Math.abs(v)) + ' m (' + lens(v) + ' lengths)'; }
   const FLEET = JSON.parse(document.getElementById('fleet-data').textContent);
   const SMOOTH = FLEET.detail_smooth_s || 15;
   const IDS = Object.keys(FLEET.day);  // fixed boat order: colour follows the boat
@@ -1577,11 +1581,11 @@ FLEET_JS = r"""
         const rows = ids.map(id => {
           const b = c.boats[id], z = b.at_first_zone || {};
           const where = id === c.first_in ? 'first into the zone' :
-            (z.relation ? z.relation + (z.relation === 'rounded the other gate mark' ? '' : ', ' + Math.abs(z.behind_m) + ' m ' + (z.behind_m >= 0 ? 'behind' : 'ahead') + ', ' + z.abeam_m + ' m abeam') : '–');
+            (z.relation ? z.relation + (z.relation === 'rounded the other gate mark' ? '' : ', ' + mbl(z.behind_m) + ' ' + (z.behind_m >= 0 ? 'behind' : 'ahead') + ', ' + z.abeam_m + ' m abeam') : '–');
           return '<tr><td>' + b.name + '</td><td>' + (b.zone_in_s == null ? '–' : rel(b.zone_in_s)) + '</td><td>' + rel(b.pass_s) +
             '</td><td>' + (b.zone_out_s == null ? '–' : rel(b.zone_out_s)) + '</td><td>' + b.closest_m + ' m</td><td>' + where + '</td></tr>';
         }).join('');
-        const pairs = (c.pairs || []).map(p => c.boats[p.a].name + ' and ' + c.boats[p.b].name + ': ' + p.closest_m + ' m apart at ' + rel(p.at_s) +
+        const pairs = (c.pairs || []).map(p => c.boats[p.a].name + ' and ' + c.boats[p.b].name + ': ' + mbl(p.closest_m) + ' apart at ' + rel(p.at_s) +
           (p.same_mark ? '' : ' (different gate marks)')).join('; ');
         facts.innerHTML = '<table><thead><tr><th>Boat</th><th>Into zone</th><th>Rounded</th><th>Out of zone</th><th>Closest to mark</th>' +
           '<th>When ' + first.name + ' reached the zone</th></tr></thead><tbody>' + rows + '</tbody></table>' +
@@ -1703,9 +1707,9 @@ FLEET_JS = r"""
       const traces = IDS.map(id => ({
         type: 'bar', name: FLEET.day[id].name, x: ls.map(l => l.label),
         y: ls.map(l => l.rs[id] ? l.rs[id].sog_exit : null), marker: { color: col(FLEET.day[id]) },
-        customdata: ls.map(l => l.rs[id] ? [l.name, l.rs[id].settle_s, Math.round(l.rs[id].metres_lost)] : ['', '', '']),
+        customdata: ls.map(l => l.rs[id] ? [l.name, l.rs[id].settle_s, mbl(l.rs[id].metres_lost)] : ['', '', '']),
         hovertemplate: '<b>' + FLEET.day[id].name + '</b> · %{customdata[0]}<br>%{y} kt out of the mark' +
-          '<br>%{customdata[1]} s to get back to speed, %{customdata[2]} m lost<extra></extra>' }));
+          '<br>%{customdata[1]} s to get back to speed, %{customdata[2]} lost<extra></extra>' }));
       const lay = base('Speed out of the leeward mark (20–30 s after it)', 340, el);
       lay.barmode = 'group'; lay.bargap = 0.3; lay.bargroupgap = 0.08; lay.yaxis.title = 'kt';
       Plotly.newPlot(el, traces, lay, CONFIG);
@@ -1821,7 +1825,7 @@ FLEET_JS = r"""
       if (!panel) return;
       const aw = 'course';
       const f = (v, nd) => v == null ? '–' : Number(v).toFixed(nd);
-      const signed = v => (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(Math.round(v)) + ' m';
+      const signed = v => (v > 0 ? '+' : v < 0 ? '−' : '') + mbl(v);
       const rows = [  // key, label (long|short), unit, decimals, better (+1 higher, -1 lower)
         ['sog', 'SOG|SOG', ' kt', 2, 1], ['vmg', 'VMC (to the mark)|VMC', ' kt', 2, 1], ['angle', 'Track angle|Track', '°', 1, -1],
         ['hdg_angle', 'Compass angle|Compass', '°', 1, 0], ['heel', 'Heel|Heel', '°', 1, 0], ['trim', 'Trim change|Trim Δ', '°', 1, 0],
@@ -1858,8 +1862,8 @@ FLEET_JS = r"""
       function readAt(i) {
         const val = (id, key) => key === 'trim' ? (trimChange[id] ? trimChange[id][i] : null) : (d.boats[id][key] ? d.boats[id][key][i] : null);
         const ah = d.ahead[i], ww = d.windward[i];
-        let pos = A.name + ' has ' + Math.abs(ah) + ' m ' + (ah >= 0 ? 'less' : 'more') + ' to sail than ' + B.name + ', ' +
-          Math.abs(ww) + ' m ' + (ww >= 0 ? 'further up' : 'further down') + ' the ladder';
+        let pos = A.name + ' has ' + mbl(ah) + ' ' + (ah >= 0 ? 'less' : 'more') + ' to sail than ' + B.name + ', ' +
+          mbl(ww) + ' ' + (ww >= 0 ? 'further up' : 'further down') + ' the ladder';
         if (d.shadow[i]) pos += '<br>' + (d.shadow[i] > 0 ? B.name + ' possibly in ' + A.name : A.name + ' possibly in ' + B.name) + '\'s wind shadow';
         panel.innerHTML = '<p class="st-head">At ' + mmss(d.t[i]) + ' after the gun</p>' +
           gainLine(d.gain[i], d.gain_speed[i], d.gain_angle[i]) + boats(val) + '<p class="st-pos">' + pos + '</p>';
@@ -1885,7 +1889,7 @@ FLEET_JS = r"""
       const trace = {
         type: 'bar', orientation: 'h', y: lab, x: rows.map(([, p]) => p.gain_m),
         marker: { color: rows.map(([, p]) => col(gainer(p))) },
-        text: rows.map(([, p]) => Math.abs(p.gain_m) + ' m'), textposition: 'outside', cliponaxis: false,
+        text: rows.map(([, p]) => mbl(p.gain_m)), textposition: 'outside', cliponaxis: false,
         textfont: { color: css('--ink2'), size: 11 },
         customdata: rows.map(([, p]) => [gainer(p).name, Math.abs(p.gain_m), mmss(p.duration_s),
           p.gain_speed_m, p.gain_angle_m, p.boats[a].sog, p.boats[b].sog, p.boats[a].angle, p.boats[b].angle]),
@@ -2032,13 +2036,13 @@ FLEET_JS = r"""
           else leg = r.leg_names[x.j] + ' · ' + side;
           const heel = s.heel && s.heel[x.k] != null ? Math.abs(s.heel[x.k]) + '°' : '–';
           facts = '<dt>SOG</dt><dd>' + (s.sog[x.k] == null ? '–' : s.sog[x.k].toFixed(1)) + ' kt</dd><dt>Heel</dt><dd>' + heel + '</dd>';
-          if (x.dist != null) facts += '<dt>To sail</dt><dd>' + Math.round(x.dist) + ' m</dd>';
+          if (x.dist != null) facts += '<dt>To sail</dt><dd>' + mbl(x.dist) + '</dd>';
           if (x.j > 0 && x.j <= b.gaps_s.length && !x.done) {
             const g = b.gaps_s[x.j - 1];
             facts += '<dt>Last mark</dt><dd>' + (g ? '+' + mmss(g) : 'first') + '</dd>';
           }
           if (lead && x !== lead && !x.done && !lead.done && x.j === lead.j && x.j >= 0)
-            facts += '<dt>Behind</dt><dd>' + Math.round(x.dist - lead.dist) + ' m</dd>';
+            facts += '<dt>Behind</dt><dd>' + mbl(x.dist - lead.dist) + '</dd>';
         }
         return '<div class="rp-boat" style="--c:' + col(b) + '"><div class="rp-name"><span class="rp-dot"></span>' +
           b.name + head + '</div><div class="rp-leg">' + leg + '</div><dl>' + facts + '</dl></div>';
@@ -2376,12 +2380,12 @@ def pair_sentence(fa: dict, row: dict, kind: str) -> str | None:
     sp, an = sgn * t["gain_speed_m"], sgn * t["gain_angle_m"]
 
     def part(v, what):
-        return f"{abs(v)} m {'from' if v >= 0 else 'lost on'} {what}"
+        return f"{A.m_bl(abs(v))} {'from' if v >= 0 else 'lost on'} {what}"
 
     angle = "course"  # height or depth, and staying inside the laylines
     return (
         f"{round(t['duration_s'] / 60)} min side by side {kind} ({t['n']} stretches): "
-        f"**{win} gained {abs(t['gain_m'])} m toward the mark on {lose}** ({abs(t['gain_m_per_min'])} m a minute): "
+        f"**{win} gained {A.m_bl(abs(t['gain_m']))} toward the mark on {lose}** ({abs(t['gain_m_per_min'])} m a minute): "
         f"{part(sp, 'speed')}, {part(an, angle)}."
     )
 
@@ -2393,7 +2397,7 @@ def why_sentence(fa: dict, p: dict) -> str:
     nw, nl = _pair_names(fa, win, lose)
     g = abs(p["gain_m"])
     if g < 8:  # a few metres over minutes is within what the tracks and the split can resolve
-        return f"About level: {nw} gained {g} m toward the mark on {nl}, too little to call." + _overstood(fa, p)
+        return f"About level: {nw} gained {A.m_bl(g)} toward the mark on {nl}, too little to call." + _overstood(fa, p)
     sg = 1 if win == a else -1
     sp, an = sg * p["gain_speed_m"], sg * p["gain_angle_m"]
     bw, bl = p["boats"][win], p["boats"][lose]
@@ -2403,7 +2407,7 @@ def why_sentence(fa: dict, p: dict) -> str:
     word = "course"  # height or depth, and staying inside the laylines
 
     def part(v, what, how):
-        return f"{v} m from {what} ({how})" if v >= 0 else f"{-v} m lost on {what} ({how})"
+        return f"{A.m_bl(v)} from {what} ({how})" if v >= 0 else f"{A.m_bl(-v)} lost on {what} ({how})"
 
     speed = part(sp, "speed", f"{abs(dsog):.2f} kt {'faster' if dsog >= 0 else 'slower'}")
     angle = part(
@@ -2418,10 +2422,10 @@ def why_sentence(fa: dict, p: dict) -> str:
     small_v = an if abs(sp) >= abs(an) else sp
     if abs(small_v) < 3:  # too small to call either way
         level = word if abs(sp) >= abs(an) else "speed"
-        out = f"{nw} gained {g} m toward the mark on {nl}: {big}; {level} about level"
+        out = f"{nw} gained {A.m_bl(g)} toward the mark on {nl}: {big}; {level} about level"
     else:
         link = " and " if min(sp, an) >= 0 else ", against "
-        out = f"{nw} gained {g} m toward the mark on {nl}: {big}{link}{small}"
+        out = f"{nw} gained {A.m_bl(g)} toward the mark on {nl}: {big}{link}{small}"
     out += "." + _overstood(fa, p)
     sw, sl = p["why"]["stats"][win], p["why"]["stats"][lose]
     if "heel" in sw and "heel" in sl and abs(dh := sw["heel"][0] - sl["heel"][0]) >= 1.5:
@@ -2476,7 +2480,7 @@ def pairs_md(fa: dict) -> list[str]:
         L.append("")
     L += [
         (
-            "| # | Race | Leg | Tack | Where | From | Length | Boats | Apart (m) | Gain (m) | "
+            "| # | Race | Leg | Tack | Where | From | Length | Boats | Apart (m) | Gain m (lengths) | "
             "Speed / course (m) | SOG (kt) | Angle to wind (°) | Heel (°) |"
         ),
         "|---|---|---|---|---|---|---|---|---|---|---|---|---|---|",
@@ -2490,7 +2494,7 @@ def pairs_md(fa: dict) -> list[str]:
                 f"| {p['id']} | {r['race']} | {p['leg_name']} | {p['side']} | "
                 f"{p['where']['label'] if p.get('where') else '–'} | {_mmss(p['t0'])} | "
                 f"{_mmss(p['duration_s'])} | {na} / {nb} | {p['apart_m'][0]}→{p['apart_m'][1]} | "
-                f"{win} +{abs(p['gain_m'])} | {p['gain_speed_m']:+} / {p['gain_angle_m']:+} | "
+                f"{win} +{abs(p['gain_m'])} ({A.lengths(abs(p['gain_m']))}) | {p['gain_speed_m']:+} / {p['gain_angle_m']:+} | "
                 f"{ba['sog']} / {bb['sog']} | {ba['angle']} / {bb['angle']} | "
                 f"{ba['heel']} / {bb['heel']} |"
             )
@@ -2616,8 +2620,8 @@ def pairs_html(fa: dict) -> str:
                 win = na if p["gain_m"] >= 0 else nb
                 rel = p["rel"][0]
                 where = (
-                    f"{abs(rel['ahead_m'])} m {'less' if rel['ahead_m'] >= 0 else 'more'} to sail, "
-                    f"{abs(rel['windward_m'])} m {'further up' if rel['windward_m'] >= 0 else 'further down'} the ladder"
+                    f"{A.m_bl(abs(rel['ahead_m']))} {'less' if rel['ahead_m'] >= 0 else 'more'} to sail, "
+                    f"{A.m_bl(abs(rel['windward_m']))} {'further up' if rel['windward_m'] >= 0 else 'further down'} the ladder"
                 )
                 rows.append(
                     {
@@ -2630,7 +2634,7 @@ def pairs_html(fa: dict) -> str:
                         "From": _mmss(p["t0"]),
                         "Length": _mmss(p["duration_s"]),
                         f"{na} at the start": where,
-                        "Gained": f'<span class="gain">{html.escape(win)} {abs(p["gain_m"])} m</span>',
+                        "Gained": f'<span class="gain">{html.escape(win)} {A.m_bl(abs(p["gain_m"]))}</span>',
                         "Speed / course": f"{p['gain_speed_m']:+} / {p['gain_angle_m']:+} m",
                         "SOG": f"{ba['sog']} / {bb['sog']} kt",
                         "Angle to wind": f"{ba['angle']:.0f}° / {bb['angle']:.0f}°",
@@ -2694,7 +2698,7 @@ def stretch_html(fa: dict, r: dict, p: dict) -> str:
     where = f" · {p['where']['label']}" if p.get("where") else ""
     head = (
         f"<strong>{p['id']}</strong> · {html.escape(r['race'])}, {p['leg_name']}, {p['side']}"
-        f'{where} · <span class="gain">{html.escape(win)} +{abs(p["gain_m"])} m</span> on '
+        f'{where} · <span class="gain">{html.escape(win)} +{A.m_bl(abs(p["gain_m"]))}</span> on '
         f"{html.escape(lose)} · {_mmss(p['duration_s'])}"
     )
     st = p["why"]["stats"]
@@ -2721,8 +2725,8 @@ def stretch_html(fa: dict, r: dict, p: dict) -> str:
 
     def rel(x):
         return (
-            f"{abs(x['ahead_m'])} m {'less' if x['ahead_m'] >= 0 else 'more'} to sail, "
-            f"{abs(x['windward_m'])} m {'further up' if x['windward_m'] >= 0 else 'further down'} the ladder"
+            f"{A.m_bl(abs(x['ahead_m']))} {'less' if x['ahead_m'] >= 0 else 'more'} to sail, "
+            f"{A.m_bl(abs(x['windward_m']))} {'further up' if x['windward_m'] >= 0 else 'further down'} the ladder"
         )
 
     table = (
@@ -2887,7 +2891,7 @@ def write_html(
         "Times are local to the event.</footer></main>"
         f'<script type="application/json" id="fleet-data">{data}</script>{lib}'
         f"<script>{(Path(__file__).parent / 'ladder.js').read_text()}</script>"
-        f"<script>{FLEET_JS}</script>{cur[1] if cur else ''}</body></html>"
+        f"<script>{FLEET_JS.replace('%BL%', str(A.BOAT_LENGTH_M))}</script>{cur[1] if cur else ''}</body></html>"
     )
     path = out / "fleet.html"
     path.write_text(doc)

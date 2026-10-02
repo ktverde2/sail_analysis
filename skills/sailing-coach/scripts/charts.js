@@ -32,6 +32,11 @@
     const s = Math.floor(a / 60) + ':' + String(a % 60).padStart(2, '0');
     return t < 0 ? '−' + s + ' to gun' : '+' + s;
   }
+  const BOAT_LENGTH_M = 9.3;  // Etchells LOA: distances gained or lost are also given in lengths
+  const ZONE_M = 3 * BOAT_LENGTH_M;  // RRS zone: three hull lengths
+  function lens(m) { const x = Math.abs(m) / BOAT_LENGTH_M; return Math.round(x * 10) / 10 < 10 ? x.toFixed(1) : x.toFixed(0); }
+  // '12.5 m (1.3 lengths)'
+  function mL(v, n) { return v === null || v === undefined || isNaN(v) ? '–' : Number(v).toFixed(n || 0) + ' m (' + lens(v) + ' lengths)'; }
   function f(v, n, unit) {
     return v === null || v === undefined ? '–' : v.toFixed(n) + (unit || '');
   }
@@ -146,7 +151,7 @@
     startMap(el, d, c) {
       const s = d.series, { idx, g } = pick(d, (i, t) => t >= -300 && t <= 30);
       const pre = idx.filter(i => s.t[i] <= 0), post = idx.filter(i => s.t[i] > 0);
-      const hov = i => s.hover[i] + '<br>Behind line ' + f(s.below ? s.below[i] : null, 1, ' m');
+      const hov = i => s.hover[i] + '<br>Behind line ' + mL(s.below ? s.below[i] : null, 1);
       const marks = [-300, -240, -180, -120, -60, -30]
         .map(t => ({ t, i: d.idxAt(t) })).filter(o => Math.abs(s.t[o.i] - o.t) < 2).map(o => o.i);
       const gun = d.idxAt(0);
@@ -184,7 +189,7 @@
       const below = i => (s.below ? s.below[i] : null);
       Plotly.newPlot(el, [
         { x: g(s.t), y: g(s.sog), mode: 'lines', line: { color: c.blue, width: 2 },
-          text: idx.map(i => s.hover[i] + '<br>Behind line ' + f(below(i), 1, ' m')),
+          text: idx.map(i => s.hover[i] + '<br>Behind line ' + mL(below(i), 1)),
           hovertemplate: '%{text}<extra></extra>' },
         { x: g(s.t), y: idx.map(below), yaxis: 'y2', mode: 'lines', line: { color: c.blue, width: 2 },
           text: idx.map(i => clock(s.t[i])), hovertemplate: '%{text}: %{y:.1f} m behind the line<extra></extra>' },
@@ -288,7 +293,7 @@
         xaxis: axis(c, { title: 'minutes from gun' }), yaxis: axis(c, { title: 'SOG (kt)' }),
         shapes: gybes.map(m => vline(m.time_s / 60, c)),
         annotations: gybes.map(m => ({ x: m.time_s / 60, y: 1, xref: 'x', yref: 'paper', yanchor: 'bottom', showarrow: false,
-          text: 'gybe ' + (m.distance_lost_m === null ? '' : (m.distance_lost_m >= 0 ? '+' : '') + m.distance_lost_m.toFixed(0) + ' m'),
+          text: 'gybe ' + (m.distance_lost_m === null ? '' : (m.distance_lost_m >= 0 ? '+' : '') + m.distance_lost_m.toFixed(0) + ' m, ' + lens(m.distance_lost_m) + ' L'),
           font: { size: 10, color: c.ink } })),
         showlegend: true, legend: { orientation: 'h', y: -0.25 }, hovermode: 'closest', height: 340,
       }), CONFIG);
@@ -314,7 +319,6 @@
     const a = Math.abs(Math.round(t));
     return (t < 0 ? '−' : '+') + Math.floor(a / 60) + ':' + String(a % 60).padStart(2, '0');
   }
-  const ZONE_M = 3 * 9.3;  // RRS zone: three hull lengths (Etchells LOA 9.3 m)
   function fit(xs, ys, pad) {
     xs = xs.filter(v => v !== null); ys = ys.filter(v => v !== null);
     return [[Math.min(...xs) - pad, Math.max(...xs) + pad], [Math.min(...ys) - pad, Math.max(...ys) + pad]];
@@ -499,7 +503,7 @@
   function maneuverText(m) {
     return '<b>' + m.kind + ' onto ' + (m.onto || '?') + '</b> ' + clock(m.time_s) + '<br>Entry ' + f(m.entry_sog, 2, ' kt') +
       ', min ' + f(m.min_sog, 2, ' kt') + ' (' + (m.speed_loss_pct === null ? '–' : m.speed_loss_pct + '%') + ' loss)' +
-      '<br>Recovered in ' + (m.recovery_s === null ? '–' : m.recovery_s + ' s') + ', ' + f(m.distance_lost_m, 1, ' m') + ' lost' +
+      '<br>Recovered in ' + (m.recovery_s === null ? '–' : m.recovery_s + ' s') + ', ' + mL(m.distance_lost_m, 1) + ' lost' +
       (m.call ? '<br>' + m.call : '') + (m.note ? '<br>' + m.note : '');
   }
 
