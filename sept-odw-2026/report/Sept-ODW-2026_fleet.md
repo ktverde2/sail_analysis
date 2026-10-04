@@ -66,6 +66,14 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 | 969 | 15 (1.6) | 53 (5.7) | 45 (4.8) |
 | 1216 | 14 (1.5) | 55 (5.9) | 1 (0.1) |
 
+**Starts, relative to each other** (line 135 m; the pin end was 9 m (1.0 lengths) further up the course, 12 m (1.3 lengths) less to sail (first beat's ladder))
+
+| Boat | Late (s) | Crossed (% from pin) | Spot gave away, m to sail (lengths) | Back at gun m (lengths) | SOG −30 s / gun | Time on distance at −10 s | Ladder +30 s | +1 min | +2 min |
+|---|---|---|---|---|---|---|---|---|---|
+| Mojo | 1.0 | 11% | 1 (0.1) | 2 (0.2) | 5.55 / 5.79 kt | 7 s early | 1st | 1st | 1st |
+| 969 | 2.0 | 70% | 8 (0.9) | 4 (0.4) | 4.53 / 5.74 kt | 7 s early | 2, 9 (0.9) back | 2, 7 (0.8) back | 2, 11 (1.2) back |
+| 1216 | 4.0 | 89% | 11 (1.1) | 8 (0.9) | 5.37 / 6.2 kt | 3 s early | 3, 31 (3.3) back | 3, 39 (4.2) back | 3, 47 (5.1) back |
+
 **Wind and sides** (wind from every boat's GPS tracks, magnetic; side: metres from the rhumb line on average, + right looking at the mark)
 
 | Leg | Wind start → end | Swing (left / right) | Pattern | Where the boats were (time vs fastest) | What paid |
@@ -126,6 +134,14 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 | 1216 | 28 (3.0) | 62 (6.7) | 51 (5.5) |
 | Mojo | 17 (1.8) | 58 (6.2) | 79 (8.5) |
 
+**Starts, relative to each other** (line 139 m; the pin end was 33 m (3.5 lengths) further up the course, 42 m (4.5 lengths) less to sail (first beat's ladder))
+
+| Boat | Late (s) | Crossed (% from pin) | Spot gave away, m to sail (lengths) | Back at gun m (lengths) | SOG −30 s / gun | Time on distance at −10 s | Ladder +30 s | +1 min | +2 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 969 | 3.0 | 73% | 31 (3.3) | 5 (0.5) | 4.0 / 5.83 kt | 2 s early | 2, 4 (0.4) back | 1st | 1st |
+| 1216 | 13.0 | 7% | 3 (0.3) | 19 (2.1) | 3.65 / 5.75 kt | 3 s late | 1st | 2, 1 (0.1) back | 2, 23 (2.4) back |
+| Mojo | 15.0 | 59% | 25 (2.7) | 31 (3.3) | 3.09 / 4.83 kt | 8 s late | 3, 27 (2.9) back | 3, 30 (3.2) back | 3, 42 (4.5) back |
+
 **Wind and sides** (wind from every boat's GPS tracks, magnetic; side: metres from the rhumb line on average, + right looking at the mark)
 
 | Leg | Wind start → end | Swing (left / right) | Pattern | Where the boats were (time vs fastest) | What paid |
@@ -182,6 +198,14 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 | 969 | 42 (4.5) | 63 (6.8) |
 | 1216 | 28 (3.0) | 98 (11) |
 | Mojo | 27 (2.9) | 68 (7.3) |
+
+**Starts, relative to each other** (line 144 m; the pin end was 33 m (3.6 lengths) further up the course, 42 m (4.5 lengths) less to sail (first beat's ladder))
+
+| Boat | Late (s) | Crossed (% from pin) | Spot gave away, m to sail (lengths) | Back at gun m (lengths) | SOG −30 s / gun | Time on distance at −10 s | Ladder +30 s | +1 min | +2 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 969 | 3.0 | 80% | 33 (3.6) | 8 (0.8) | 6.6 / 5.57 kt | 6 s early | 1st | 1st | 1st |
+| Mojo | 24.0 | 14% | 6 (0.6) | 17 (1.8) | 6.38 / 3.84 kt | 7 s late | 3, 49 (5.3) back | 2, 92 (9.8) back | 3, 113 (12) back |
+| 1216 | 22.0 | 4% | 2 (0.2) | 18 (1.9) | 6.46 / 3.35 kt | 10 s late | 2, 44 (4.7) back | 3, 93 (10) back | 2, 98 (11) back |
 
 **Wind and sides** (wind from every boat's GPS tracks, magnetic; side: metres from the rhumb line on average, + right looking at the mark)
 
@@ -241,6 +265,14 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 | 1216 | 53 (5.7) | 84 (9.0) | 49 (5.2) |
 | Mojo | 66 (7.0) | 49 (5.3) | 36 (3.9) |
 
+**Starts, relative to each other** (line 198 m; the pin end was 76 m (8.2 lengths) further up the course, 114 m (12 lengths) less to sail (first beat's ladder))
+
+| Boat | Late (s) | Crossed (% from pin) | Spot gave away, m to sail (lengths) | Back at gun m (lengths) | SOG −30 s / gun | Time on distance at −10 s | Ladder +30 s | +1 min | +2 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 1216 | 4.0 | 10% | 12 (1.2) | 6 (0.6) | 5.57 / 6.13 kt | 4 s early | 1st | 1st | 1st |
+| Mojo | 6.0 | 42% | 48 (5.1) | 9 (0.9) | 3.52 / 4.72 kt | on time | 2, 57 (6.1) back | 2, 65 (6.9) back | 2, 95 (10) back |
+| 969 | 5.0 | 60% | 68 (7.3) | 6 (0.7) | 3.86 / 4.13 kt | 2 s early | 3, 72 (7.7) back | 3, 80 (8.6) back | 3, 125 (13) back |
+
 **Wind and sides** (wind from every boat's GPS tracks, magnetic; side: metres from the rhumb line on average, + right looking at the mark)
 
 | Leg | Wind start → end | Swing (left / right) | Pattern | Where the boats were (time vs fastest) | What paid |
@@ -295,6 +327,14 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 | 969 | 58 (6.3) | 46 (4.9) |
 | Mojo | 50 (5.4) | 43 (4.6) |
 | 1216 | 66 (7.1) | 50 (5.4) |
+
+**Starts, relative to each other** (line 185 m; the pin end was 17 m (1.8 lengths) further up the course, 25 m (2.6 lengths) less to sail (first beat's ladder))
+
+| Boat | Late (s) | Crossed (% from pin) | Spot gave away, m to sail (lengths) | Back at gun m (lengths) | SOG −30 s / gun | Time on distance at −10 s | Ladder +30 s | +1 min | +2 min |
+|---|---|---|---|---|---|---|---|---|---|
+| 1216 | 5.0 | 7% | 2 (0.2) | 4 (0.4) | 2.28 / 3.48 kt | 4 s early | 1st | 1st | 1st |
+| Mojo | 7.0 | 26% | 6 (0.7) | 8 (0.8) | 2.98 / 4.01 kt | 3 s early | 2, 8 (0.9) back | 2, 8 (0.9) back | 2, 19 (2.1) back |
+| 969 | 8.0 | 68% | 17 (1.8) | 4 (0.5) | 1.6 / 2.64 kt | 7 s early | 3, 28 (3.0) back | 3, 31 (3.4) back | 3, 35 (3.8) back |
 
 **Wind and sides** (wind from every boat's GPS tracks, magnetic; side: metres from the rhumb line on average, + right looking at the mark)
 

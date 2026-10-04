@@ -329,6 +329,170 @@ def fleet_wind(per_second: dict, names: dict, leg_types: list[str], origins, tar
     return {"series": series, "legs": legs, "xte": xte}
 
 
+# ---------------------------------------------------------------- starts
+
+START_PRE_S = 180  # the start replay runs from 3 minutes before the gun...
+START_POST_S = 120  # ...to 2 minutes after
+START_LADDER_S = (30, 60, 120)  # who led up the first beat's ladder this long after the gun
+
+
+def start_series(race: A.Race, xy) -> pd.DataFrame:
+    """One boat's track around the start, 1 Hz, in the course frame (s = seconds from the gun)."""
+    df = race.df
+    w = df[
+        (df.t >= race.gun - pd.Timedelta(seconds=START_PRE_S))
+        & (df.t <= race.gun + pd.Timedelta(seconds=START_POST_S))
+        & df.Lat.notna()
+    ].copy()
+    w["s"] = (w.t - race.gun).dt.total_seconds().round().astype(int)
+    w = w.drop_duplicates("s").set_index("s")
+    w["x"], w["y"] = xy(w.Lat.to_numpy(), w.Lon.to_numpy())
+    return w
+
+
+def start_fleet(raw: dict, boats: dict, ladders: list[dict], course_xy: list[dict]) -> dict:
+    """Every tracked boat's start, side by side: the line, which end the first beat's ladder
+    favoured and by how much, where each boat crossed and what that position gave away, distance
+    behind the line and speed through the last minute, time-on-distance (would it have been early
+    or late at that speed), and who led up the ladder after the gun."""
+    line = next((c for c in course_xy if c["type"] == "StartLine"), None)
+    if not line or not raw:
+        return {}
+    (ax, ay), (bx, by) = line["pts"]
+    pin, boat_end = ((ax, ay), (bx, by)) if ax <= bx else ((bx, by), (ax, ay))  # pin: left, looking upwind
+    L = math.hypot(boat_end[0] - pin[0], boat_end[1] - pin[1]) or 1.0
+    ux, uy = (boat_end[0] - pin[0]) / L, (boat_end[1] - pin[1]) / L
+    lad = ladders[0] if ladders and ladders[0].get("targets") else None
+    fav = bias = bias_up = None
+    if lad:
+        ends = LD.to_go(np.array([pin[0], boat_end[0]]), np.array([pin[1], boat_end[1]]), lad, lad["targets"])
+        fav = "pin" if ends[0] < ends[1] else "boat"
+        bias = float(abs(ends[0] - ends[1]))  # distance to sail
+        bias_up = bias * math.cos(math.radians(lad.get("half_deg") or 0))  # straight up the course
+        best_end = float(min(ends))
+    out = {}
+    for bid, g in raw.items():
+        st = boats[bid]["start"]
+        togo = (LD.to_go(g.x.to_numpy(), g.y.to_numpy(), lad, lad["targets"]) if lad else np.full(len(g), np.nan))
+        g = g.assign(togo=togo)
+
+        def at(sec, col):
+            if sec in g.index and not pd.isna(g.at[sec, col]):
+                return float(g.at[sec, col])
+            return None
+
+        late = st.get("late_s") or 0.0
+        k = int(round(late))
+        cross = None
+        if k in g.index:
+            px, py = g.at[k, "x"], g.at[k, "y"]
+            along = (px - pin[0]) * ux + (py - pin[1]) * uy
+            cross = {"pct_from_pin": round(100 * along / L), "x": round(float(px), 1), "y": round(float(py), 1)}
+            if lad:  # the crossing point on the line itself
+                qx, qy = pin[0] + along * ux, pin[1] + along * uy
+                ct = float(LD.to_go(np.array([qx]), np.array([qy]), lad, lad["targets"])[0])
+                cross["gave_away_m"] = round(max(ct - best_end, 0.0), 1)
+
+        def tod(sec):  # seconds early (-) or late (+) if it held this speed straight at the line
+            b, v = st.get(f"below_line_{sec:+d}s_m"), st.get(f"sog_{sec:+d}s")
+            if b is None or not v or v < 0.5:
+                return None
+            return round(b / (v * KT) - (-sec), 1)
+
+        out[bid] = {
+            "name": boats[bid]["name"],
+            "late_s": st.get("late_s"),
+            "pos_pct": st.get("line_pos_pct_from_pin"),
+            "cross": cross,
+            "below": {str(t): st.get(f"below_line_{t:+d}s_m") for t in (-60, -30, -10, 0)},
+            "sog": {str(t): st.get(f"sog_{t:+d}s") for t in (-60, -30, -10, 0, 10, 30)},
+            "accel_kt": st.get("accel_pm5s_kt"),
+            "tod": {str(t): tod(t) for t in (-30, -10)},
+            "togo": {str(t): (None if at(t, "togo") is None else round(at(t, "togo"), 1)) for t in (0,) + START_LADDER_S},
+            "series": {
+                "s": [int(v) for v in g.index],
+                "x": [round(float(v), 1) for v in g.x],
+                "y": [round(float(v), 1) for v in g.y],
+                "sog": [None if pd.isna(v) else round(float(v), 2) for v in g.SOG],
+                "cog": [None if pd.isna(v) else round(float(v)) for v in g.COG],
+                "below": [None if pd.isna(v) else round(float(v), 1) for v in g.BelowLineCalc]
+                if "BelowLineCalc" in g else None,
+                "togo": [None if pd.isna(v) else round(float(v), 1) for v in g.togo],
+            },
+        }
+    # relative: place and metres behind the best boat up the ladder at the gun and after it
+    for t in ("0",) + tuple(str(v) for v in START_LADDER_S):
+        vals = {k: v["togo"][t] for k, v in out.items() if v["togo"][t] is not None}
+        if not vals:
+            continue
+        best = min(vals.values())
+        for rank, k in enumerate(sorted(vals, key=vals.get), 1):
+            out[k].setdefault("ladder", {})[t] = {"rank": rank, "behind_m": round(vals[k] - best, 1)}
+    # nearest tracked boat at the gun
+    for k, v in out.items():
+        sk = v["series"]
+        if 0 not in sk["s"]:
+            continue
+        i = sk["s"].index(0)
+        best = None
+        for o, w in out.items():
+            if o == k or 0 not in w["series"]["s"]:
+                continue
+            j = w["series"]["s"].index(0)
+            d = math.hypot(sk["x"][i] - w["series"]["x"][j], sk["y"][i] - w["series"]["y"][j])
+            if best is None or d < best[1]:
+                best = (w["name"], d)
+        if best:
+            v["nearest_at_gun"] = {"name": best[0], "m": round(best[1], 1)}
+    for v in out.values():
+        v["notes"] = start_notes(v, fav, bias, bias_up, len(out))
+    return {
+        "line": {"pin": [round(pin[0], 1), round(pin[1], 1)], "boat": [round(boat_end[0], 1), round(boat_end[1], 1)],
+                 "length_m": round(L)},
+        "favoured": fav,
+        "bias_m": None if bias is None else round(bias, 1),
+        "bias_up_m": None if bias_up is None else round(bias_up, 1),
+        "boats": out,
+    }
+
+
+def start_notes(v: dict, fav: str | None, bias: float | None, bias_up: float | None, n: int) -> list[str]:
+    """Plain-language facts on one boat's start, relative to the other tracked boats."""
+    notes = []
+    late, b0, s0 = v.get("late_s"), v["below"].get("0"), v["sog"].get("0")
+    if b0 is not None and s0 is not None:
+        notes.append(
+            f"At the gun: {A.m_bl(b0)} behind the line at {s0:.1f} kt, "
+            + (f"{late:.0f} s late across it." if late else "on time.")
+        )
+    c = v.get("cross") or {}
+    if fav and bias is not None and c.get("pct_from_pin") is not None:
+        where = c["pct_from_pin"]
+        given = c.get("gave_away_m")
+        notes.append(
+            f"Crossed {where}% of the way up from the pin; the {fav} end was {A.m_bl(bias_up)} further up the course"
+            + (f", so this spot gave away {A.m_bl(given)} of distance to sail." if given and given >= 1 else ", and this spot was on it.")
+        )
+    tods = [(t, x) for t, x in ((-30, v["tod"].get("-30")), (-10, v["tod"].get("-10"))) if x is not None]
+    if tods:
+        t, x = tods[-1]
+        notes.append(
+            f"Time on distance at −{abs(t)} s: at that speed it would have reached the line "
+            + (f"{abs(x):.0f} s early (room to burn)." if x < -1 else f"{x:.0f} s late (needed to build sooner)." if x > 1 else "right on the gun.")
+        )
+    lad = v.get("ladder") or {}
+    if "60" in lad and n > 1:
+        r = lad["60"]
+        notes.append(
+            f"One minute after the gun: {r['rank']} of {n} up the first beat's ladder"
+            + (f", {A.m_bl(r['behind_m'])} behind the leader." if r["behind_m"] >= 1 else ", the leader.")
+        )
+    if v.get("nearest_at_gun") and n > 1:
+        nb = v["nearest_at_gun"]
+        notes.append(f"Nearest tracked boat at the gun: {nb['name']}, {A.m_bl(nb['m'])} away.")
+    return notes
+
+
 # ---------------------------------------------------------------- close roundings
 
 ETCHELLS_LOA_M = A.BOAT_LENGTH_M
@@ -790,7 +954,7 @@ def pair_summary(races: list[dict]) -> list[dict]:
 
 def race_fleet(stem: str, entries: list[tuple[dict, dict]]) -> dict:
     """entries: (boat, {"race", "summary"}) for every boat that sailed this race."""
-    boats, per_second = {}, {}
+    boats, per_second, starts_raw = {}, {}, {}
     ref_legs = course_xy = targets_xy = origins_xy = None
     race_name, gun_local = stem, None
     for boat, e in entries:
@@ -848,6 +1012,7 @@ def race_fleet(stem: str, entries: list[tuple[dict, dict]]) -> dict:
                 for key in ("vmc_avg", "vmc_steady", "sog_steady", "vmg_steady", "tacking_angle", "heel_abs_std"):
                     row[key] = src[k].get(key)
         per_second[boat["id"]] = _per_second(race, df, legs, xy, summ)
+        starts_raw[boat["id"]] = start_series(race, xy)
         # series for the track overlay and the replay
         w = df[
             (df.t >= race.gun - pd.Timedelta(seconds=60))
@@ -929,6 +1094,7 @@ def race_fleet(stem: str, entries: list[tuple[dict, dict]]) -> dict:
     names = {k: b["name"] for k, b in boats.items()}
     marks_xy = [c["pts"] for c in course_xy if c["type"] in ("Mark", "Gate")]
     wind = fleet_wind(per_second, names, leg_types, origins_xy, targets_xy)
+    starts = start_fleet(starts_raw, boats, ladders, course_xy)
     closes = close_roundings(
         per_second, names, marks_xy, labels, {k: b["passes_s"] for k, b in boats.items()}, race_axis
     )
@@ -946,6 +1112,7 @@ def race_fleet(stem: str, entries: list[tuple[dict, dict]]) -> dict:
         "mag_var": mag_var,
         "wind": wind,
         "close_roundings": closes,
+        "starts": starts,
         "boats": boats,
         "pairs": place_pairs(
             side_by_side(per_second, leg_types, ladders), per_second, origins_xy, targets_xy, stem
@@ -1109,6 +1276,36 @@ def _plus(s):
 def _deg(v, r) -> str:
     mv = r.get("mag_var")
     return f"{((v - mv) % 360 if mv is not None else v):.0f}°"
+
+
+def starts_md(r: dict) -> list[str]:
+    """Each boat's start against the others: what its spot on the line cost, and the ladder after."""
+    st = r.get("starts") or {}
+    if not st.get("boats"):
+        return []
+    fav = (f"the {st['favoured']} end was {A.m_bl(st['bias_up_m'])} further up the course, "
+           f"{A.m_bl(st['bias_m'])} less to sail (first beat's ladder)"
+           if st.get("favoured") else "end bias unknown")
+    L = ["", f"**Starts, relative to each other** (line {st['line']['length_m']} m; {fav})", "",
+         "| Boat | Late (s) | Crossed (% from pin) | Spot gave away, m to sail (lengths) | Back at gun m (lengths) | SOG −30 s / gun | "
+         "Time on distance at −10 s | Ladder +30 s | +1 min | +2 min |",
+         "|---|---|---|---|---|---|---|---|---|---|"]
+
+    def lad(v, t):
+        x = (v.get("ladder") or {}).get(t)
+        return "–" if not x else ("1st" if x["rank"] == 1 else f"{x['rank']}, {A.mbl_cell(x['behind_m'])} back")
+
+    for k, v in sorted(st["boats"].items(), key=lambda kv: ((kv[1].get("ladder") or {}).get("60") or {}).get("rank", 9)):
+        c = v.get("cross") or {}
+        tod = v["tod"].get("-10")
+        L.append(
+            f"| {v['name']} | {v.get('late_s') if v.get('late_s') is not None else '–'} | {c.get('pct_from_pin', '–')}% | "
+            f"{A.mbl_cell(c.get('gave_away_m')) or '–'} | {A.mbl_cell(v['below'].get('0')) or '–'} | "
+            f"{v['sog'].get('-30')} / {v['sog'].get('0')} kt | "
+            f"{'–' if tod is None else (f'{abs(tod):.0f} s early' if tod < -1 else f'{tod:.0f} s late' if tod > 1 else 'on time')} | "
+            f"{lad(v, '30')} | {lad(v, '60')} | {lad(v, '120')} |"
+        )
+    return L
 
 
 def wind_md(r: dict) -> list[str]:
@@ -1347,7 +1544,7 @@ def write_md(fa: dict, out: Path, title: str) -> str:
                 )
                 + " |"
             )
-        L += wind_md(r) + close_md(r)
+        L += starts_md(r) + wind_md(r) + close_md(r)
     L += [
         "",
         (
@@ -1493,6 +1690,123 @@ FLEET_JS = r"""
       lay.xaxis.title = 'minutes from the gun'; lay.xaxis.anchor = 'y2';
       lay.shapes = shapes; lay.hovermode = 'x unified';
       Plotly.newPlot(el, tr, lay, CONFIG);
+    },
+    // The start: every tracked boat from −3:00 to +2:00, zoomed on the line, with a live panel
+    starts(el, r) {
+      const S = r.starts;
+      if (!S || !S.boats || !Object.keys(S.boats).length) { el.textContent = 'No start data.'; return; }
+      el.classList.remove('chart');
+      const ids = IDS.filter(id => S.boats[id]);
+      const ink = css('--ink'), muted = css('--ink2'), line = css('--line');
+      const mv = r.mag_var == null ? 0 : r.mag_var;
+      const w0 = r.wind && r.wind.series ? r.wind.series.find(p => p.s > 0) : null;
+      const facts = document.createElement('p');
+      facts.className = 'chart-hint';
+      facts.innerHTML = 'Line ' + S.line.length_m + ' m (' + lens(S.line.length_m) + ' lengths). ' +
+        (S.favoured ? '<b>The ' + S.favoured + ' end was favoured: ' + mbl(S.bias_up_m) + ' further up the course</b>, ' + mbl(S.bias_m) + ' less to sail (first beat’s ladder). ' : '') +
+        (w0 ? 'Wind from about ' + Math.round(((w0.twd - mv) % 360 + 360) % 360) + '° ' + (r.mag_var == null ? 'true' : 'mag') + ' just after the gun (from the boats’ tracks). ' : '') +
+        'Drag the slider or press play. Arrows point along each boat’s course.';
+      el.appendChild(facts);
+      const wrap = document.createElement('div');
+      wrap.className = 'st-wrap';
+      const plot = document.createElement('div');
+      plot.className = 'st-map';
+      const side = document.createElement('div');
+      side.className = 'st-live';
+      wrap.appendChild(plot); wrap.appendChild(side);
+      el.appendChild(wrap);
+      const ctl = document.createElement('div');
+      ctl.className = 'rp-ctl';
+      ctl.innerHTML = '<button type="button">▶ Play</button><select><option value="250">4×</option><option value="100" selected>10×</option><option value="1000">1×</option></select>' +
+        '<input type="range" style="flex:1" min="-180" max="120" step="1" value="-60"><span class="mk-t"></span>';
+      el.appendChild(ctl);
+      // zoom: the line, and every boat from −60 s to +40 s
+      const xs = [S.line.pin[0], S.line.boat[0]], ys = [S.line.pin[1], S.line.boat[1]];
+      ids.forEach(id => { const q = S.boats[id].series; q.s.forEach((t, i) => { if (t >= -60 && t <= 40) { xs.push(q.x[i]); ys.push(q.y[i]); } }); });
+      const pad = 20, cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+      const half = Math.max(Math.max(...xs) - Math.min(...xs), (Math.max(...ys) - Math.min(...ys)) * 1.2) / 2 + pad;
+      const tr = [{ x: [S.line.pin[0], S.line.boat[0]], y: [S.line.pin[1], S.line.boat[1]], mode: 'lines+markers+text', showlegend: false,
+        line: { color: ink, width: 3 }, marker: { size: 8, color: ink }, text: ['pin', 'boat'], textposition: ['bottom left', 'bottom right'],
+        textfont: { color: muted, size: 11 }, hovertemplate: 'start line<extra></extra>' }];
+      ids.forEach(id => {
+        const q = S.boats[id].series, bc = col(FLEET.day[id]);
+        tr.push({ x: q.x, y: q.y, mode: 'lines', name: S.boats[id].name, line: { color: bc, width: 2 }, opacity: 0.45,
+          customdata: q.s.map((t, i) => [clock(t), q.sog[i]]),
+          hovertemplate: '<b>' + S.boats[id].name + '</b> %{customdata[0]}<br>%{customdata[1]} kt<extra></extra>' });
+      });
+      const moving = tr.length;
+      ids.forEach(id => {
+        const bc = col(FLEET.day[id]);
+        tr.push({ x: [null], y: [null], mode: 'markers+text', showlegend: false, text: [S.boats[id].name], textposition: 'top center',
+          textfont: { color: bc, size: 11 }, marker: { symbol: 'arrow-wide', size: 16, color: bc, angle: 0, line: { color: ink, width: 1 } }, hoverinfo: 'skip' });
+      });
+      const lad = ladderTraces(r, 0, false, 'Rungs, ');
+      tr.push(...lad);
+      const lay = base('', 500, plot);
+      delete lay.title;
+      lay.margin.t = 10;
+      lay.xaxis = Object.assign(lay.xaxis, { range: [cx - half, cx + half], title: 'metres (upwind is up)', zeroline: false });
+      lay.yaxis = Object.assign(lay.yaxis, { range: [cy - half, cy + half], scaleanchor: 'x', zeroline: false });
+      if (lad.length) lay.updatemenus = LADDER.button(tr, ladColors(), 'First beat’s rungs');
+      Plotly.newPlot(plot, tr, lay, CONFIG);
+      const slider = ctl.querySelector('input'), label = ctl.querySelector('.mk-t'), btn = ctl.querySelector('button'), spd = ctl.querySelector('select');
+      function idx(q, t) {
+        let k = q.s.indexOf(t);
+        if (k < 0) k = q.s.reduce((b, v, i) => (Math.abs(v - t) < Math.abs(q.s[b] - t) ? i : b), 0);
+        return k;
+      }
+      function at(t) {
+        const x = [], y = [], ang = [];
+        const rows = ids.map(id => {
+          const v = S.boats[id], q = v.series, k = idx(q, t);
+          x.push([q.x[k]]); y.push([q.y[k]]); ang.push(q.cog[k] == null ? 0 : ((q.cog[k] - r.axis) % 360 + 360) % 360);
+          return { id, v, q, k };
+        });
+        Plotly.restyle(plot, { x, y, 'marker.angle': ang }, ids.map((_, i) => moving + i));
+        label.textContent = ' ' + (t < 0 ? '−' + mmss(t) + ' to the gun' : t === 0 ? 'gun' : '+' + mmss(t) + ' after the gun');
+        const togos = rows.map(o => o.q.togo[o.k]).filter(v => v != null);
+        const lead = togos.length ? Math.min(...togos) : null;
+        side.innerHTML = '<table><thead><tr><th>Boat</th><th>SOG</th><th>' + (t < 0 ? 'Behind line' : 'Behind the leader') + '</th><th>' +
+          (t < 0 ? 'At this speed' : 'Up the ladder') + '</th></tr></thead><tbody>' + rows.map(o => {
+            const sog = o.q.sog[o.k], b = o.q.below ? o.q.below[o.k] : null;
+            let c3 = '–', c4 = '–';
+            if (t < 0) {
+              if (b != null) c3 = b < 0 ? '<b>over</b> ' + mbl(b) : mbl(b);
+              if (b != null && b >= 0 && sog > 0.5) {
+                const d = b / (sog * 0.5144) - (-t);  // seconds late (+) or early (−) at this speed
+                c4 = Math.abs(d) <= 1 ? 'on the gun' : Math.abs(Math.round(d)) + ' s ' + (d > 0 ? 'late' : 'early');
+              }
+            } else if (lead != null && o.q.togo[o.k] != null) {
+              const bh = o.q.togo[o.k] - lead;
+              c3 = bh < 1 ? 'leading' : mbl(bh);
+              c4 = (togos.filter(v => v < o.q.togo[o.k] - 0.5).length + 1) + ' of ' + togos.length;
+            }
+            return '<tr><td><i class="dot" style="background:' + col(FLEET.day[o.id]) + '"></i>' + o.v.name + '</td><td>' +
+              (sog == null ? '–' : sog.toFixed(1) + ' kt') + '</td><td>' + c3 + '</td><td>' + c4 + '</td></tr>';
+          }).join('') + '</tbody></table>' +
+          '<p class="rp-note">' + (t < 0 ? '“At this speed”: when the boat would reach the line if it sailed straight at it at its current speed, against the gun (time on distance).'
+            : 'Up the ladder: distance to sail to the windward mark, inside the laylines.') + '</p>';
+      }
+      slider.addEventListener('input', () => at(+slider.value));
+      let timer = null;
+      const stop = () => { clearInterval(timer); timer = null; btn.textContent = '▶ Play'; };
+      btn.addEventListener('click', () => {
+        if (timer) { stop(); return; }
+        if (+slider.value >= 120) slider.value = -180;
+        btn.textContent = '❚❚ Pause';
+        timer = setInterval(() => { slider.value = +slider.value + 1; at(+slider.value); if (+slider.value >= 120) stop(); }, +spd.value);
+      });
+      spd.addEventListener('change', () => { if (timer) { stop(); btn.click(); } });
+      at(+slider.value);
+      // each boat, relative to the others
+      const cards = document.createElement('div');
+      cards.className = 'st-cards';
+      cards.innerHTML = ids.map(id => {
+        const v = S.boats[id];
+        return '<div class="st-card"><h4><i class="dot" style="background:' + col(FLEET.day[id]) + '"></i>' + v.name + '</h4><ul>' +
+          v.notes.map(n => '<li>' + n + '</li>').join('') + '</ul></div>';
+      }).join('');
+      el.appendChild(cards);
     },
     // Boats rounding a mark close together: tracks, the zone and a time slider
     marks(el, r) {
@@ -2268,6 +2582,14 @@ def _replay(stem: str | None = None) -> str:
 
 
 REPLAY_CSS = """
+.st-wrap { display: grid; grid-template-columns: minmax(0, 3fr) minmax(220px, 2fr); gap: 12px; align-items: start; }
+@media (max-width: 760px) { .st-wrap { grid-template-columns: 1fr; } }
+.st-live table { font-size: 0.86rem; width: 100%; }
+.st-live .dot, .st-card .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
+.st-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; margin: 12px 0 8px; }
+.st-card { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+.st-card h4 { margin: 4px 0; }
+.st-card ul { margin: 4px 0; padding-left: 18px; font-size: 0.9rem; }
 .mk-card { margin: 12px 0 22px; }
 .mk-card table { font-size: 0.86rem; }
 .mk-t { font-variant-numeric: tabular-nums; min-width: 12em; }
@@ -2339,7 +2661,7 @@ p.why { margin: 8px 0; }
 # [[chart:replay]] puts the race replay there, with a button for each race; [[chart:pairmap]]
 # the map of where the boats sailed side by side.
 TAKEAWAY_CHARTS = ("places", "split", "beats", "angles", "sides", "heel", "exits", "tacks")
-RACE_CHARTS = ("wind", "marks", "gaps")  # [[chart:wind:race4]] in a debrief: that race's chart
+RACE_CHARTS = ("wind", "marks", "gaps", "starts")  # [[chart:wind:race4]] in a debrief: that race's chart
 CHART_LINE = re.compile(r"^\[\[chart:(\w+)(?::(\w+))?\]\]\s*$")
 
 
@@ -2835,6 +3157,22 @@ def write_html(
             race_body,
         )
     )
+    if any((r.get("starts") or {}).get("boats") for r in fa["races"]):
+        start_body = "".join(
+            H.card(f"<h2>{html.escape(r['race'])}</h2>" + _chart("starts", r["stem"]))
+            for r in fa["races"]
+            if (r.get("starts") or {}).get("boats")
+        )
+        pages.append(
+            H.page(
+                "starts",
+                "Starts",
+                "Every tracked boat from three minutes before the gun to two after, zoomed on the line, "
+                "and each boat's start against the others: its spot on the line, distance and speed at "
+                "the gun, time on distance, and who led up the first beat after it.",
+                start_body,
+            )
+        )
     if any(r.get("pairs") for r in fa["races"]):
         pages.append(
             H.page(
@@ -2862,6 +3200,7 @@ def write_html(
         "summary": "Summary",
         "debrief": "Fleet debrief",
         "races": "Race by race",
+        "starts": "Starts",
         "pairs": "Side by side",
         "current": "Current",
         "boats": "Boat by boat",

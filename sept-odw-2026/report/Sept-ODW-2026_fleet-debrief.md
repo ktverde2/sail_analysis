@@ -74,6 +74,13 @@
 
 [[chart:marks:race5]]
 
+**Starts, boat against boat** (the Starts page has a replay of every start)
+- **Time on distance gave the late starts away 10 seconds out.** At −10 s, sailing straight at the line at their speed then, Mojo would have been 8 s late in Race 2 and 7 s late in Race 3, and 1216 10 s late in Race 3. 969 was early (room to burn) in every race.
+- **The favoured end only paid at speed.** In Race 3, 969's spot at the boat end gave away 33 m (3.6 lengths) of distance to sail, but it led up the ladder from the gun. Mojo and 1216 were at the pin, but late, and were 92–93 m (10 lengths) behind one minute in.
+- **Race 4 is the exception that proves it.** 1216 won the pin (76 m (8.2 lengths) further up the course) at 6.1 kt. Mojo's spot at 42% gave away 48 m (5.1 lengths) and 969's at 60% gave away 68 m (7.3 lengths). One minute in, they were 65 m (6.9 lengths) and 80 m (8.6 lengths) behind.
+
+[[chart:starts:race3]]
+
 **Against the 2026 Worlds benchmark** (same water, three weeks earlier; see the [2026 Worlds report](https://etchells.org.au/blogs/news/valuable-insights-from-billy-merrington-at-the-2026-worlds))
 | Worlds standard | Mojo | 969 | 1216 |
 |---|---|---|---|
