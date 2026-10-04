@@ -42,6 +42,7 @@
 - **Races 2 and 3: no side paid.** Steady or oscillating (±4°). The 47 s lost on Race 3's first beat and 51 s on its run were speed and distance, not the wind.
 - **Race 4, beat 1: the new wind came on the left, and we went right.** 15° left at two minutes, 25° by the top. We started mid-line (42%), about 150 m right of 1216, and tacked onto port with everyone at about two minutes. When 1216 went furthest left, it gained 56 s on 969, the furthest right; the shift alone was worth about 53 s.
 - **Race 5, last beat: we left the new wind.** From about 35 minutes the wind went right, from 280° to 304–316°. We were 280 m right by 38 minutes, then tacked back across to the left (200 m left by 50 minutes) on the lifted starboard tack while it was still right. 969 stayed right and gained 4:35.
+- **Playing the shifts on Saturday: on the lifted tack 43% of the time, against 969's 55%.** The wind swung about 6° every 8 minutes. We tacked a median 80 s after a header began, where 969 took 24 s, and sailed 6:20 headed in stretches of a minute or more, against 969's 1:16. The worst was Race 3's second beat (2:46 headed). On Sunday every boat was near 50%. See the Shifts chart for each race.
 - **Next time:** A shift of 10° or more that holds for two or three minutes is the new wind, not an oscillation. Get to that side (sail the header toward it first) before you tack back. In a dying breeze, the side the wind is going to usually has the pressure too.
 
 **Start scorecard**

@@ -195,7 +195,7 @@ XTE_STEP_S = 10  # "who was where" series step
 PAID_S = 10  # a side "paid" when the boat furthest on it beat the boat furthest the other way by this
 
 
-def fleet_wind(per_second: dict, names: dict, leg_types: list[str], origins, targets) -> dict:
+def fleet_wind(per_second: dict, names: dict, leg_types: list[str], origins, targets, axis: float = 0.0) -> dict:
     """The wind through each leg from every boat's GPS track, and which side paid.
 
     Compass-free: on each leg, each boat's two tacks (or gybes) give its angle over the ground.
@@ -326,7 +326,189 @@ def fleet_wind(per_second: dict, names: dict, leg_types: list[str], origins, tar
             ss.append(int(s_))
             mm.append(round(float(((row.x - ox) * (ty - oy) - (row.y - oy) * (tx - ox)) / L)))
         xte[bid] = {"s": ss, "m": mm}
+    for lg in legs:
+        li = lg["leg"] - 1
+        if lg["type"] == "upwind":
+            sh = beat_shifts(f[f.leg == li], per_second, names, li, origins, targets, axis)
+            if sh:
+                lg["shifts"] = sh
     return {"series": series, "legs": legs, "xte": xte}
+
+
+SHIFT_MIN_DEG = 4  # the fleet's wind has to turn this far, and come back this far, to count as a shift
+SHIFT_SMOOTH_S = 60  # rolling window on the per-second fleet wind
+SHIFT_STEP_S = 10  # series step for the chart
+SHIFT_REF_S = 480  # lifted or headed against the wind's average over this long (centred)
+LIFT_DEG = 2  # within this of the beat's mean wind, neither tack counts as lifted or headed
+TACK_LOOK_S = 15  # the wind this long before a tack decides whether the boat tacked on a header
+
+
+def _turns(w: np.ndarray, min_deg: float) -> list[int]:
+    """Indices where the wind turned back (zigzag): a high or low counts once the wind has come
+    back min_deg from it. The first and last points are included."""
+    n = len(w)
+    turns, dirn, hi, lo, ext = [0], 0, 0, 0, 0
+    for i in range(1, n):
+        if dirn == 0:
+            hi = i if w[i] > w[hi] else hi
+            lo = i if w[i] < w[lo] else lo
+            if w[i] - w[lo] >= min_deg and i == hi:
+                if lo:
+                    turns.append(lo)
+                dirn, ext = 1, i
+            elif w[hi] - w[i] >= min_deg and i == lo:
+                if hi:
+                    turns.append(hi)
+                dirn, ext = -1, i
+        elif dirn > 0:
+            if w[i] >= w[ext]:
+                ext = i
+            elif w[ext] - w[i] >= min_deg:
+                turns.append(ext)
+                dirn, ext = -1, i
+        else:
+            if w[i] <= w[ext]:
+                ext = i
+            elif w[i] - w[ext] >= min_deg:
+                turns.append(ext)
+                dirn, ext = 1, i
+    if turns[-1] != n - 1:
+        turns.append(n - 1)
+    return turns
+
+
+def beat_shifts(f: pd.DataFrame, per_second: dict, names: dict, li: int, origins, targets, axis: float) -> dict:
+    """The shifts through one beat, and how each boat played them.
+
+    The wind each second is the median of every boat's estimate from its own track (fleet_wind),
+    smoothed over SHIFT_SMOOTH_S, against the beat's mean (+ right, clockwise). A shift runs from
+    one turning point to the next and has to be SHIFT_MIN_DEG or more. For each shift: what the
+    geometry gave the boat furthest toward it (lateral separation x sin(shift)) and what it actually
+    gained on the boat furthest the other way, measured up the wind at each end (so boat speed is
+    in it too). For each boat: the share of its time on the lifted tack, and whether its tacks came
+    on headers. Lifted and headed are against the wind's average over SHIFT_REF_S, so a slow
+    persistent swing doesn't read as one long header (the persistent shift is fleet_wind's "paid")."""
+    if f.empty:
+        return {}
+    mean = _circ_mean(f.w) % 360
+    d = f.assign(dev=A.adiff(mean, f.w.to_numpy()).astype(float))
+    med = d.groupby("s").dev.median()
+    if len(med) < 120:
+        return {}
+    idx = np.arange(int(med.index.min()), int(med.index.max()) + 1)
+    sm = med.reindex(idx).rolling(SHIFT_SMOOTH_S, center=True, min_periods=SHIFT_SMOOTH_S // 3).mean().interpolate(limit_area="inside")
+    sm = sm.dropna()
+    if len(sm) < 120:
+        return {}
+    t, w = sm.index.to_numpy(), sm.to_numpy()
+    tp = _turns(w, SHIFT_MIN_DEG)
+    ox, oy = origins[li]
+    tx, ty = targets[li] if li < len(targets) else (ox, oy)
+    L = math.hypot(tx - ox, ty - oy) or 1.0
+    ux, uy = (tx - ox) / L, (ty - oy) / L
+    on = {b: g[g.leg == li] for b, g in per_second.items()}
+    phases = []
+    for a, b in zip(tp, tp[1:]):
+        delta = float(w[b] - w[a])
+        if abs(delta) < SHIFT_MIN_DEG:
+            continue
+        t0, t1 = int(t[a]), int(t[b])
+        ph = {"t0": t0, "t1": t1, "from": round(float(w[a]), 1), "to": round(float(w[b]), 1),
+              "delta": round(delta, 1), "dir": "right" if delta > 0 else "left"}
+        at = {}
+        for bid, g in on.items():
+            if t0 in g.index and t1 in g.index:
+                th0 = math.radians(mean + w[a] - axis)  # up the wind, in the course frame
+                th1 = math.radians(mean + w[b] - axis)
+                at[bid] = {"xte": float((g.x[t0] - ox) * uy - (g.y[t0] - oy) * ux),
+                           "up0": float(g.x[t0] * math.sin(th0) + g.y[t0] * math.cos(th0)),
+                           "up1": float(g.x[t1] * math.sin(th1) + g.y[t1] * math.cos(th1))}
+        if len(at) >= 2:
+            order = sorted(at, key=lambda k: at[k]["xte"], reverse=delta > 0)
+            far, other = order[0], order[-1]
+            sep = abs(at[far]["xte"] - at[other]["xte"])
+            worth = sep * math.sin(math.radians(abs(delta)))
+            got = (at[far]["up1"] - at[other]["up1"]) - (at[far]["up0"] - at[other]["up0"])
+            ph["pair"] = {"boat": names[far], "vs": names[other], "sep_m": round(sep),
+                          "worth_m": round(worth), "gain_m": round(got)}
+        phases.append(ph)
+    # each boat: lifted or headed, second by second, and its tacks
+    ref = sm.rolling(SHIFT_REF_S, center=True, min_periods=SHIFT_REF_S // 4).mean().to_numpy()
+    dev_at = pd.Series(w - ref, index=t)
+    boats = {}
+    for bid, g in on.items():
+        g = g[(g.index >= t[0]) & (g.index <= t[-1])]
+        if len(g) < 60:
+            continue
+        dv = dev_at.reindex(g.index).to_numpy()
+        stbd = (g.side < 0).to_numpy()  # moving left across the course upwind is starboard tack
+        lifted = np.where(stbd, dv > LIFT_DEG, dv < -LIFT_DEG)
+        headed = np.where(stbd, dv < -LIFT_DEG, dv > LIFT_DEG)
+        settled = (g.since_side > TACK_LOOK_S).to_numpy()
+        nl, nh = int((lifted & settled).sum()), int((headed & settled).sum())
+        # stretches of a minute or more sailed on the headed tack
+        long_headed = 0
+        run = 0
+        for hh in headed & settled:
+            run = run + 1 if hh else 0
+            if run == 60:
+                long_headed += 60
+            elif run > 60:
+                long_headed += 1
+        tacks = []
+        sides = g.side.to_numpy()
+        for k in np.flatnonzero(sides[1:] != sides[:-1]) + 1:
+            s_ = int(g.index[k])
+            if g.since_leg.iloc[k] < PAIR_SETTLE_S:
+                continue
+            before = s_ - TACK_LOOK_S
+            if before not in dev_at.index:
+                continue
+            dvb = float(dev_at[before])
+            was_stbd = sides[k - 1] < 0
+            hdr = (dvb < -LIFT_DEG) if was_stbd else (dvb > LIFT_DEG)
+            lft = (dvb > LIFT_DEG) if was_stbd else (dvb < -LIFT_DEG)
+            # how long it had been headed before tacking
+            waited = 0
+            if hdr:
+                j = before
+                while j - 1 in dev_at.index and ((dev_at[j - 1] < -LIFT_DEG) if was_stbd else (dev_at[j - 1] > LIFT_DEG)):
+                    j -= 1
+                waited = s_ - j
+            tacks.append({"s": s_, "dev": round(dvb, 1), "on": "header" if hdr else "lift" if lft else "neither",
+                          "headed_for_s": int(waited)})
+        hw = [x["headed_for_s"] for x in tacks if x["on"] == "header"]
+        boats[bid] = {
+            "name": names[bid],
+            "lifted_pct": round(100 * nl / (nl + nh)) if nl + nh else None,
+            "secs": int(nl + nh),
+            "headed_long_s": int(long_headed),
+            "tacks": tacks,
+            "tacks_n": len(tacks),
+            "on_header": sum(x["on"] == "header" for x in tacks),
+            "on_lift": sum(x["on"] == "lift" for x in tacks),
+            "headed_for_med_s": int(np.median(hw)) if hw else None,
+            "series": {
+                "s": [int(v) for v in g.index[:: SHIFT_STEP_S // 2]],
+                "state": [int(1 if a_ else -1 if b_ else 0) for a_, b_ in zip(lifted[:: SHIFT_STEP_S // 2], headed[:: SHIFT_STEP_S // 2])],
+                "stbd": [bool(v) for v in stbd[:: SHIFT_STEP_S // 2]],
+            },
+        }
+    # rhythm: the time between successive turns the same way (a full swing) and the size of a swing
+    durs = [p["t1"] - p["t0"] for p in phases]
+    swings = [abs(p["delta"]) for p in phases]
+    return {
+        "mean": round(float(mean), 1),
+        "s": [int(v) for v in t[::SHIFT_STEP_S]],
+        "dev": [round(float(v), 1) for v in w[::SHIFT_STEP_S]],
+        "ref": [None if np.isnan(v) else round(float(v), 1) for v in ref[::SHIFT_STEP_S]],
+        "turns": [{"s": int(t[k]), "dev": round(float(w[k]), 1)} for k in tp],
+        "phases": phases,
+        "period_min": round(2 * float(np.mean(durs)) / 60, 1) if len(durs) >= 2 else None,
+        "swing_deg": round(float(np.median(swings)), 1) if swings else None,
+        "range_deg": round(float(w.max() - w.min()), 1),
+        "boats": boats,
+    }
 
 
 # ---------------------------------------------------------------- starts
@@ -1095,7 +1277,7 @@ def race_fleet(stem: str, entries: list[tuple[dict, dict]]) -> dict:
     ladders = race_ladders(per_second, course_xy, origins_xy, leg_types)
     names = {k: b["name"] for k, b in boats.items()}
     marks_xy = [c["pts"] for c in course_xy if c["type"] in ("Mark", "Gate")]
-    wind = fleet_wind(per_second, names, leg_types, origins_xy, targets_xy)
+    wind = fleet_wind(per_second, names, leg_types, origins_xy, targets_xy, race_axis)
     starts = start_fleet(starts_raw, boats, ladders, course_xy)
     fin = next((c for c in course_xy if c["type"] == "FinishLine"), None)
     closes = roundings(
@@ -1420,6 +1602,122 @@ def wind_md(r: dict) -> list[str]:
     return L
 
 
+def _beat_name(r: dict, lg: dict) -> str:
+    j = lg["leg"] - 1
+    return r["leg_names"][j] if j < len(r.get("leg_names", [])) else f"Leg {lg['leg']}"
+
+
+def shifts_md(r: dict) -> list[str]:
+    """Each beat's shifts as the boats saw them, which side each one favoured, and how each boat
+    played them."""
+    beats = [lg for lg in (r.get("wind") or {}).get("legs", []) if lg.get("shifts")]
+    if not beats:
+        return []
+    L = [
+        "",
+        f"**Shifts on the beats** (the fleet's wind from every boat's track, smoothed over a minute; a shift is "
+        f"{SHIFT_MIN_DEG}° or more between turning points. Worth: the boat furthest toward the shift against the "
+        "boat furthest the other way, separation × sin(shift). Gained: what it actually gained up the wind, so boat "
+        "speed is in it too)",
+        "",
+        "| Beat | Shift (from the gun) | Wind | Favoured | Worth | Gained |",
+        "|---|---|---|---|---|---|",
+    ]
+    for lg in beats:
+        sh = lg["shifts"]
+        for p in sh["phases"]:
+            q = p.get("pair")
+            fav = (f"the {p['dir']}: {q['boat']}, {A.m_bl(q['sep_m'])} further {p['dir']} than {q['vs']}"
+                   if q else f"the {p['dir']}")
+            L.append(
+                f"| {_beat_name(r, lg)} | {_mmss(p['t0'])}–{_mmss(p['t1'])} | {abs(p['delta']):.0f}° {p['dir']} "
+                f"({_deg(sh['mean'] + p['from'], r)} → {_deg(sh['mean'] + p['to'], r)}) | {fav} "
+                f"| {A.m_bl(q['worth_m']) if q else '–'} | "
+                + (f"{A.m_bl(q['gain_m'])}" if q and q["gain_m"] >= 0 else f"lost {A.m_bl(-q['gain_m'])}" if q else "–")
+                + " |"
+            )
+    L += [
+        "",
+        "| Beat | Rhythm | Boat | On the lifted tack | Tacks on a header | Headed before tacking | Sailed headed (1 min or more at a time) |",
+        "|---|---|---|---|---|---|---|",
+    ]
+    for lg in beats:
+        sh = lg["shifts"]
+        rhythm = (f"a swing every {sh['period_min']:.0f} min, {sh['swing_deg']:.0f}° typical"
+                  if sh.get("period_min") else f"{len(sh['phases'])} shift(s)")
+        for k, b in sh["boats"].items():
+            L.append(
+                f"| {_beat_name(r, lg)} | {rhythm} | {b['name']} | "
+                f"{'–' if b['lifted_pct'] is None else str(b['lifted_pct']) + '%'} | "
+                f"{b['on_header']} of {b['tacks_n']} | "
+                f"{'–' if b['headed_for_med_s'] is None else str(b['headed_for_med_s']) + ' s'} | "
+                f"{_mmss(b['headed_long_s']) if b['headed_long_s'] else '–'} |"
+            )
+    return L
+
+
+def shift_totals(fa: dict) -> dict:
+    """Every beat of every race, per boat: share of time on the lifted tack, tacks on headers, how
+    long it was headed before tacking, and time sailed headed; per day: the rhythm of the shifts."""
+    boats, days = {}, {}
+    for r in fa["races"]:
+        day = (r.get("gun_local") or "")[:10]
+        for lg in (r.get("wind") or {}).get("legs", []):
+            sh = lg.get("shifts")
+            if not sh:
+                continue
+            d = days.setdefault(day, {"periods": [], "swings": []})
+            if sh.get("period_min"):
+                d["periods"].append(sh["period_min"])
+            d["swings"] += [abs(p["delta"]) for p in sh["phases"]]
+            for k, b in sh["boats"].items():
+                a = boats.setdefault(k, {"name": b["name"], "lift_s": 0.0, "secs": 0, "tacks": 0, "hdr": 0, "waits": [],
+                                         "headed_long_s": 0})
+                if b["lifted_pct"] is not None:
+                    a["lift_s"] += b["lifted_pct"] * b["secs"] / 100
+                    a["secs"] += b["secs"]
+                a["tacks"] += b["tacks_n"]
+                a["hdr"] += b["on_header"]
+                a["waits"] += [x["headed_for_s"] for x in b["tacks"] if x["on"] == "header"]
+                a["headed_long_s"] += b["headed_long_s"]
+    for a in boats.values():
+        a["lifted_pct"] = round(100 * a["lift_s"] / a["secs"]) if a["secs"] else None
+        a["wait_med_s"] = int(np.median(a["waits"])) if a["waits"] else None
+    for d in days.values():
+        d["period_min"] = round(float(np.median(d["periods"])), 1) if d["periods"] else None
+        d["swing_deg"] = round(float(np.median(d["swings"])), 1) if d["swings"] else None
+        d["n"] = len(d["swings"])
+    return {"boats": boats, "days": days}
+
+
+def shift_totals_md(fa: dict) -> list[str]:
+    T = shift_totals(fa)
+    if not T["boats"]:
+        return []
+    L = ["**Playing the shifts, every beat**", ""]
+    for day, d in sorted(T["days"].items()):
+        if d["n"]:
+            L.append(f"- {_dayname(day) if day else 'Racing'}: {d['n']} shifts of {SHIFT_MIN_DEG}° or more on the beats, "
+                     f"{d['swing_deg']:.0f}° typical" + (f", a full swing about every {d['period_min']:.0f} min" if d["period_min"] else "") + ".")
+    L += [
+        "",
+        "| Boat | On the lifted tack | Tacks on a header | Headed before tacking (median) | Sailed headed (1 min or more at a time) |",
+        "|---|---|---|---|---|",
+    ]
+    for k, a in T["boats"].items():
+        L.append(
+            f"| {a['name']} | {'–' if a['lifted_pct'] is None else str(a['lifted_pct']) + '%'} | {a['hdr']} of {a['tacks']} "
+            f"| {'–' if a['wait_med_s'] is None else str(a['wait_med_s']) + ' s'} | {_mmss(a['headed_long_s'])} |"
+        )
+    L += [
+        "",
+        "Lifted and headed are against the wind's average over the last few minutes (8, centred), within 2° counts as "
+        "neither. 50% on the lifted tack is what tacking at random gets. Not every tack should be on a header: laylines, "
+        "lanes and covering come first, and near a layline the headed tack is often the one that gets to the mark.",
+    ]
+    return L
+
+
 def _rel_s(d: float) -> str:
     """+12 s, or +4:46 past a minute."""
     a = abs(int(round(d)))
@@ -1628,7 +1926,7 @@ def write_md(fa: dict, out: Path, title: str) -> str:
                 )
                 + " |"
             )
-        L += starts_md(r) + wind_md(r) + roundings_md(r)
+        L += starts_md(r) + wind_md(r) + shifts_md(r) + roundings_md(r)
     L += [
         "",
         (
@@ -1801,6 +2099,76 @@ FLEET_JS = r"""
       lay.yaxis2 = { title: 'm from rhumb line<br>(+ right, looking at the mark)', domain: [0, 0.44], gridcolor: line, zerolinecolor: muted, anchor: 'x' };
       lay.xaxis.title = 'minutes from the gun'; lay.xaxis.anchor = 'y2';
       lay.shapes = shapes; lay.hovermode = 'x unified';
+      Plotly.newPlot(el, tr, lay, CONFIG);
+    },
+    // Shifts on the beats: the fleet's wind from the boats' tracks, its moving average and each shift; under it,
+    // each boat on the lifted or the headed tack, and where it tacked
+    shifts(el, r) {
+      const beats = ((r.wind || {}).legs || []).filter(l => l.shifts);
+      if (!beats.length) { el.textContent = 'Not enough steady upwind sailing to find the shifts.'; return; }
+      const mv = r.mag_var == null ? 0 : r.mag_var, nth = r.mag_var == null ? '° true' : '° mag';
+      const m = v => ((v - mv) % 360 + 360) % 360;
+      const ref = m(beats[0].shifts.mean);
+      const un = v => ref + (((m(v) - ref) % 360 + 540) % 360 - 180);
+      const ink = css('--ink'), muted = css('--ink2'), line = css('--line'), good = css('--accent'), bad = css('--warn');
+      const ids = IDS.filter(id => r.boats[id]);
+      const tr = [], ann = [], shapes = [];
+      beats.forEach((lg, bi) => {
+        const S = lg.shifts, x = S.s.map(t => t / 60);
+        const name = (r.leg_names || [])[lg.leg - 1] || 'Leg ' + lg.leg;
+        shapes.push({ type: 'rect', xref: 'x', yref: 'paper', x0: x[0], x1: x[x.length - 1], y0: 0, y1: 1,
+          fillcolor: muted, opacity: 0.06, line: { width: 0 }, layer: 'below' });
+        ann.push({ x: (x[0] + x[x.length - 1]) / 2, y: 1, yref: 'paper', yanchor: 'bottom', text: name, showarrow: false,
+          font: { size: 11, color: muted } });
+        tr.push({ x, y: S.dev.map(d => un(S.mean + d)), mode: 'lines', name: 'wind (fleet, 1 min)', legendgroup: 'w',
+          showlegend: bi === 0, line: { color: ink, width: 2 }, yaxis: 'y',
+          customdata: S.dev.map(d => Math.round(m(S.mean + d))),
+          hovertemplate: name + ' %{x:.1f} min: wind from %{customdata}' + nth + '<extra></extra>' });
+        tr.push({ x, y: S.ref.map(d => d == null ? null : un(S.mean + d)), mode: 'lines',
+          name: 'average (8 min)', legendgroup: 'a', showlegend: bi === 0, line: { color: muted, width: 1, dash: 'dot' },
+          yaxis: 'y', hoverinfo: 'skip' });
+        S.phases.forEach(p => ann.push({ x: p.t1 / 60, y: un(S.mean + p.to), yref: 'y', showarrow: false,
+          yshift: p.delta > 0 ? 10 : -10, font: { size: 10, color: ink },
+          text: Math.abs(Math.round(p.delta)) + '° ' + (p.dir === 'right' ? 'R' : 'L') }));
+      });
+      // each boat: one row, green on the lifted tack, red on the headed, grey within 2° of the average
+      const rows = ids.map(id => r.boats[id].name);
+      const states = [[1, good, 'on the lifted tack'], [-1, bad, 'on the headed tack'], [0, line, 'within 2° of the average']];
+      states.forEach(([st, c, lab]) => {
+        const x = [], y = [];
+        beats.forEach(lg => ids.forEach(id => {
+          const b = lg.shifts.boats[id];
+          if (!b) return;
+          const q = b.series;
+          q.s.forEach((t, i) => {
+            if (q.state[i] === st) { x.push(t / 60); y.push(b.name); }
+            else if (x.length && x[x.length - 1] != null) { x.push(null); y.push(null); }
+          });
+          x.push(null); y.push(null);
+        }));
+        tr.push({ x, y, mode: 'lines', name: lab, line: { color: c, width: 9 }, yaxis: 'y2',
+          connectgaps: false, hovertemplate: '%{y} %{x:.1f} min: ' + lab + '<extra></extra>' });
+      });
+      const tk = { header: ['triangle-up', ink, 'tacked on a header'], lift: ['x', ink, 'tacked off a lift'],
+        neither: ['circle-open', muted, 'tacked, no shift'] };
+      Object.entries(tk).forEach(([on, [sym, c, lab]]) => {
+        const x = [], y = [], cd = [];
+        beats.forEach(lg => ids.forEach(id => {
+          const b = lg.shifts.boats[id];
+          if (!b) return;
+          b.tacks.filter(t => t.on === on).forEach(t => { x.push(t.s / 60); y.push(b.name);
+            cd.push(on === 'header' ? ' after ' + t.headed_for_s + ' s headed' : ''); });
+        }));
+        if (x.length) tr.push({ x, y, customdata: cd, mode: 'markers', name: lab, yaxis: 'y2',
+          marker: { symbol: sym, size: 11, color: c, line: { color: c, width: 2 } },
+          hovertemplate: '%{y} %{x:.1f} min: ' + lab + '%{customdata}<extra></extra>' });
+      });
+      const lay = base(r.race + ': shifts on the beats, and who was on the lifted tack', 360 + 34 * rows.length, el);
+      lay.yaxis = Object.assign(lay.yaxis, { title: 'wind from (' + nth.slice(2) + ')', domain: [0.42, 1] });
+      lay.yaxis2 = { type: 'category', categoryorder: 'array', categoryarray: rows.slice().reverse(), domain: [0, 0.32],
+        gridcolor: line, anchor: 'x', fixedrange: true };
+      lay.xaxis.title = 'minutes from the gun'; lay.xaxis.anchor = 'y2';
+      lay.shapes = shapes; lay.annotations = ann; lay.hovermode = 'closest';
       Plotly.newPlot(el, tr, lay, CONFIG);
     },
     // The start: every tracked boat from −3:00 to +2:00, zoomed on the line, with a live panel
@@ -1981,13 +2349,17 @@ FLEET_JS = r"""
           const x = [], y = [];
           ids.forEach(id => {
             const b = c.boats[id];
+            // off the chart once it has finished (or before its track starts), so the line stays clear
+            const gone = fin ? t > b.pass_s + 2 : (t < b.t[0] - 2 || t > b.t[b.t.length - 1] + 2);
+            if (gone) { x.push([], []); y.push([], []); return; }
             let k = b.t.indexOf(t);
             if (k < 0) k = b.t.reduce((best, v, i) => (Math.abs(v - t) < Math.abs(b.t[best] - t) ? i : best), 0);
             const h = boatXY(b.x[k], b.y[k], b.cog[k] == null ? 0 : b.cog[k] - r.axis, plot);
             x.push(...h[0]); y.push(...h[1]);
           });
           Plotly.restyle(plot, { x, y }, ids.flatMap((_, i) => [moving + 2 * i, moving + 2 * i + 1]));
-          label.textContent = ' ' + rel(t) + (fin ? ' from the first finisher' : ' from the first rounding');
+          const done = fin ? ids.filter(id => t > c.boats[id].pass_s + 2).map(id => c.boats[id].name) : [];
+          label.textContent = ' ' + rel(t) + (fin ? ' from the first finisher' + (done.length ? ' · finished: ' + done.join(', ') : '') : ' from the first rounding');
         }
         slider.addEventListener('input', () => at(+slider.value));
         plot.on('plotly_relayout', () => at(+slider.value));  // keep the hulls readable when zooming
@@ -2795,7 +3167,7 @@ p.why { margin: 8px 0; }
 # [[chart:replay]] puts the race replay there, with a button for each race; [[chart:pairmap]]
 # the map of where the boats sailed side by side.
 TAKEAWAY_CHARTS = ("places", "split", "beats", "angles", "sides", "heel", "exits", "tacks")
-RACE_CHARTS = ("wind", "marks", "gaps", "starts")  # [[chart:wind:race4]] in a debrief: that race's chart
+RACE_CHARTS = ("wind", "shifts", "marks", "gaps", "starts")  # [[chart:wind:race4]] in a debrief: that race's chart
 CHART_LINE = re.compile(r"^\[\[chart:(\w+)(?::(\w+))?\]\]\s*$")
 
 
@@ -3268,6 +3640,7 @@ def write_html(
             + ("<h3>The start</h3>" + _chart("starts", r["stem"]) if (r.get("starts") or {}).get("boats") else "")
             + "<h3>Wind and sides</h3>"
             + _chart("wind", r["stem"])
+            + (_chart("shifts", r["stem"]) if any(lg.get("shifts") for lg in (r.get("wind") or {}).get("legs", [])) else "")
             + race_current_html(race_cur.get(r["race"]))
             + (
                 "<h3>Roundings</h3>"
@@ -3315,10 +3688,16 @@ def write_html(
         )
     cur = CU.page_parts([reports_dir / b["id"] for b in boats], embedded=True)
     wind_body = "".join(
-        H.card(f"<h2>{html.escape(r['race'])}: wind</h2>" + _chart("wind", r["stem"]) + H.md_to_html("\n".join(wind_md(r))))
+        H.card(
+            f"<h2>{html.escape(r['race'])}: wind</h2>" + _chart("wind", r["stem"])
+            + (_chart("shifts", r["stem"]) if any(lg.get("shifts") for lg in r["wind"]["legs"]) else "")
+            + H.md_to_html("\n".join(wind_md(r) + shifts_md(r)))
+        )
         for r in fa["races"]
         if (r.get("wind") or {}).get("legs")
     )
+    if shift_totals_md(fa):
+        wind_body = H.card("<h2>Shifts</h2>" + H.md_to_html("\n".join(shift_totals_md(fa)))) + wind_body
     if cur or wind_body:
         pages.append(
             H.page(

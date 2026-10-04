@@ -39,6 +39,7 @@
 - **Races 2 and 3: steady or oscillating (±4°), no side paid.** 969 won both on speed, which is the cleanest proof of its upwind edge.
 - **Race 4, beat 1:** 15° left at two minutes, and 969 went right: 56 s lost to 1216 on the left. It's the same pattern as Race 1's first beat: the right on a left-shifting first beat. 969 won Race 4 back on the run and the second beat, which were steady.
 - **Race 5, last beat:** the wind went right as it died, and 969 got to the right first and stayed. That's the right call: in a persistent shift, get to the side it's going to before tacking back.
+- **Playing the shifts on Saturday: the best of the three boats.** The wind swung about 6° every 8 minutes. 969 was on the lifted tack 55% of the time (81% on Race 3's second beat), tacked a median 24 s after a header began, and sailed only 1:16 headed in stretches of a minute or more, against about 6 minutes for Mojo and 1216. On Sunday, with bigger, slower swings, it fell to 48%, like everyone. See the Shifts chart for each race.
 - **Next time:** Check the headings for the first 2–3 minutes after the start. If they've gone 10° left and held, that's the new wind: stay left.
 
 **Start scorecard**

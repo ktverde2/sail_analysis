@@ -44,6 +44,7 @@
 - **Races 2 and 3: steady or oscillating, no side paid.** The time lost there was speed.
 - **Race 4, beat 1: the left paid, and 1216 was on it.** The pin start put 1216 furthest left when the wind went 15° left at two minutes: 56 s gained on 969, worth about 53 s from the shift alone.
 - **Race 5, last beat: 1216 left the new wind.** It sailed the lift to the left while the wind went right. Mojo did the same, less far.
+- **Playing the shifts on Saturday: on the lifted tack 39% of the time, the least of the three boats.** The wind swung about 6° every 8 minutes. 1216 tacked a median 71 s after a header began (969: 24 s), only 3 of its 22 tacks were on a header, and it sailed 6:06 headed in stretches of a minute or more (969: 1:16). On Sunday it was 50%. The shifts come from the GPS tracks, so the compass doesn't affect them. See the Shifts chart for each race.
 - **Next time:** A shift of 10° or more that holds for two or three minutes is the new wind. Sail toward it (the header first) before tacking back.
 
 **Start scorecard**

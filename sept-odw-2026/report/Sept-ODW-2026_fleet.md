@@ -83,6 +83,26 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 | Beat 2 | 267° → 272° | 0° / 8° | steady (+2° trend) | 1216 -301 m (fastest), Mojo -217 m (+2 s), 969 -99 m (+2 s) | no side: steady, speed and lanes decided it |
 | Run 2 | 274° → 269° | 3° / 12° | persistent left shift (-10° trend) | Mojo +14 m (fastest), 969 +118 m (+21 s), 1216 +125 m (+32 s) | left, but the boats were 111 m (12 lengths) apart across the course: the shift was worth about 3 s, so speed decided it |
 
+**Shifts on the beats** (the fleet's wind from every boat's track, smoothed over a minute; a shift is 4° or more between turning points. Worth: the boat furthest toward the shift against the boat furthest the other way, separation × sin(shift). Gained: what it actually gained up the wind, so boat speed is in it too)
+
+| Beat | Shift (from the gun) | Wind | Favoured | Worth | Gained |
+|---|---|---|---|---|---|
+| Beat 1 | 0:40–3:23 | 8° left (274° → 267°) | the left: Mojo, 214 m (23 lengths) further left than 1216 | 28 m (3.0 lengths) | 27 m (2.9 lengths) |
+| Beat 1 | 3:23–13:23 | 8° right (267° → 274°) | the right: 1216, 441 m (47 lengths) further right than Mojo | 59 m (6.3 lengths) | lost 20 m (2.2 lengths) |
+| Beat 1 | 13:23–15:18 | 18° left (274° → 257°) | the left: 1216, 45 m (4.8 lengths) further left than 969 | 14 m (1.5 lengths) | 8 m (0.9 lengths) |
+| Beat 2 | 25:36–29:17 | 7° right (267° → 274°) | the right | – | – |
+| Beat 2 | 29:17–37:28 | 6° left (274° → 268°) | the left: Mojo, 188 m (20 lengths) further left than 969 | 19 m (2.0 lengths) | 22 m (2.4 lengths) |
+| Beat 2 | 37:28–39:15 | 6° right (268° → 274°) | the right: 969, 344 m (37 lengths) further right than 1216 | 36 m (3.9 lengths) | 6 m (0.6 lengths) |
+
+| Beat | Rhythm | Boat | On the lifted tack | Tacks on a header | Headed before tacking | Sailed headed (1 min or more at a time) |
+|---|---|---|---|---|---|---|
+| Beat 1 | a swing every 10 min, 8° typical | Mojo | 62% | 1 of 4 | 147 s | 1:06 |
+| Beat 1 | a swing every 10 min, 8° typical | 1216 | 31% | 2 of 5 | 112 s | 2:10 |
+| Beat 1 | a swing every 10 min, 8° typical | 969 | 54% | 2 of 6 | 83 s | 1:16 |
+| Beat 2 | a swing every 9 min, 6° typical | Mojo | 42% | 0 of 2 | – | 1:25 |
+| Beat 2 | a swing every 9 min, 6° typical | 1216 | 39% | 0 of 2 | – | 1:18 |
+| Beat 2 | a swing every 9 min, 6° typical | 969 | 39% | 0 of 2 | – | – |
+
 **Roundings** (every tracked boat at each mark and the finish; zone = 3 lengths, 28 m; overlap from GPS)
 
 - Windward 1: Mojo rounded +0 s; 969 rounded +20 s (clear astern when Mojo reached the zone, 67 m (7.2 lengths) behind); 1216 rounded +32 s (clear astern when Mojo reached the zone, 93 m (10 lengths) behind); closest: 969 and 1216 19 m (2.1 lengths).
@@ -152,6 +172,26 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 | Beat 2 | 268° → 270° | 0° / 6° | steady (+0° trend) | Mojo +178 m (+33 s), 969 +339 m (fastest), 1216 +386 m (+32 s) | no side: steady, speed and lanes decided it |
 | Run 2 | 268° → 268° | 0° / 9° | oscillating (-1° trend) | 1216 +31 m (fastest), Mojo +49 m (+7 s), 969 +52 m (+21 s) | no side: oscillating ±3°, the shifts paid, not a side |
 
+**Shifts on the beats** (the fleet's wind from every boat's track, smoothed over a minute; a shift is 4° or more between turning points. Worth: the boat furthest toward the shift against the boat furthest the other way, separation × sin(shift). Gained: what it actually gained up the wind, so boat speed is in it too)
+
+| Beat | Shift (from the gun) | Wind | Favoured | Worth | Gained |
+|---|---|---|---|---|---|
+| Beat 1 | 3:41–4:41 | 4° left (265° → 261°) | the left: 1216, 387 m (42 lengths) further left than Mojo | 30 m (3.2 lengths) | 39 m (4.2 lengths) |
+| Beat 1 | 4:41–10:25 | 6° right (261° → 267°) | the right: 969, 400 m (43 lengths) further right than 1216 | 42 m (4.5 lengths) | 68 m (7.3 lengths) |
+| Beat 2 | 24:31–29:47 | 7° right (267° → 274°) | the right | – | – |
+| Beat 2 | 29:47–35:26 | 6° left (274° → 268°) | the left: Mojo, 410 m (44 lengths) further left than 969 | 43 m (4.6 lengths) | lost 10 m (1.1 lengths) |
+| Beat 2 | 35:26–37:34 | 5° right (268° → 273°) | the right: 1216, 257 m (28 lengths) further right than 969 | 24 m (2.6 lengths) | 6 m (0.6 lengths) |
+| Beat 2 | 37:34–39:18 | 7° left (273° → 266°) | the left: Mojo, 119 m (13 lengths) further left than 1216 | 14 m (1.5 lengths) | 13 m (1.4 lengths) |
+
+| Beat | Rhythm | Boat | On the lifted tack | Tacks on a header | Headed before tacking | Sailed headed (1 min or more at a time) |
+|---|---|---|---|---|---|---|
+| Beat 1 | a swing every 7 min, 5° typical | Mojo | 0% | 0 of 3 | – | – |
+| Beat 1 | a swing every 7 min, 5° typical | 1216 | 67% | 0 of 2 | – | – |
+| Beat 1 | a swing every 7 min, 5° typical | 969 | 100% | 0 of 1 | – | – |
+| Beat 2 | a swing every 7 min, 6° typical | Mojo | 50% | 1 of 3 | 19 s | – |
+| Beat 2 | a swing every 7 min, 6° typical | 1216 | 46% | 0 of 3 | – | – |
+| Beat 2 | a swing every 7 min, 6° typical | 969 | 28% | 1 of 3 | 22 s | – |
+
 **Roundings** (every tracked boat at each mark and the finish; zone = 3 lengths, 28 m; overlap from GPS)
 
 - Windward 1: 969 rounded +0 s; 1216 rounded +31 s (clear astern when 969 reached the zone, 94 m (10 lengths) behind); Mojo rounded +42 s (clear astern when 969 reached the zone, 130 m (14 lengths) behind); closest: 1216 and Mojo 25 m (2.7 lengths).
@@ -216,6 +256,28 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 | Beat 1 | 266° → 263° | 9° / 8° | oscillating (-1° trend) | 1216 +173 m (+60 s), Mojo +255 m (+47 s), 969 +348 m (fastest) | no side: oscillating ±4°, the shifts paid, not a side |
 | Run 1 | 269° → 258° | 13° / 10° | persistent left shift (-11° trend) | Mojo -66 m (+51 s), 1216 -57 m (+48 s), 969 -7 m (fastest) | left, but the boats were 59 m (6.3 lengths) apart across the course: the shift was worth about 4 s, so speed decided it |
 | Beat 2 | 273° → 271° | 4° / 5° | steady (-1° trend) | 969 +199 m (+7 s), 1216 +257 m (fastest), Mojo +346 m (+18 s) | no side: steady, speed and lanes decided it |
+
+**Shifts on the beats** (the fleet's wind from every boat's track, smoothed over a minute; a shift is 4° or more between turning points. Worth: the boat furthest toward the shift against the boat furthest the other way, separation × sin(shift). Gained: what it actually gained up the wind, so boat speed is in it too)
+
+| Beat | Shift (from the gun) | Wind | Favoured | Worth | Gained |
+|---|---|---|---|---|---|
+| Beat 1 | 0:30–7:35 | 10° right (264° → 274°) | the right: 969, 141 m (15 lengths) further right than 1216 | 25 m (2.7 lengths) | 108 m (12 lengths) |
+| Beat 1 | 7:35–14:35 | 18° left (274° → 256°) | the left: 1216, 148 m (16 lengths) further left than Mojo | 47 m (5.1 lengths) | lost 14 m (1.5 lengths) |
+| Beat 2 | 26:01–28:55 | 6° left (275° → 269°) | the left | – | – |
+| Beat 2 | 28:55–33:10 | 10° right (269° → 278°) | the right: Mojo, 206 m (22 lengths) further right than 1216 | 34 m (3.7 lengths) | 45 m (4.8 lengths) |
+| Beat 2 | 33:10–36:03 | 12° left (278° → 266°) | the left: 969, 368 m (40 lengths) further left than Mojo | 75 m (8.1 lengths) | 81 m (8.7 lengths) |
+| Beat 2 | 36:03–37:03 | 6° right (266° → 273°) | the right: Mojo, 221 m (24 lengths) further right than 969 | 25 m (2.7 lengths) | 0 m (0.0 lengths) |
+| Beat 2 | 37:03–37:21 | 4° left (273° → 269°) | the left: 969, 260 m (28 lengths) further left than Mojo | 19 m (2.0 lengths) | 27 m (2.9 lengths) |
+| Beat 2 | 37:21–39:11 | 5° right (269° → 273°) | the right: 1216, 5 m (0.5 lengths) further right than Mojo | 0 m (0.0 lengths) | 12 m (1.3 lengths) |
+
+| Beat | Rhythm | Boat | On the lifted tack | Tacks on a header | Headed before tacking | Sailed headed (1 min or more at a time) |
+|---|---|---|---|---|---|---|
+| Beat 1 | a swing every 14 min, 14° typical | Mojo | 0% | 1 of 3 | 63 s | 1:03 |
+| Beat 1 | a swing every 14 min, 14° typical | 1216 | 0% | 1 of 4 | 28 s | 1:09 |
+| Beat 1 | a swing every 14 min, 14° typical | 969 | 42% | 1 of 3 | 43 s | – |
+| Beat 2 | a swing every 4 min, 6° typical | Mojo | 43% | 1 of 5 | 97 s | 2:46 |
+| Beat 2 | a swing every 4 min, 6° typical | 1216 | 51% | 0 of 6 | – | 1:30 |
+| Beat 2 | a swing every 4 min, 6° typical | 969 | 81% | 1 of 5 | 20 s | – |
 
 **Roundings** (every tracked boat at each mark and the finish; zone = 3 lengths, 28 m; overlap from GPS)
 
@@ -285,6 +347,28 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 | Beat 2 | 272° → 273° | 7° / 1° | steady (+2° trend) | 1216 +183 m (+47 s), 969 +307 m (fastest), Mojo +311 m (+16 s) | no side: steady, speed and lanes decided it |
 | Run 2 | 280° → 280° | 3° / 4° | steady (+1° trend) | Mojo +148 m (+10 s), 969 +218 m (+5 s), 1216 +277 m (fastest) | no side: steady, speed and lanes decided it |
 
+**Shifts on the beats** (the fleet's wind from every boat's track, smoothed over a minute; a shift is 4° or more between turning points. Worth: the boat furthest toward the shift against the boat furthest the other way, separation × sin(shift). Gained: what it actually gained up the wind, so boat speed is in it too)
+
+| Beat | Shift (from the gun) | Wind | Favoured | Worth | Gained |
+|---|---|---|---|---|---|
+| Beat 1 | 1:24–10:34 | 24° left (283° → 259°) | the left: 1216, 145 m (16 lengths) further left than 969 | 58 m (6.2 lengths) | 57 m (6.1 lengths) |
+| Beat 1 | 10:34–15:12 | 15° right (259° → 274°) | the right: 969, 397 m (43 lengths) further right than 1216 | 103 m (11 lengths) | 53 m (5.7 lengths) |
+| Beat 1 | 15:12–18:00 | 22° left (274° → 252°) | the left: 1216, 192 m (21 lengths) further left than 969 | 72 m (7.7 lengths) | 39 m (4.2 lengths) |
+| Beat 1 | 18:00–19:12 | 20° right (252° → 272°) | the right: Mojo, 10 m (1.1 lengths) further right than 969 | 3 m (0.3 lengths) | lost 21 m (2.3 lengths) |
+| Beat 1 | 19:12–19:53 | 11° left (272° → 260°) | the left | – | – |
+| Beat 2 | 37:46–42:05 | 6° right (267° → 273°) | the right: 969, 161 m (17 lengths) further right than 1216 | 17 m (1.8 lengths) | 51 m (5.5 lengths) |
+| Beat 2 | 42:05–44:29 | 5° left (273° → 268°) | the left: 1216, 159 m (17 lengths) further left than 969 | 13 m (1.4 lengths) | lost 8 m (0.9 lengths) |
+| Beat 2 | 44:29–50:22 | 6° right (268° → 274°) | the right | – | – |
+
+| Beat | Rhythm | Boat | On the lifted tack | Tacks on a header | Headed before tacking | Sailed headed (1 min or more at a time) |
+|---|---|---|---|---|---|---|
+| Beat 1 | a swing every 7 min, 20° typical | Mojo | 43% | 2 of 5 | 148 s | 4:13 |
+| Beat 1 | a swing every 7 min, 20° typical | 1216 | 42% | 1 of 4 | 57 s | 4:19 |
+| Beat 1 | a swing every 7 min, 20° typical | 969 | 48% | 3 of 6 | 118 s | 3:28 |
+| Beat 2 | a swing every 8 min, 6° typical | Mojo | 99% | 0 of 1 | – | – |
+| Beat 2 | a swing every 8 min, 6° typical | 1216 | 27% | 1 of 3 | 58 s | 1:07 |
+| Beat 2 | a swing every 8 min, 6° typical | 969 | 59% | 0 of 3 | – | 1:07 |
+
 **Roundings** (every tracked boat at each mark and the finish; zone = 3 lengths, 28 m; overlap from GPS)
 
 - Windward 1: 1216 rounded +0 s; 969 rounded +57 s (clear astern when 1216 reached the zone, 18 m (1.9 lengths) behind); Mojo rounded +1:52 (clear astern when 1216 reached the zone, 31 m (3.4 lengths) behind); closest: 969 and Mojo 22 m (2.4 lengths).
@@ -349,6 +433,37 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 | Beat 1 | 276° → 275° | 3° / 10° | oscillating (+5° trend) | 1216 -111 m (+17 s), Mojo +77 m (fastest), 969 +202 m (+23 s) | no side: oscillating ±4°, the shifts paid, not a side |
 | Run 1 | 284° → 280° | 16° / 0° | oscillating (-5° trend) | 1216 -8 m (+157 s), 969 +106 m (fastest), Mojo +137 m (+35 s) | no side: oscillating ±4°, the shifts paid, not a side |
 | Beat 2 | 274° → 294° | 11° / 37° | persistent right shift (+17° trend) | 1216 -305 m (+570 s), Mojo +36 m (+275 s), 969 +138 m (fastest) | right paid: 969, furthest right (443 m (48 lengths) further than 1216), gained 570 s; the shift alone was worth about 119 s |
+
+**Shifts on the beats** (the fleet's wind from every boat's track, smoothed over a minute; a shift is 4° or more between turning points. Worth: the boat furthest toward the shift against the boat furthest the other way, separation × sin(shift). Gained: what it actually gained up the wind, so boat speed is in it too)
+
+| Beat | Shift (from the gun) | Wind | Favoured | Worth | Gained |
+|---|---|---|---|---|---|
+| Beat 1 | 0:50–2:23 | 8° right (273° → 280°) | the right: 969, 139 m (15 lengths) further right than 1216 | 19 m (2.0 lengths) | 14 m (1.5 lengths) |
+| Beat 1 | 2:23–3:51 | 5° left (280° → 275°) | the left: 1216, 438 m (47 lengths) further left than 969 | 40 m (4.3 lengths) | 58 m (6.2 lengths) |
+| Beat 1 | 3:51–9:10 | 7° right (275° → 282°) | the right: 969, 580 m (62 lengths) further right than 1216 | 73 m (7.8 lengths) | 11 m (1.2 lengths) |
+| Beat 1 | 9:10–10:05 | 5° left (282° → 277°) | the left: 1216, 536 m (58 lengths) further left than 969 | 50 m (5.4 lengths) | 50 m (5.4 lengths) |
+| Beat 1 | 10:05–14:18 | 12° right (277° → 288°) | the right: 969, 415 m (45 lengths) further right than 1216 | 82 m (8.8 lengths) | 108 m (12 lengths) |
+| Beat 1 | 14:18–17:51 | 16° left (288° → 272°) | the left: 1216, 237 m (25 lengths) further left than Mojo | 67 m (7.2 lengths) | 24 m (2.6 lengths) |
+| Beat 2 | 30:30–31:39 | 12° left (280° → 268°) | the left: Mojo, 7 m (0.8 lengths) further left than 969 | 1 m (0.1 lengths) | lost 20 m (2.2 lengths) |
+| Beat 2 | 31:39–32:42 | 19° right (268° → 287°) | the right: 969, 105 m (11 lengths) further right than Mojo | 35 m (3.8 lengths) | 97 m (10 lengths) |
+| Beat 2 | 32:42–34:32 | 8° left (287° → 279°) | the left: Mojo, 212 m (23 lengths) further left than 969 | 30 m (3.2 lengths) | 59 m (6.3 lengths) |
+| Beat 2 | 34:32–42:32 | 33° right (279° → 312°) | the right: 969, 401 m (43 lengths) further right than 1216 | 221 m (24 lengths) | 394 m (42 lengths) |
+| Beat 2 | 42:32–48:31 | 33° left (312° → 279°) | the left: 1216, 609 m (65 lengths) further left than Mojo | 335 m (36 lengths) | 44 m (4.7 lengths) |
+| Beat 2 | 48:31–50:34 | 34° right (279° → 313°) | the right: Mojo, 155 m (17 lengths) further right than 1216 | 87 m (9.4 lengths) | 79 m (8.5 lengths) |
+| Beat 2 | 50:34–53:52 | 14° left (313° → 299°) | the left | – | – |
+| Beat 2 | 53:52–54:27 | 4° right (299° → 304°) | the right | – | – |
+| Beat 2 | 54:27–55:25 | 10° left (304° → 294°) | the left | – | – |
+| Beat 2 | 55:25–57:49 | 6° right (294° → 300°) | the right | – | – |
+| Beat 2 | 57:49–59:58 | 9° left (300° → 291°) | the left | – | – |
+
+| Beat | Rhythm | Boat | On the lifted tack | Tacks on a header | Headed before tacking | Sailed headed (1 min or more at a time) |
+|---|---|---|---|---|---|---|
+| Beat 1 | a swing every 6 min, 8° typical | Mojo | 52% | 1 of 4 | 37 s | – |
+| Beat 1 | a swing every 6 min, 8° typical | 1216 | 44% | 1 of 4 | 19 s | 2:23 |
+| Beat 1 | a swing every 6 min, 8° typical | 969 | 29% | 1 of 4 | 19 s | 1:30 |
+| Beat 2 | a swing every 5 min, 12° typical | Mojo | 50% | 2 of 4 | 60 s | 8:06 |
+| Beat 2 | a swing every 5 min, 12° typical | 1216 | 59% | 1 of 6 | 19 s | 6:28 |
+| Beat 2 | a swing every 5 min, 12° typical | 969 | 54% | 1 of 3 | 232 s | 5:00 |
 
 **Roundings** (every tracked boat at each mark and the finish; zone = 3 lengths, 28 m; overlap from GPS)
 

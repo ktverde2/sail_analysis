@@ -17,10 +17,10 @@
    - On Saturday, Mojo and 1216 were 13–24 s late in Races 2–3, while 969 was 2–3 s late at full speed every time. On Sunday every boat was 4–8 s late, and only 1216 in Race 4 was at full speed.
    - Time on distance showed it 10 seconds out: at −10 s, the late boats' speed couldn't get them to the line by the gun (see the Starts page).
    - **Next time:** Burn time from timed runs along the line, called out loud from −60 s, and sheeting on by −8 s.
-3. **Shifts that held: get to the side they're going to**
+3. **Shifts: get to the side of the ones that hold, and tack on the ones that don't**
    - The two biggest shifts each decided a race: 25° left on Race 4's first beat, which 1216 on the left won, and 20–35° right on Race 5's dying last beat, which 969 on the right won. In both, the boats on the other side sailed away from the new wind.
-   - The rest of the beats were steady or oscillating, and speed decided them (see Wind and sides on the Race by race page).
-   - **Next time:** A shift of 10° or more that holds for two or three minutes is the new wind. Get to that side before tacking back.
+   - On Saturday the wind oscillated about 6° with a full swing about every 8 minutes. 969 was on the lifted tack 55% of the time, tacked a median 24 s after a header began, and sailed 1:16 headed in total. Mojo and 1216 were on the lifted tack 43% and 39% of the time, waited 80 s and 71 s, and each sailed about 6 minutes headed. On Sunday every boat was near 50%.
+   - **Next time:** A shift of 10° or more that holds for two or three minutes is the new wind: get to that side before tacking back. A smaller one that swings back every few minutes is an oscillation: away from the laylines, tack within about 30 s of a 5° header (see Shifts on the Wind and current page).
 
 **Best in the fleet by area**
 | Area | Best | Number |
@@ -39,6 +39,7 @@
 **Data notes**
 - Only these three boats were tracked. Order and gaps are among them, not official results.
 - VMC: speed toward the next mark, measured up the ladder at the boats' own tacking or gybing angle, so overstanding counts against it. Metres gained or lost are distance still to sail to the mark.
+- Shifts come from the boats' GPS tracks (the fleet's wind each minute), so no compass is involved. Lifted and headed are against the last few minutes' average.
 - Current made no measurable difference anywhere on the course, to the water or to VMC (see the Current page).
 - All directions are magnetic. 969's compass reads 11° low, and 1216's compass has an error that changes with heading. Their angles are compared over the ground.
 - Race 5's data was pulled past Njord's race end (21:42:46), which came before any boat finished.
