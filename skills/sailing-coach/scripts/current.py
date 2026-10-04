@@ -381,6 +381,36 @@ def noaa_view(nd: dict | None, axis: float, tz: str) -> dict | None:
     loc = lambda e: datetime.fromtimestamp(e, zone).strftime("%Y-%m-%d %H:%M:%S")
     out = {"source": nd.get("source"), "fetched": nd.get("fetched"), "tz": tz,
            "races": [{"race": r, "start": loc(a), "end": loc(b), "a": a, "b": b} for r, (a, b) in nd["races"].items()]}
+    # Only the racing days: an hour either side of each day's racing, not the night in between
+    days: dict[str, list[float]] = {}
+    for a, b in nd["races"].values():
+        day = datetime.fromtimestamp(a, zone).date().isoformat()
+        lo, hi = days.get(day, [a, b])
+        days[day] = [min(lo, a), max(hi, b)]
+    wins = sorted((lo - NOAA_PAD_S, hi + NOAA_PAD_S) for lo, hi in days.values())
+    out["windows"] = [[loc(a), loc(b)] for a, b in wins]
+
+    def keep(t):
+        t = np.asarray(t, float)
+        return np.any([(t >= a) & (t <= b) for a, b in wins], axis=0) if wins else np.ones(len(t), bool)
+
+    def gapped(t, *cols):
+        """Points inside the windows, with a break (None) between days so lines don't join across the night."""
+        t = np.asarray(t, float)
+        on = keep(t)
+        xs, ys = [], [[] for _ in cols]
+        prev = None
+        for i in np.flatnonzero(on):
+            w = next(k for k, (a, b) in enumerate(wins) if a <= t[i] <= b)
+            if prev is not None and w != prev:
+                xs.append(loc(wins[prev][1]))
+                for y in ys:
+                    y.append(None)
+            prev = w
+            xs.append(loc(t[i]))
+            for y, c in zip(ys, cols):
+                y.append(c[i])
+        return xs, ys
     c = nd.get("current")
     if c and c.get("series"):
         t = np.array([p[0] for p in c["series"]])
@@ -395,24 +425,29 @@ def noaa_view(nd: dict | None, axis: float, tz: str) -> dict | None:
             if on.any():
                 r.update(v=round(float(v[on].mean()), 2), across=round(float(across[on].mean()), 2),
                          up=round(float(up[on].mean()), 2), mid=loc((r["a"] + r["b"]) / 2))
+        cx, (cv, ca, cu) = gapped(t, np.round(v, 2).tolist(), np.round(across, 2).tolist(), np.round(up, 2).tolist())
+        ev = [e for e in c["events"] if keep([e[0]])[0]]
         out["current"] = {
             "station": c["station"], "method": c["method"], "flood_dir": c["flood_dir"], "ebb_dir": c["ebb_dir"],
-            "x": [loc(x) for x in t], "v": np.round(v, 2).tolist(),
-            "across": np.round(across, 2).tolist(), "up": np.round(up, 2).tolist(),
-            "events": [[loc(e[0]), e[1], e[2]] for e in c["events"]],
+            "x": cx, "v": cv, "across": ca, "up": cu,
+            "events": [[loc(e[0]), e[1], e[2]] for e in ev],
         }
     tdd = nd.get("tide")
     if tdd and tdd.get("pred"):
+        px, (pv,) = gapped([p[0] for p in tdd["pred"]], [p[1] for p in tdd["pred"]])
+        ox, (ov,) = gapped([p[0] for p in tdd["obs"]], [p[1] for p in tdd["obs"]]) if tdd["obs"] else ([], ([],))
         out["tide"] = {
             "station": tdd["station"], "datum": tdd.get("datum", "MLLW"),
-            "x": [loc(p[0]) for p in tdd["pred"]], "pred": [p[1] for p in tdd["pred"]],
-            "obs_x": [loc(p[0]) for p in tdd["obs"]], "obs": [p[1] for p in tdd["obs"]],
-            "hilo": [[loc(h[0]), h[1], h[2]] for h in tdd["hilo"]],
+            "x": px, "pred": pv, "obs_x": ox, "obs": ov,
+            "hilo": [[loc(h[0]), h[1], h[2]] for h in tdd["hilo"] if keep([h[0]])[0]],
         }
     return out
 
 
 # --- html ----------------------------------------------------------------------------------------
+
+NOAA_PAD_S = 3600  # tide and current shown from an hour before each day's first gun to an hour after its last finish
+
 
 INTRO = (
     "Course over ground against heading: how far the boats were set sideways, and where on the course. "

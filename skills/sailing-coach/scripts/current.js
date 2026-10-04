@@ -109,9 +109,24 @@ function CurrentMap(root, D) {
     if (T) src.push(`Tide: <b>${T.station.name}</b> (${T.station.id}), ${T.station.km} km, feet above ${T.datum}.`);
     src.push(`${N.source}, fetched ${N.fetched.slice(0, 10)}. Times are local.`);
     $("noaa-src").innerHTML = src.join(" ");
-    const lay = (yt, extra) => base(Object.assign({ margin: { l: 48, r: 10, t: 16, b: 32 }, shapes: raceShapes(N), annotations: raceLabels(N),
-      xaxis: axis("", { type: "date", tickformat: "%H:%M" }), yaxis: axis(yt),
-      showlegend: true, legend: { orientation: "h", x: 0, y: -0.18, font: { size: 11 } } }, extra || {}));
+    const multi = (N.windows || []).length > 1;
+    // whole hours inside each racing day's window, with the day under the first one
+    const DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    const ticks = { vals: [], text: [] };
+    for (const [a, b] of N.windows || []) {
+      const d = a.slice(0, 10), h0 = +a.slice(11, 13) + (a.slice(14, 19) === "00:00" ? 0 : 1), h1 = +b.slice(11, 13);
+      const wd = DAY[new Date(d + "T12:00:00").getDay()] + " " + +d.slice(8, 10);
+      for (let h = h0; h <= h1; h++) {
+        ticks.vals.push(`${d} ${String(h).padStart(2, "0")}:00:00`);
+        ticks.text.push(`${String(h).padStart(2, "0")}:00` + (h === h0 && multi ? `<br>${wd}` : ""));
+      }
+    }
+    const lay = (yt, extra) => base(Object.assign({ margin: { l: 48, r: 10, t: 16, b: multi ? 52 : 32 }, shapes: raceShapes(N), annotations: raceLabels(N),
+      // racing days only: the nights between them are cut out of the time axis
+      xaxis: axis("", { type: "date", tickangle: 0,
+        ...(ticks.vals.length ? { tickmode: "array", tickvals: ticks.vals, ticktext: ticks.text } : { tickformat: "%H:%M" }),
+        rangebreaks: (N.windows || []).slice(1).map((w, i) => ({ bounds: [N.windows[i][1], w[0]] })) }), yaxis: axis(yt),
+      showlegend: true, legend: { orientation: "h", x: 0, y: multi ? -0.32 : -0.18, font: { size: 11 } } }, extra || {}));
 
     if (T) {
       const tr = [{ x: T.x, y: T.pred, type: "scatter", mode: "lines", name: "predicted", line: { color: css("--tk-ink2"), width: 2, dash: "dash" },
@@ -144,7 +159,7 @@ function CurrentMap(root, D) {
       for (const b of D.boats) {
         const pts = D.per_race.filter(p => p.boat === b).map(p => [N.races.find(r => r.race === p.race), p]).filter(([r]) => r && r.mid);
         if (!pts.length) continue;
-        cmp.push({ x: pts.map(([r]) => r.mid), y: pts.map(([, p]) => p.cross_kt), type: "scatter", mode: "markers", name: `${b}, measured`,
+        cmp.push({ x: pts.map(([r]) => r.mid), y: pts.map(([, p]) => p.cross_kt), type: "scatter", mode: "markers", name: `${b}, measured${D.fits[b].suspect ? " (compass suspect)" : ""}`,
           marker: { size: 11, color: css(boatVar(b)), line: { color: css("--tk-surface-1"), width: 1.5 } },
           text: pts.map(([r, p]) => `${b} · ${r.race}: measured ${sgn(p.cross_kt, 2)} kt; NOAA ${sgn(r.across, 2)} kt`),
           hovertemplate: "%{text}<extra></extra>" });
