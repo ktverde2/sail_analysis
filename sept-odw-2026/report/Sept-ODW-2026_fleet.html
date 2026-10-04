@@ -415,6 +415,43 @@ window.LADDER = (function () {
   const BOAT_LENGTH_M = 9.3;
   function lens(v) { const x = Math.abs(v) / BOAT_LENGTH_M; return Math.round(x * 10) / 10 < 10 ? x.toFixed(1) : x.toFixed(0); }
   function mbl(v) { return v == null ? '–' : Math.round(Math.abs(v)) + ' m (' + lens(v) + ' lengths)'; }
+  // Boats on the maps: an Etchells hull (pointed bow, square transom; beam 0.23 of the length) and its
+  // mainsail boom, swung to leeward: close in upwind, well out on a run. Across (u, in beams) and along
+  // (v, in lengths, + forward). True size when zoomed in close enough, never smaller than minPx on screen.
+  const HULL = [[0, 0.5], [0.32, 0.3], [0.5, 0.05], [0.48, -0.25], [0.38, -0.5], [-0.38, -0.5], [-0.48, -0.25], [-0.5, 0.05], [-0.32, 0.3], [0, 0.5]];
+  function metresPerPx(plot) {
+    const xa = plot && plot._fullLayout && plot._fullLayout.xaxis;
+    return xa && xa._length ? Math.abs(xa.range[1] - xa.range[0]) / xa._length : 1;
+  }
+  // x, y: centre in map metres; deg: course in the map frame (0 = straight up the course, clockwise).
+  // Returns [[hull xs, boom xs, label x], [hull ys, boom ys, label y]] for boatTraces.
+  function boatXY(x, y, deg, plot, minPx) {
+    if (x == null || y == null) return [[[], [], []], [[], [], []]];
+    const L = Math.max(BOAT_LENGTH_M, (minPx || 34) * metresPerPx(plot)), B = 0.23 * L;
+    const a = (deg || 0) * Math.PI / 180, fx = Math.sin(a), fy = Math.cos(a), rx = Math.cos(a), ry = -Math.sin(a);
+    const P = (u, v) => [x + v * L * fx + u * B * rx, y + v * L * fy + u * B * ry];
+    const hull = HULL.map(([u, v]) => P(u, v));
+    // wind blows down the page: the leeward side is starboard when sin(course) > 0
+    const off = Math.abs((((deg || 0) % 360) + 540) % 360 - 180);  // 0 = head to wind, 180 = dead downwind
+    const swing = Math.max(6, Math.min(80, (off - 40) * 0.6 + 8)) * Math.PI / 180;
+    const lee = Math.sin(a) >= 0 ? 1 : -1;
+    const mast = [0, 0.18], boom = 0.5;  // boom: half a length, from the mast aft
+    const end = [mast[0] + lee * Math.sin(swing) * boom * L / B, mast[1] - Math.cos(swing) * boom];
+    const sail = [P(...mast), P(...end)];
+    return [[hull.map(p => p[0]), sail.map(p => p[0]), [x]], [hull.map(p => p[1]), sail.map(p => p[1]), [y]]];
+  }
+  // the three traces a boat is drawn with: hull, mainsail, name
+  function boatTraces(name, color) {
+    return [
+      { x: [], y: [], mode: 'lines', fill: 'toself', fillcolor: color, line: { color: css('--ink'), width: 1 }, hoverinfo: 'skip', showlegend: false },
+      { x: [], y: [], mode: 'lines', line: { color: css('--ink'), width: 2.5 }, hoverinfo: 'skip', showlegend: false },
+      labelTrace(name, color),
+    ];
+  }
+  function labelTrace(name, color) {
+    return { x: [], y: [], mode: 'text', text: [name], textposition: 'top right', textfont: { color, size: 11 },
+      hoverinfo: 'skip', showlegend: false };
+  }
   const FLEET = JSON.parse(document.getElementById('fleet-data').textContent);
   const SMOOTH = FLEET.detail_smooth_s || 15;
   const IDS = Object.keys(FLEET.day);  // fixed boat order: colour follows the boat
@@ -568,12 +605,8 @@ window.LADDER = (function () {
           customdata: q.s.map((t, i) => [clock(t), q.sog[i]]),
           hovertemplate: '<b>' + S.boats[id].name + '</b> %{customdata[0]}<br>%{customdata[1]} kt<extra></extra>' });
       });
-      const moving = tr.length;
-      ids.forEach(id => {
-        const bc = col(FLEET.day[id]);
-        tr.push({ x: [null], y: [null], mode: 'markers+text', showlegend: false, text: [S.boats[id].name], textposition: 'top center',
-          textfont: { color: bc, size: 11 }, marker: { symbol: 'arrow-wide', size: 16, color: bc, angle: 0, line: { color: ink, width: 1 } }, hoverinfo: 'skip' });
-      });
+      const moving = tr.length;  // per boat: hull, mainsail, name
+      ids.forEach(id => tr.push(...boatTraces(S.boats[id].name, col(FLEET.day[id]))));
       const lad = ladderTraces(r, 0, false, 'Rungs, ');
       tr.push(...lad);
       const lay = base('', 500, plot);
@@ -590,13 +623,14 @@ window.LADDER = (function () {
         return k;
       }
       function at(t) {
-        const x = [], y = [], ang = [];
+        const x = [], y = [];
         const rows = ids.map(id => {
           const v = S.boats[id], q = v.series, k = idx(q, t);
-          x.push([q.x[k]]); y.push([q.y[k]]); ang.push(q.cog[k] == null ? 0 : ((q.cog[k] - r.axis) % 360 + 360) % 360);
+          const h = boatXY(q.x[k], q.y[k], q.cog[k] == null ? 0 : q.cog[k] - r.axis, plot);
+          x.push(...h[0]); y.push(...h[1]);
           return { id, v, q, k };
         });
-        Plotly.restyle(plot, { x, y, 'marker.angle': ang }, ids.map((_, i) => moving + i));
+        Plotly.restyle(plot, { x, y }, ids.flatMap((_, i) => [0, 1, 2].map(j => moving + 3 * i + j)));
         label.textContent = ' ' + (t < 0 ? '−' + mmss(t) + ' to the gun' : t === 0 ? 'gun' : '+' + mmss(t) + ' after the gun');
         const togos = rows.map(o => o.q.togo[o.k]).filter(v => v != null);
         const lead = togos.length ? Math.min(...togos) : null;
@@ -622,6 +656,7 @@ window.LADDER = (function () {
             : 'Up the ladder: distance to sail to the windward mark, inside the laylines.') + '</p>';
       }
       slider.addEventListener('input', () => at(+slider.value));
+      plot.on('plotly_relayout', () => at(+slider.value));  // keep the hulls readable when zooming
       let timer = null;
       const stop = () => { clearInterval(timer); timer = null; btn.textContent = '▶ Play'; };
       btn.addEventListener('click', () => {
@@ -684,13 +719,8 @@ window.LADDER = (function () {
         });
         tr.push({ x: c.pts.map(p => p[0]), y: c.pts.map(p => p[1]), mode: 'markers', name: 'mark', showlegend: false,
           marker: { size: 13, symbol: 'triangle-up', color: ink }, hovertemplate: 'mark<extra></extra>' });
-        const moving = tr.length;
-        ids.forEach(id => {
-          const b = c.boats[id], bc = col(FLEET.day[id] || r.boats[id]);
-          tr.push({ x: [null], y: [null], mode: 'markers+text', showlegend: false, text: [b.name], textposition: 'top center',
-            textfont: { color: bc, size: 11 }, marker: { symbol: 'arrow-wide', size: 16, color: bc, angle: 0, line: { color: ink, width: 1 } },
-            hoverinfo: 'skip' });
-        });
+        const moving = tr.length;  // per boat: hull, mainsail, name
+        ids.forEach(id => tr.push(...boatTraces(c.boats[id].name, col(FLEET.day[id] || r.boats[id]))));
         const lay = base('', 460, plot);
         delete lay.title;
         lay.margin.t = 10;
@@ -702,17 +732,19 @@ window.LADDER = (function () {
         Plotly.newPlot(plot, tr, lay, CONFIG);
         const slider = ctl.querySelector('input'), label = ctl.querySelector('.mk-t'), btn = ctl.querySelector('button');
         function at(t) {
-          const x = [], y = [], ang = [];
+          const x = [], y = [];
           ids.forEach(id => {
             const b = c.boats[id];
             let k = b.t.indexOf(t);
             if (k < 0) k = b.t.reduce((best, v, i) => (Math.abs(v - t) < Math.abs(b.t[best] - t) ? i : best), 0);
-            x.push([b.x[k]]); y.push([b.y[k]]); ang.push(b.cog[k] == null ? 0 : ((b.cog[k] - r.axis) % 360 + 360) % 360);
+            const h = boatXY(b.x[k], b.y[k], b.cog[k] == null ? 0 : b.cog[k] - r.axis, plot);
+            x.push(...h[0]); y.push(...h[1]);
           });
-          Plotly.restyle(plot, { x, y, 'marker.angle': ang }, ids.map((_, i) => moving + i));
+          Plotly.restyle(plot, { x, y }, ids.flatMap((_, i) => [0, 1, 2].map(j => moving + 3 * i + j)));
           label.textContent = ' ' + rel(t) + ' from the first rounding';
         }
         slider.addEventListener('input', () => at(+slider.value));
+        plot.on('plotly_relayout', () => at(+slider.value));  // keep the hulls readable when zooming
         let timer = null;
         btn.addEventListener('click', () => {
           if (timer) { clearInterval(timer); timer = null; btn.textContent = '▶ Play'; return; }
@@ -1121,10 +1153,7 @@ window.LADDER = (function () {
         const b = r.boats[id];
         live.push(traces.length);
         traces.push({ x: [], y: [], mode: 'lines', line: { color: col(b), width: 3 }, hoverinfo: 'skip', showlegend: false });
-        live.push(traces.length);
-        traces.push({ x: [], y: [], mode: 'markers+text', text: [b.name], textposition: 'top center',
-          textfont: { color: col(b), size: 12 }, marker: { size: 12, color: col(b), line: { color: css('--card'), width: 2 } },
-          hoverinfo: 'skip', showlegend: false });
+        for (const tr of boatTraces(b.name, col(b))) { live.push(traces.length); traces.push(tr); }
       }
       // Laylines and rungs of the leading boat's leg, last (so the live traces keep their places)
       ladLeg = 0; ladAt = traces.length;
@@ -1136,6 +1165,7 @@ window.LADDER = (function () {
       lay.margin.b = 40; lay.uirevision = r.stem; lay.showlegend = false;
       lay.updatemenus = LADDER.button(traces, ladColors());
       Plotly.react(plot, traces, lay, CONFIG);
+      if (!plot._hullHook) { plot._hullHook = true; plot.on('plotly_relayout', () => set(t)); }  // hulls follow the zoom
       set(Math.max(T0, 0));
     }
     function status(b, k) {  // leg index, or -1 before the start, or passes.length after the finish
@@ -1153,8 +1183,9 @@ window.LADDER = (function () {
       ids.forEach(id => {
         const b = r.boats[id], s = b.series, k = at(s.t, t);
         const from = Math.max(0, at(s.t, t - 90));
-        xs.push(k < 0 ? [] : s.x.slice(from, k + 1), k < 0 ? [] : [s.x[k]]);
-        ys.push(k < 0 ? [] : s.y.slice(from, k + 1), k < 0 ? [] : [s.y[k]]);
+        const h = k < 0 ? [[[], [], []], [[], [], []]] : boatXY(s.x[k], s.y[k], s.cog[k] == null ? 0 : s.cog[k] - r.axis, plot, 30);
+        xs.push(k < 0 ? [] : s.x.slice(from, k + 1), ...h[0]);
+        ys.push(k < 0 ? [] : s.y.slice(from, k + 1), ...h[1]);
         if (k < 0) { rows.push({ id, b, k }); return; }
         const j = status(b, k), n = b.passes_s.length;
         const tgt = j >= 0 && j < n ? r.targets[j] : null;
