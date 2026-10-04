@@ -341,6 +341,30 @@ def build(drifts: list[dict], boat_order: list[str]) -> dict | None:
             seen.add(key)
             uniq.append(m)
 
+    # Where each sample was on its own race's course: metres across the rhumb line from the leeward gate
+    # (or the start) to the windward mark (+ right, looking upwind), and how far up it (0 bottom, 1 top)
+    geo = {}
+    for m in uniq:
+        g = geo.setdefault(m["race"], {})
+        mid = [float(np.mean([p[0] for p in m["pts"]])), float(np.mean([p[1] for p in m["pts"]]))]
+        if m["type"] == "Mark" and "top" not in g:
+            g["top"] = mid
+        elif m["type"] == "Gate" and "bot" not in g:
+            g["bot"] = mid
+        elif m["type"] == "StartLine":
+            g["line"] = mid
+    f["lat"], f["frac"] = np.nan, np.nan
+    for race, g in geo.items():
+        b, t = g.get("bot") or g.get("line"), g.get("top")
+        if not b or not t:
+            continue
+        vx, vy = t[0] - b[0], t[1] - b[1]
+        L = math.hypot(vx, vy) or 1.0
+        on = f.race == race
+        dx, dy = f.x[on] - b[0], f.y[on] - b[1]
+        f.loc[on, "lat"] = (dx * vy - dy * vx) / L
+        f.loc[on, "frac"] = (dx * vx + dy * vy) / L / L
+
     r1 = lambda s, n=1: [None if pd.isna(v) else round(float(v), n) for v in s]
     mvs = [d["mag_var"] for d in drifts if d.get("mag_var") is not None]
     return {
@@ -366,6 +390,8 @@ def build(drifts: list[dict], boat_order: list[str]) -> dict | None:
             "raw": r1(f.drift),
             "corr": r1(f["corr"]),
             "cross": r1(f.cross, 2),
+            "lat": r1(f.lat, 0),
+            "frac": r1(f.frac, 2),
         },
     }
 
@@ -506,6 +532,20 @@ def fragment(extra_class: str = "") -> str:
     <div class="tk-chart" data-r="legs"></div>
     <p class="tk-note">Each dot is one boat on one tack or gybe of one leg (20 s or more of steady sailing). If both tacks
       move the same way from one beat to the next, the water changed; if they move apart, the slip did.</p>
+  </div>
+  <div class="tk-card">
+    <h2>Left or right, bottom or top: did the current differ across the course?</h2>
+    <p class="tk-note" style="font-size:14px;color:var(--tk-ink2)">The course split into nine zones: left, middle and right of the
+      line from the leeward gate to the windward mark (150 m either side is the middle), and its bottom, middle and top thirds.
+      <b>Along the course</b> comes from slip on the beats: each boat against its own average, so its leeway and compass drop out.
+      Extra slip means water running down the course, against a boat going upwind. <b>Across</b> is the sideways set.
+      Values are knots, against each boat's own average; ± is the noise.</p>
+    <div class="tk-filters" role="toolbar">
+      <div><label>Show</label><span class="tk-seg" data-r="z-metric"></span></div>
+      <div><label>Race</label><span class="tk-seg" data-r="z-race"></span></div>
+    </div>
+    <div data-r="zones"></div>
+    <div data-r="znotes"></div>
   </div>
   <div class="tk-card">
     <h2>The course</h2>

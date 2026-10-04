@@ -13,6 +13,7 @@ function CurrentMap(root, D) {
   const pct = (a, p) => { const v = a.filter(x => x != null).sort((x, y) => x - y); return v.length ? v[Math.min(v.length - 1, Math.floor(p * v.length))] : null; };
   const sgn = (v, dp = 1, u = "") => (v == null ? "–" : (v > 0 ? "+" : v < 0 ? "−" : "") + Math.abs(v).toFixed(dp) + u);
   const short = r => r.replace("Race ", "R");
+  const STEP = 2;  // seconds between drift samples (current.py STEP_S)
   // Directions are stored true (GPS); show them magnetic, like the compass, when the variation is known
   const MAG = D.mag_var != null;
   const mdir = v => (v == null ? v : Math.round(((v - (MAG ? D.mag_var : 0)) % 360 + 360) % 360));
@@ -334,6 +335,104 @@ function CurrentMap(root, D) {
     $("metric-note").textContent = METRICS[S.metric].note;
   }
 
+  // ---- zones: left / middle / right × bottom / middle / top ------------------------------------
+  const Z = { metric: "along", race: "All" };
+  const ZSIDE = ["left", "middle", "right"], ZTHIRD = ["bottom", "middle", "top"], ZMID_M = 150;
+  const SIN_HALF = Math.sin(40 * Math.PI / 180);  // half a tacking angle over the ground, about 40°
+  function zones() {
+    const s = D.s;
+    if (!s.lat) return;
+    const good = D.boats.map(b => !D.fits[b].suspect), ri = D.races.indexOf(Z.race);
+    const med = a => { const v = a.filter(x => x != null && !isNaN(x)).sort((p, q) => p - q); return v.length ? (v.length % 2 ? v[v.length >> 1] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2) : null; };
+    const sd = a => { const m = a.reduce((x, y) => x + y, 0) / a.length; return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / Math.max(a.length - 1, 1)); };
+    // each sample: knots against its boat's own average in the samples shown
+    const rows = [];
+    for (let i = 0; i < s.x.length; i++) {
+      if (!good[s.b[i]] || (ri >= 0 && s.r[i] !== ri) || s.lat[i] == null || s.frac[i] == null) continue;
+      let v = null;
+      if (Z.metric === "along") {
+        if (s.m[i] !== "U" || s.corr[i] == null) continue;
+        const slip = (s.p[i] === "P" ? 1 : -1) * s.corr[i];
+        v = { b: s.b[i], raw: slip, sog: s.sog[i] };
+      } else {
+        if (s.cross[i] == null) continue;
+        v = { b: s.b[i], raw: s.cross[i] };
+      }
+      v.side = s.lat[i] < -ZMID_M ? 0 : s.lat[i] > ZMID_M ? 2 : 1;
+      v.third = s.frac[i] < 1 / 3 ? 0 : s.frac[i] > 2 / 3 ? 2 : 1;
+      rows.push(v);
+    }
+    const base_ = {};
+    D.boats.forEach((_, bi) => { base_[bi] = med(rows.filter(r => r.b === bi).map(r => r.raw)); });
+    rows.forEach(r => {
+      const d = r.raw - (base_[r.b] || 0);
+      r.kt = Z.metric === "along" ? (d * Math.PI / 180) * r.sog / SIN_HALF : d;  // + = water running down the course
+    });
+    const cell = (sel) => {
+      const v = rows.filter(sel), k = v.map(r => r.kt);
+      const n = k.length, min = n * STEP / 60, boats = new Set(v.map(r => r.b)).size;
+      return { n, min, boats, val: n ? med(k) : null, se: n > 1 ? sd(k) / Math.sqrt(Math.max(n / 15, 1)) : null };
+    };
+    const enough = c => c.min >= 2 && c.boats >= 1;
+    const z = [], text = [];
+    for (let t = 0; t < 3; t++) {
+      z.push([]); text.push([]);
+      for (let sd_ = 0; sd_ < 3; sd_++) {
+        const c = cell(r => r.side === sd_ && r.third === t);
+        z[t].push(enough(c) ? c.val : null);
+        text[t].push(enough(c) ? `${sgn(c.val, 2)} kt ± ${c.se.toFixed(2)}<br>${Math.round(c.min)} min · ${c.boats} boat${c.boats > 1 ? "s" : ""}` : (c.n ? `too little sailing<br>(${Math.round(c.min)} min)` : "not sailed"));
+      }
+    }
+    // the grid: top of the course at the top, left on the left (looking upwind); blue = less, red = more
+    const lim = 0.3, hex = h => [1, 3, 5].map(k => parseInt(h.slice(k, k + 2), 16));
+    const lo = hex("#2a78d6"), hi = hex("#d6542a"), mid = [250, 250, 248];
+    const shade = v => {
+      if (v == null) return "transparent";
+      const t = Math.max(-1, Math.min(1, v / lim)), to = t < 0 ? lo : hi, a = Math.abs(t) * 0.55;
+      return `rgb(${mid.map((m, k) => Math.round(m + (to[k] - m) * a)).join(",")})`;
+    };
+    const head = ZSIDE.map(x => `<th>${x[0].toUpperCase() + x.slice(1)}</th>`).join("");
+    const body = [2, 1, 0].map(t => `<tr><th>${ZTHIRD[t][0].toUpperCase() + ZTHIRD[t].slice(1)}</th>` +
+      [0, 1, 2].map(k => `<td style="background:${shade(z[t][k])}">${text[t][k]}</td>`).join("") + "</tr>").join("");
+    $("zones").innerHTML = `<table class="cur-zones"><thead><tr><th></th>${head}</tr></thead><tbody>${body}</tbody></table>` +
+      `<p class="tk-note">Looking upwind. ${Z.metric === "along" ? "Red: more water running down the course than the boat's average (against you upwind); blue: less." : "Red: set further to the right than the boat's average; blue: to the left."}</p>`;
+    // verdict: left vs right, and bottom vs top, all thirds (or sides) pooled
+    const cmp = (a, b, what) => {
+      const A_ = cell(a), B_ = cell(b);
+      if (!enough(A_) || !enough(B_)) return null;
+      const d = A_.val - B_.val, noise = 2 * Math.hypot(A_.se, B_.se);
+      return { d, noise, real: Math.abs(d) > Math.max(noise, 0.1), what };
+    };
+    const notes = [];
+    const lr = cmp(r => r.side === 2, r => r.side === 0, "right against left");
+    const tb = cmp(r => r.third === 2, r => r.third === 0, "top against bottom");
+    const word = Z.metric === "along" ? (d => d > 0 ? "more water running down the course (worse going upwind, better on the runs)" : "less water running down the course (better going upwind)")
+      : (d => `a set ${Math.abs(d).toFixed(2)} kt further to the ${d > 0 ? "right" : "left"}`);
+    for (const c of [lr, tb]) {
+      if (!c) continue;
+      notes.push(c.real
+        ? `<b>${c.what[0].toUpperCase() + c.what.slice(1)}: ${Math.abs(c.d).toFixed(2)} kt</b> (noise ±${c.noise.toFixed(2)}): ${word(c.d)}.`
+        : `<b>${c.what[0].toUpperCase() + c.what.slice(1)}: no measurable difference</b> (${sgn(c.d, 2)} kt, inside the noise of ±${Math.max(c.noise, 0.1).toFixed(2)}).`);
+    }
+    if (!lr) notes.push("Too little sailing on one side to compare left with right.");
+    const susp = D.boats.filter(b => D.fits[b].suspect);
+    notes.push(`<span class="tk-note">From ${D.boats.filter(b => !D.fits[b].suspect).join(" and ")}` + (susp.length ? ` (${susp.join(", ")} left out: compass suspect)` : "") +
+      `. A zone sailed early in the day and another sailed late also differ by the tide, so check a race at a time before calling a side. Pressure and waves don't show here: this is the water only.</span>`);
+    $("znotes").innerHTML = "<ul>" + notes.map(n => `<li>${n}</li>`).join("") + "</ul>";
+    const seg = (r, opts, key, fmt) => {
+      const el = $(r); el.innerHTML = "";
+      for (const o of opts) {
+        const b = document.createElement("button");
+        b.type = "button"; b.textContent = fmt ? fmt(o) : o;
+        b.setAttribute("aria-pressed", Z[key] === o);
+        b.onclick = () => { Z[key] = o; zones(); };
+        el.appendChild(b);
+      }
+    };
+    seg("z-metric", ["along", "across"], "metric", m => (m === "along" ? "Along the course (upwind slip)" : "Across the course"));
+    seg("z-race", ["All", ...D.races], "race", r => (r === "All" ? r : short(r)));
+  }
+
   let cellTrace = -1;
   function renderMap() {
     const s = D.s, n = s.x.length, c = S.cell;
@@ -435,7 +534,7 @@ function CurrentMap(root, D) {
 
   function render() {
     if (!root.offsetParent) return; // hidden page: Plotly can't size charts yet
-    fits(); t2t(); noaaPart(); breakdown(); legs(); segs(); renderMap();
+    fits(); t2t(); noaaPart(); breakdown(); legs(); zones(); segs(); renderMap();
   }
   render();
   window.addEventListener("hashchange", () => setTimeout(render, 0));

@@ -22,10 +22,6 @@
    - The shift alone was worth about 2 minutes between the right and the left. The rest of 969's 9½ minutes on 1216 was pressure: the breeze held longer on the right.
    - **Next time:** When the breeze is dying and the headings have trended one way for two or three minutes, get to that side early. On the last beat, cover the boats behind from that side.
 
-**Where the time went**
-
-[[chart:split]]
-
 **Side by side upwind: 969 is faster, and gets to the mark sooner**
 | Pair | Saturday | Sunday |
 |---|---|---|
@@ -96,4 +92,4 @@
 - Njord's leg split missed 1216's leeward gate in Race 3. The legs there come from the course marks, the same way for all boats.
 - All directions are magnetic (variation 10.7° E). 969's compass reads 11° low on every heading, the size of the local variation: its unit looks to be subtracting variation from a heading that's already magnetic. 1216's compass disagrees with its track in a way that changes with heading, like an uncompensated compass. Compare both boats' angles over the ground. 1216 is left off the current map (see the Current page).
 - The files carry a TWS channel, but it's a smooth modelled value, identical on every boat on Sunday, so it isn't used. Breeze is judged from boat speed.
-- There was no measurable current across the course (Mojo −0.07 kt, 969 +0.03 kt). Checked tack to tack as well: upwind, port was faster over the ground than starboard for every boat (by 0.23 kt on average). But that difference didn't carry onto the runs and doesn't show in the drift, so it's the sea (starboard tack sailing into it), not current. See the Current page.
+- There was no measurable current across the course (Mojo −0.07 kt, 969 +0.03 kt). Checked tack to tack as well: upwind, port was faster over the ground than starboard for every boat (by 0.23 kt on average). But that difference didn't carry onto the runs and doesn't show in the drift, so it's the sea (starboard tack sailing into it), not current. See the Current page. Nor did the current differ across the course. Split into left, middle and right by bottom, middle and top, every zone was within 0.06 kt of the boats' own averages, along the course and across it. Right against left and top against bottom were both inside the noise, over the day and race by race. The one marginal exception was Race 5's dying breeze, with the top set 0.19 kt further right than the bottom (noise ±0.18). The right didn't have better water; it was sailed more.

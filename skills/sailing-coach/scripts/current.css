@@ -28,3 +28,8 @@
 .tk.cur .cur-h3 { font-size: 14px; margin: 12px 0 2px; }
 .tk.cur [data-r="noaa-notes"] ul { margin: 8px 0 4px; padding-left: 20px; }
 .tk.cur [data-r="noaa-notes"] li { margin: 4px 0; color: inherit; }
+
+.cur-zones { border-collapse: separate; border-spacing: 4px; width: 100%; max-width: 640px; margin: 8px 0; }
+.cur-zones th { font-weight: 600; color: var(--tk-ink2); font-size: 13px; padding: 4px 8px; text-align: center; }
+.cur-zones tbody th { text-align: right; }
+.cur-zones td { border: 1px solid var(--tk-border); border-radius: 6px; padding: 12px 8px; text-align: center; font-size: 13px; color: #1a1a19; line-height: 1.4; }
