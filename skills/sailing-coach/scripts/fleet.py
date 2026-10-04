@@ -3098,20 +3098,6 @@ def stretch_html(fa: dict, r: dict, p: dict) -> str:
     )
 
 
-def boat_cards(reports_dir: Path, boats: list[dict]) -> str:
-    out = []
-    for b in boats:
-        f = reports_dir / b["id"] / "debrief.md"
-        if not f.exists():
-            continue
-        c = H.coach_card(f.read_text())
-        if c:
-            out.append(
-                c.replace("<h2>Coach's summary</h2>", f"<h2>{html.escape(b['name'])}</h2>", 1)
-            )
-    return "".join(out)
-
-
 def write_html(
     fa: dict,
     md: str,
@@ -3208,16 +3194,6 @@ def write_html(
     cur = CU.page_parts([reports_dir / b["id"] for b in boats], embedded=True)
     if cur:
         pages.append(H.page("current", "Current", CU.INTRO, cur[0]))
-    cards = boat_cards(reports_dir, boats)
-    if cards:
-        pages.append(
-            H.page(
-                "boats",
-                "Boat by boat",
-                "Each boat's coach's summary; full reports are in each boat's own file.",
-                cards,
-            )
-        )
     names = {
         "summary": "Summary",
         "debrief": "Fleet debrief",
@@ -3225,7 +3201,6 @@ def write_html(
         "starts": "Starts",
         "pairs": "Side by side",
         "current": "Current",
-        "boats": "Boat by boat",
     }
     nav = (
         '<nav class="pages">'
