@@ -592,6 +592,80 @@ def fleet_dirs(report_dir: Path) -> list[Path]:
     return sibs if report_dir in sibs else [report_dir]
 
 
+ZONE_MID_M = 150  # within this of the rhumb line is the middle of the course (as on the page)
+ZONE_SIN_HALF = math.sin(math.radians(40))  # half a tacking angle over the ground
+
+
+def _zone_compare(data: dict, ri: int) -> dict:
+    """One race's VMC on the beats: right against left and top against bottom, each boat against its
+    own median in the race, and the part the current explains (down-the-course water from upwind slip
+    takes that much off VMC on a beat). The same sums as the Current page's zone grid."""
+    s = data["s"]
+    if not s.get("vmc") or not s.get("lat"):
+        return {}
+    good = {i for i, b in enumerate(data["boats"]) if not data["fits"][b].get("suspect")}
+    f = pd.DataFrame({k: s[k] for k in ("b", "r", "m", "p", "sog", "corr", "vmc", "lat", "frac")})
+    f = f[(f.r == ri) & f.b.isin(good) & (f.m == "U") & f.lat.notna() & f.frac.notna()].copy()
+    if f.empty:
+        return {}
+    f["vmc_rel"] = f.vmc - f.groupby("b").vmc.transform("median")
+    slip = np.where(f.p == "P", 1.0, -1.0) * f["corr"]
+    f["along"] = np.radians(slip - pd.Series(slip, index=f.index).groupby(f.b).transform("median")) * f.sog / ZONE_SIN_HALF
+    f["side"] = np.where(f.lat < -ZONE_MID_M, 0, np.where(f.lat > ZONE_MID_M, 2, 1))
+    f["third"] = np.where(f.frac < 1 / 3, 0, np.where(f.frac > 2 / 3, 2, 1))
+
+    def cell(g, col):
+        v = g[col].dropna()
+        if len(v) * STEP_S / 60 < 2:
+            return None
+        return float(v.median()), float(v.std(ddof=1) / math.sqrt(max(len(v) / 15, 1))) if len(v) > 1 else 0.0
+
+    out = {}
+    for key, a, b in (("right_vs_left", f.side == 2, f.side == 0), ("top_vs_bottom", f.third == 2, f.third == 0)):
+        va, vb = cell(f[a], "vmc_rel"), cell(f[b], "vmc_rel")
+        if not va or not vb:
+            out[key] = None
+            continue
+        ca, cb = cell(f[a], "along"), cell(f[b], "along")
+        d = va[0] - vb[0]
+        noise = max(2 * math.hypot(va[1], vb[1]), 0.1)
+        cur = -(ca[0] - cb[0]) if ca and cb else None
+        out[key] = {"d": round(d, 2), "noise": round(noise, 2), "real": abs(d) > noise,
+                    "current": None if cur is None else round(cur, 2)}
+    return out
+
+
+def race_summaries(report_dirs: list[Path]) -> dict:
+    """Per race, for the fleet report's Race by race page: NOAA's current at the station, what each
+    boat measured across the course, and whether the water changed VMC on the beats by zone."""
+    from maneuver_overlay import boat_order
+
+    drifts = load_drifts(report_dirs)
+    data = build(drifts, boat_order(d["boat"] for d in drifts))
+    if not data:
+        return {}
+    tz = next((d.get("timezone") for d in drifts if d.get("timezone")), "UTC")
+    nv = noaa_view(noaa.find(report_dirs), data["axis"], tz) or {}
+    noaa_r = {r["race"]: r for r in nv.get("races", [])}
+    cur = nv.get("current") or {}
+    out = {}
+    for ri, race in enumerate(data["races"]):
+        n = noaa_r.get(race) or {}
+        out[race] = {
+            "noaa": None if n.get("v") is None else {
+                "v": n["v"], "across": n["across"], "up": n["up"],
+                "dir": cur.get("flood_dir") if n["v"] >= 0 else cur.get("ebb_dir"),
+                "station": (cur.get("station") or {}).get("name"),
+            },
+            "mag_var": data.get("mag_var"),
+            "boats": [{"boat": p["boat"], "cross_kt": p["cross_kt"], "slip": p["slip"],
+                       "suspect": bool(data["fits"].get(p["boat"], {}).get("suspect"))}
+                      for p in data["per_race"] if p["race"] == race],
+            "zones": _zone_compare(data, ri),
+        }
+    return out
+
+
 def page_parts(report_dirs: list[Path], focus: str | None = None, embedded: bool = True):
     """(body html, scripts) for a Current page, or None when there's no drift data."""
     from maneuver_overlay import boat_order  # same boat colours as the Tacks and Gybes pages

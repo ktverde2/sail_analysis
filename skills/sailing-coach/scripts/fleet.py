@@ -1278,6 +1278,50 @@ def _deg(v, r) -> str:
     return f"{((v - mv) % 360 if mv is not None else v):.0f}°"
 
 
+def race_current_html(cs: dict | None) -> str:
+    """One race's current, in a few lines: NOAA at the station, what the boats measured, and whether
+    the water changed VMC on the beats by zone (the Wind and current page has the full analysis)."""
+    if not cs:
+        return ""
+    items = []
+    n = cs.get("noaa")
+    if n:
+        mv = cs.get("mag_var") or 0
+        phase = "near slack" if abs(n["v"]) < 0.15 else ("flood" if n["v"] > 0 else "ebb")
+        items.append(
+            f"<b>NOAA at the station: {phase}, {abs(n['v']):.2f} kt</b>"
+            + (f" toward {round((n['dir'] - mv) % 360)}° mag" if n.get("dir") is not None and phase != "near slack" else "")
+            + f": {abs(n['across']):.2f} kt across the course to the {'right' if n['across'] > 0 else 'left'}, "
+            f"{abs(n['up']):.2f} kt {'up' if n['up'] > 0 else 'down'} the course. The station is outside the race area, so use it for timing."
+        )
+    good = [b for b in cs.get("boats", []) if not b["suspect"]]
+    if good:
+        quiet = all(abs(b["cross_kt"]) < 0.2 for b in good)
+        items.append(
+            ("<b>The boats measured no current across the course</b> (" if quiet else "<b>Current across the course, measured:</b> ")
+            + ", ".join(f"{html.escape(b['boat'])} {b['cross_kt']:+.2f} kt" for b in good)
+            + (")" if quiet else "")
+            + "."
+        )
+    z = cs.get("zones") or {}
+    for key, what in (("right_vs_left", "Right against left"), ("top_vs_bottom", "Top against bottom")):
+        c = z.get(key)
+        if not c:
+            continue
+        cur = "" if c["current"] is None else f"; the current's share was {c['current']:+.2f} kt"
+        items.append(
+            f"<b>{what} on the beats:</b> "
+            + (f"{c['d']:+.2f} kt of VMC (noise ±{c['noise']:.2f}){cur}" + (", so it was wind and sailing" if c["current"] is not None and abs(c["current"]) < 0.05 else "")
+               if c["real"] else f"no measurable difference in VMC ({c['d']:+.2f} kt, noise ±{c['noise']:.2f}){cur}")
+            + "."
+        )
+    if not items:
+        return ""
+    return "<h3>Current</h3><ul>" + "".join(f"<li>{i}</li>" for i in items) + "</ul>" + (
+        '<p class="chart-hint">The Wind and current page has the full analysis.</p>'
+    )
+
+
 def starts_md(r: dict) -> list[str]:
     """Each boat's start against the others: what its spot on the line cost, and the ladder after."""
     st = r.get("starts") or {}
@@ -1733,7 +1777,7 @@ FLEET_JS = r"""
       facts.innerHTML = 'Line ' + S.line.length_m + ' m (' + lens(S.line.length_m) + ' lengths). ' +
         (S.favoured ? '<b>The ' + S.favoured + ' end was favoured: ' + mbl(S.bias_up_m) + ' further up the course</b>, ' + mbl(S.bias_m) + ' less to sail (first beat’s ladder). ' : '') +
         (w0 ? 'Wind from about ' + Math.round(((w0.twd - mv) % 360 + 360) % 360) + '° ' + (r.mag_var == null ? 'true' : 'mag') + ' just after the gun (from the boats’ tracks). ' : '') +
-        'Drag the slider or press play. Arrows point along each boat’s course.';
+        'Drag the slider or press play. Each boat is drawn along its course.';
       el.appendChild(facts);
       const wrap = document.createElement('div');
       wrap.className = 'st-wrap';
@@ -3138,6 +3182,7 @@ def write_html(
                 ),
             )
         )
+    race_cur = CU.race_summaries([reports_dir / b["id"] for b in boats])
     race_body = ""
     for r, sec in zip(fa["races"], per_race, strict=False):
         race_body += H.card(
@@ -3146,11 +3191,13 @@ def write_html(
             "or drag the slider; the panel shows each boat at that moment.</p>"
             + _chart("gaps", r["stem"])
             + _replay(r["stem"])
+            + ("<h3>The start</h3>" + _chart("starts", r["stem"]) if (r.get("starts") or {}).get("boats") else "")
             + "<h3>Wind and sides</h3>"
             + _chart("wind", r["stem"])
+            + race_current_html(race_cur.get(r["race"]))
             + (
                 "<h3>Close roundings</h3>"
-                '<p class="chart-hint">Drag the slider or press play. Arrows point along each boat\u2019s course; '
+                '<p class="chart-hint">Drag the slider or press play. Each boat is drawn along its course; '
                 "the dashed circle is the zone.</p>" + _chart("marks", r["stem"])
                 if r.get("close_roundings")
                 else ""
@@ -3161,7 +3208,7 @@ def write_html(
         H.page(
             "races",
             "Race by race",
-            "Gaps at each mark, a replay, starts, legs and roundings.",
+            "Each race: gaps at each mark, a replay, the start, the wind and the current, legs and roundings.",
             race_body,
         )
     )
@@ -3192,15 +3239,28 @@ def write_html(
             )
         )
     cur = CU.page_parts([reports_dir / b["id"] for b in boats], embedded=True)
-    if cur:
-        pages.append(H.page("current", "Current", CU.INTRO, cur[0]))
+    wind_body = "".join(
+        H.card(f"<h2>{html.escape(r['race'])}: wind</h2>" + _chart("wind", r["stem"]) + H.md_to_html("\n".join(wind_md(r))))
+        for r in fa["races"]
+        if (r.get("wind") or {}).get("legs")
+    )
+    if cur or wind_body:
+        pages.append(
+            H.page(
+                "current",
+                "Wind and current",
+                "The wind through each race from all the boats' tracks, and which side paid; then the current: "
+                "COG against heading, NOAA's tide and current, and whether the water changed VMC across the course.",
+                wind_body + (cur[0] if cur else ""),
+            )
+        )
     names = {
         "summary": "Summary",
         "debrief": "Fleet debrief",
         "races": "Race by race",
         "starts": "Starts",
         "pairs": "Side by side",
-        "current": "Current",
+        "current": "Wind and current",
     }
     nav = (
         '<nav class="pages">'
