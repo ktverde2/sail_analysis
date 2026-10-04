@@ -33,3 +33,4 @@
 .cur-zones th { font-weight: 600; color: var(--tk-ink2); font-size: 13px; padding: 4px 8px; text-align: center; }
 .cur-zones tbody th { text-align: right; }
 .cur-zones td { border: 1px solid var(--tk-border); border-radius: 6px; padding: 12px 8px; text-align: center; font-size: 13px; color: #1a1a19; line-height: 1.4; }
+.cur-zones .cur-zmin { color: #6b6a65; font-size: 12px; }

@@ -100,6 +100,8 @@ def race_drift(df: pd.DataFrame, res: dict, course: list[dict], boat: str) -> di
         "sog": r(d.SOG, 2),
         "hdg": r(d.Heading, 1),
         "cog": r(d.COG, 1),
+        # VMC (speed up or down the course toward the mark), so the page can ask how much of it was current
+        "vmc": [None if pd.isna(v) else round(float(v), 2) for v in d.vmc] if "vmc" in d else None,
         "mode": ["U" if m == "upwind" else "D" for m in d["mode"]],
         "side": ["S" if s else "P" for s in stbd],
         "leg": [int(v) for v in d.leg],
@@ -390,6 +392,7 @@ def build(drifts: list[dict], boat_order: list[str]) -> dict | None:
             "raw": r1(f.drift),
             "corr": r1(f["corr"]),
             "cross": r1(f.cross, 2),
+            "vmc": r1(pd.to_numeric(f.vmc, errors="coerce"), 2) if "vmc" in f else None,
             "lat": r1(f.lat, 0),
             "frac": r1(f.frac, 2),
         },
@@ -534,12 +537,12 @@ def fragment(extra_class: str = "") -> str:
       move the same way from one beat to the next, the water changed; if they move apart, the slip did.</p>
   </div>
   <div class="tk-card">
-    <h2>Left or right, bottom or top: did the current differ across the course?</h2>
-    <p class="tk-note" style="font-size:14px;color:var(--tk-ink2)">The course split into nine zones: left, middle and right of the
-      line from the leeward gate to the windward mark (150 m either side is the middle), and its bottom, middle and top thirds.
-      <b>Along the course</b> comes from slip on the beats: each boat against its own average, so its leeway and compass drop out.
-      Extra slip means water running down the course, against a boat going upwind. <b>Across</b> is the sideways set.
-      Values are knots, against each boat's own average; ± is the noise.</p>
+    <h2>Left or right, bottom or top: did the current change VMC across the course?</h2>
+    <p class="tk-note" style="font-size:14px;color:var(--tk-ink2)">The course is split into nine zones: left, middle and right of
+      the line from the leeward gate to the windward mark (150 m either side is the middle), and its bottom, middle and top thirds.
+      Each zone shows VMC (speed toward the mark) against the boat's own average in that race, and how much of that the water
+      explains. Water running down the course (measured from slip on the beats) takes that speed off VMC on a beat and adds it
+      on a run. The <b>rest</b> is wind and sailing. Values are knots; ± is the noise.</p>
     <div class="tk-filters" role="toolbar">
       <div><label>Show</label><span class="tk-seg" data-r="z-metric"></span></div>
       <div><label>Race</label><span class="tk-seg" data-r="z-race"></span></div>

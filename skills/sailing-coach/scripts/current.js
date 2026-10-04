@@ -336,56 +336,72 @@ function CurrentMap(root, D) {
   }
 
   // ---- zones: left / middle / right × bottom / middle / top ------------------------------------
-  const Z = { metric: "along", race: "All" };
+  // Did the water make one part of the course faster to the mark? VMC in each zone against the boat's own
+  // average in that race, and the part of it the current explains: water running down the course (from
+  // upwind slip) takes that speed off VMC on a beat and adds it on a run. The rest is wind and sailing.
+  const Z = { metric: "vmcU", race: "All" };
   const ZSIDE = ["left", "middle", "right"], ZTHIRD = ["bottom", "middle", "top"], ZMID_M = 150;
   const SIN_HALF = Math.sin(40 * Math.PI / 180);  // half a tacking angle over the ground, about 40°
+  const ZMETRIC = {
+    vmcU: "VMC on the beats", vmcD: "VMC on the runs", along: "Current along the course", across: "Current across",
+  };
   function zones() {
     const s = D.s;
     if (!s.lat) return;
+    const hasVmc = Array.isArray(s.vmc) && s.vmc.some(v => v != null);
+    if (!hasVmc && Z.metric.startsWith("vmc")) Z.metric = "along";
     const good = D.boats.map(b => !D.fits[b].suspect), ri = D.races.indexOf(Z.race);
     const med = a => { const v = a.filter(x => x != null && !isNaN(x)).sort((p, q) => p - q); return v.length ? (v.length % 2 ? v[v.length >> 1] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2) : null; };
     const sd = a => { const m = a.reduce((x, y) => x + y, 0) / a.length; return Math.sqrt(a.reduce((x, y) => x + (y - m) ** 2, 0) / Math.max(a.length - 1, 1)); };
-    // each sample: knots against its boat's own average in the samples shown
-    const rows = [];
-    for (let i = 0; i < s.x.length; i++) {
-      if (!good[s.b[i]] || (ri >= 0 && s.r[i] !== ri) || s.lat[i] == null || s.frac[i] == null) continue;
-      let v = null;
-      if (Z.metric === "along") {
-        if (s.m[i] !== "U" || s.corr[i] == null) continue;
-        const slip = (s.p[i] === "P" ? 1 : -1) * s.corr[i];
-        v = { b: s.b[i], raw: slip, sog: s.sog[i] };
-      } else {
-        if (s.cross[i] == null) continue;
-        v = { b: s.b[i], raw: s.cross[i] };
+    const zoneOf = i => [s.lat[i] < -ZMID_M ? 0 : s.lat[i] > ZMID_M ? 2 : 1, s.frac[i] < 1 / 3 ? 0 : s.frac[i] > 2 / 3 ? 2 : 1];
+    // rows of one quantity, in knots against each boat's own median in that race
+    function collect(kind) {
+      const rows = [];
+      for (let i = 0; i < s.x.length; i++) {
+        if (!good[s.b[i]] || (ri >= 0 && s.r[i] !== ri) || s.lat[i] == null || s.frac[i] == null) continue;
+        let raw = null;
+        if (kind === "along") { if (s.m[i] !== "U" || s.corr[i] == null) continue; raw = (s.p[i] === "P" ? 1 : -1) * s.corr[i]; }
+        else if (kind === "across") { if (s.cross[i] == null) continue; raw = s.cross[i]; }
+        else { if (s.m[i] !== (kind === "vmcU" ? "U" : "D") || s.vmc[i] == null) continue; raw = s.vmc[i]; }
+        const [side, third] = zoneOf(i);
+        rows.push({ key: s.b[i] + "|" + s.r[i], b: s.b[i], raw, sog: s.sog[i], side, third });
       }
-      v.side = s.lat[i] < -ZMID_M ? 0 : s.lat[i] > ZMID_M ? 2 : 1;
-      v.third = s.frac[i] < 1 / 3 ? 0 : s.frac[i] > 2 / 3 ? 2 : 1;
-      rows.push(v);
+      const base_ = {};
+      for (const k of new Set(rows.map(r => r.key))) base_[k] = med(rows.filter(r => r.key === k).map(r => r.raw));
+      rows.forEach(r => {
+        const d = r.raw - base_[r.key];
+        r.kt = kind === "along" ? (d * Math.PI / 180) * r.sog / SIN_HALF : d;  // along: + = water running down the course
+      });
+      return rows;
     }
-    const base_ = {};
-    D.boats.forEach((_, bi) => { base_[bi] = med(rows.filter(r => r.b === bi).map(r => r.raw)); });
-    rows.forEach(r => {
-      const d = r.raw - (base_[r.b] || 0);
-      r.kt = Z.metric === "along" ? (d * Math.PI / 180) * r.sog / SIN_HALF : d;  // + = water running down the course
-    });
-    const cell = (sel) => {
+    const cell = (rows, sel) => {
       const v = rows.filter(sel), k = v.map(r => r.kt);
       const n = k.length, min = n * STEP / 60, boats = new Set(v.map(r => r.b)).size;
       return { n, min, boats, val: n ? med(k) : null, se: n > 1 ? sd(k) / Math.sqrt(Math.max(n / 15, 1)) : null };
     };
-    const enough = c => c.min >= 2 && c.boats >= 1;
+    const enough = c => c.min >= 2;
+    const isVmc = Z.metric.startsWith("vmc");
+    const rows = collect(Z.metric), along = isVmc ? collect("along") : null;
+    // current's share of VMC in a zone: down-the-course water slows a beat, speeds a run
+    const curPart = sel => { if (!along) return null; const c = cell(along, sel); return enough(c) ? (Z.metric === "vmcU" ? -c.val : c.val) : null; };
     const z = [], text = [];
     for (let t = 0; t < 3; t++) {
       z.push([]); text.push([]);
-      for (let sd_ = 0; sd_ < 3; sd_++) {
-        const c = cell(r => r.side === sd_ && r.third === t);
-        z[t].push(enough(c) ? c.val : null);
-        text[t].push(enough(c) ? `${sgn(c.val, 2)} kt ± ${c.se.toFixed(2)}<br>${Math.round(c.min)} min · ${c.boats} boat${c.boats > 1 ? "s" : ""}` : (c.n ? `too little sailing<br>(${Math.round(c.min)} min)` : "not sailed"));
+      for (let k = 0; k < 3; k++) {
+        const sel = r => r.side === k && r.third === t, c = cell(rows, sel);
+        if (!enough(c)) { z[t].push(null); text[t].push(c.n ? `too little sailing<br>(${Math.round(c.min)} min)` : "not sailed"); continue; }
+        z[t].push(c.val);
+        let txt = `<b>${sgn(c.val, 2)} kt</b> ± ${c.se.toFixed(2)}`;
+        if (isVmc) {
+          const cp = curPart(sel);
+          txt += cp == null ? "<br>current: –" : `<br>current ${sgn(cp, 2)} · rest ${sgn(c.val - cp, 2)}`;
+        }
+        text[t].push(txt + `<br><span class="cur-zmin">${Math.round(c.min)} min · ${c.boats} boat${c.boats > 1 ? "s" : ""}</span>`);
       }
     }
-    // the grid: top of the course at the top, left on the left (looking upwind); blue = less, red = more
-    const lim = 0.3, hex = h => [1, 3, 5].map(k => parseInt(h.slice(k, k + 2), 16));
-    const lo = hex("#2a78d6"), hi = hex("#d6542a"), mid = [250, 250, 248];
+    // the grid: top of the course at the top, left on the left (looking upwind)
+    const lim = isVmc ? 0.4 : 0.3, hex = h => [1, 3, 5].map(k => parseInt(h.slice(k, k + 2), 16));
+    const lo = hex(isVmc ? "#e07b39" : "#2a78d6"), hi = hex(isVmc ? "#1baf7a" : "#d6542a"), mid = [250, 250, 248];
     const shade = v => {
       if (v == null) return "transparent";
       const t = Math.max(-1, Math.min(1, v / lim)), to = t < 0 ? lo : hi, a = Math.abs(t) * 0.55;
@@ -394,30 +410,39 @@ function CurrentMap(root, D) {
     const head = ZSIDE.map(x => `<th>${x[0].toUpperCase() + x.slice(1)}</th>`).join("");
     const body = [2, 1, 0].map(t => `<tr><th>${ZTHIRD[t][0].toUpperCase() + ZTHIRD[t].slice(1)}</th>` +
       [0, 1, 2].map(k => `<td style="background:${shade(z[t][k])}">${text[t][k]}</td>`).join("") + "</tr>").join("");
+    const legend = {
+      vmcU: "Green: faster to the windward mark than the boat's own average in that race; orange: slower. <i>Current</i> is the part the water explains; <i>rest</i> is wind (pressure, shifts) and how the boat was sailed.",
+      vmcD: "Green: faster to the leeward mark than the boat's own average in that race; orange: slower. <i>Current</i> uses the water measured on the beats in the same zone; <i>rest</i> is wind and sailing.",
+      along: "Red: more water running down the course than the boat's average (against you upwind); blue: less.",
+      across: "Red: set further to the right than the boat's average; blue: to the left.",
+    }[Z.metric];
     $("zones").innerHTML = `<table class="cur-zones"><thead><tr><th></th>${head}</tr></thead><tbody>${body}</tbody></table>` +
-      `<p class="tk-note">Looking upwind. ${Z.metric === "along" ? "Red: more water running down the course than the boat's average (against you upwind); blue: less." : "Red: set further to the right than the boat's average; blue: to the left."}</p>`;
-    // verdict: left vs right, and bottom vs top, all thirds (or sides) pooled
-    const cmp = (a, b, what) => {
-      const A_ = cell(a), B_ = cell(b);
-      if (!enough(A_) || !enough(B_)) return null;
-      const d = A_.val - B_.val, noise = 2 * Math.hypot(A_.se, B_.se);
-      return { d, noise, real: Math.abs(d) > Math.max(noise, 0.1), what };
-    };
+      `<p class="tk-note">Looking upwind. ${legend}</p>`;
+    // verdict: right vs left and top vs bottom, all of the other dimension pooled
     const notes = [];
-    const lr = cmp(r => r.side === 2, r => r.side === 0, "right against left");
-    const tb = cmp(r => r.third === 2, r => r.third === 0, "top against bottom");
-    const word = Z.metric === "along" ? (d => d > 0 ? "more water running down the course (worse going upwind, better on the runs)" : "less water running down the course (better going upwind)")
-      : (d => `a set ${Math.abs(d).toFixed(2)} kt further to the ${d > 0 ? "right" : "left"}`);
-    for (const c of [lr, tb]) {
-      if (!c) continue;
-      notes.push(c.real
-        ? `<b>${c.what[0].toUpperCase() + c.what.slice(1)}: ${Math.abs(c.d).toFixed(2)} kt</b> (noise ±${c.noise.toFixed(2)}): ${word(c.d)}.`
-        : `<b>${c.what[0].toUpperCase() + c.what.slice(1)}: no measurable difference</b> (${sgn(c.d, 2)} kt, inside the noise of ±${Math.max(c.noise, 0.1).toFixed(2)}).`);
+    const pairs = [[r => r.side === 2, r => r.side === 0, "the right against the left"], [r => r.third === 2, r => r.third === 0, "the top against the bottom"]];
+    for (const [a, b, what] of pairs) {
+      const A_ = cell(rows, a), B_ = cell(rows, b);
+      if (!enough(A_) || !enough(B_)) { notes.push(`Too little sailing to compare ${what}.`); continue; }
+      const d = A_.val - B_.val, noise = Math.max(2 * Math.hypot(A_.se, B_.se), 0.1), real = Math.abs(d) > noise;
+      const W = what[0].toUpperCase() + what.slice(1);
+      if (isVmc) {
+        const ca = curPart(a), cb = curPart(b), cd = ca != null && cb != null ? ca - cb : null;
+        const leg = Z.metric === "vmcU" ? "beats" : "runs";
+        notes.push(real
+          ? `<b>${W} on the ${leg}: ${sgn(d, 2)} kt of VMC</b> (noise ±${noise.toFixed(2)}). ` +
+            (cd == null ? "Not enough data to split out the current." : Math.abs(cd) < 0.05 ? `The current explains almost none of it (${sgn(cd, 2)} kt): it was wind and sailing.` : `The current explains ${sgn(cd, 2)} kt of it; the rest (${sgn(d - cd, 2)} kt) was wind and sailing.`)
+          : `<b>${W} on the ${leg}: no measurable difference in VMC</b> (${sgn(d, 2)} kt, noise ±${noise.toFixed(2)})` +
+            (cd == null ? "." : `, and the current's share was ${sgn(cd, 2)} kt.`));
+      } else {
+        notes.push(real
+          ? `<b>${W}: ${Math.abs(d).toFixed(2)} kt</b> (noise ±${noise.toFixed(2)}): ` + (Z.metric === "along" ? (d > 0 ? "more water running down the course (worse upwind, better on the runs)." : "less water running down the course (better upwind).") : `a set further to the ${d > 0 ? "right" : "left"}.`)
+          : `<b>${W}: no measurable difference</b> (${sgn(d, 2)} kt, inside the noise of ±${noise.toFixed(2)}).`);
+      }
     }
-    if (!lr) notes.push("Too little sailing on one side to compare left with right.");
     const susp = D.boats.filter(b => D.fits[b].suspect);
     notes.push(`<span class="tk-note">From ${D.boats.filter(b => !D.fits[b].suspect).join(" and ")}` + (susp.length ? ` (${susp.join(", ")} left out: compass suspect)` : "") +
-      `. A zone sailed early in the day and another sailed late also differ by the tide, so check a race at a time before calling a side. Pressure and waves don't show here: this is the water only.</span>`);
+      `. Each boat is compared with itself in the same race, so different boats and different breezes drop out. A zone sailed early and one sailed late also differ by the tide and the breeze, so check a race at a time too.</span>`);
     $("znotes").innerHTML = "<ul>" + notes.map(n => `<li>${n}</li>`).join("") + "</ul>";
     const seg = (r, opts, key, fmt) => {
       const el = $(r); el.innerHTML = "";
@@ -429,7 +454,7 @@ function CurrentMap(root, D) {
         el.appendChild(b);
       }
     };
-    seg("z-metric", ["along", "across"], "metric", m => (m === "along" ? "Along the course (upwind slip)" : "Across the course"));
+    seg("z-metric", (hasVmc ? ["vmcU", "vmcD"] : []).concat(["along", "across"]), "metric", m => ZMETRIC[m]);
     seg("z-race", ["All", ...D.races], "race", r => (r === "All" ? r : short(r)));
   }
 
