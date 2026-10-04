@@ -83,11 +83,12 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 | Beat 2 | 267° → 272° | 0° / 8° | steady (+2° trend) | 1216 -301 m (fastest), Mojo -217 m (+2 s), 969 -99 m (+2 s) | no side: steady, speed and lanes decided it |
 | Run 2 | 274° → 269° | 3° / 12° | persistent left shift (-10° trend) | Mojo +14 m (fastest), 969 +118 m (+21 s), 1216 +125 m (+32 s) | left, but the boats were 111 m (12 lengths) apart across the course: the shift was worth about 3 s, so speed decided it |
 
-**Close roundings** (tracked boats within 30 s of each other at a mark; zone = 3 lengths, 28 m; overlap from GPS)
+**Roundings** (every tracked boat at each mark and the finish; zone = 3 lengths, 28 m; overlap from GPS)
 
 - Windward 1: Mojo rounded +0 s; 969 rounded +20 s (clear astern when Mojo reached the zone, 67 m (7.2 lengths) behind); 1216 rounded +32 s (clear astern when Mojo reached the zone, 93 m (10 lengths) behind); closest: 969 and 1216 19 m (2.1 lengths).
-- Leeward 1: 1216 rounded +0 s; 969 rounded +3 s (rounded the other gate mark when 1216 reached the zone); closest: 1216 and 969 60 m (6.5 lengths).
+- Leeward 1: Mojo rounded +0 s; 1216 rounded +32 s (clear astern when Mojo reached the zone, 100 m (11 lengths) behind); 969 rounded +35 s (rounded the other gate mark when Mojo reached the zone).
 - Windward 2: Mojo rounded +0 s; 1216 rounded +30 s (clear astern when Mojo reached the zone, 74 m (7.9 lengths) behind); 969 rounded +35 s (clear astern when Mojo reached the zone, 32 m (3.5 lengths) behind); closest: 1216 and 969 8 m (0.8 lengths).
+- Finish: Mojo +0 s at 7.31 kt, 39% along the line from the left; 969 +56 s at 6.7 kt, 19% along the line from the left; 1216 +1:02 at 7.36 kt, 30% along the line from the left.
 
 ## Race 2 (14:05)
 
@@ -151,11 +152,12 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 | Beat 2 | 268° → 270° | 0° / 6° | steady (+0° trend) | Mojo +178 m (+33 s), 969 +339 m (fastest), 1216 +386 m (+32 s) | no side: steady, speed and lanes decided it |
 | Run 2 | 268° → 268° | 0° / 9° | oscillating (-1° trend) | 1216 +31 m (fastest), Mojo +49 m (+7 s), 969 +52 m (+21 s) | no side: oscillating ±3°, the shifts paid, not a side |
 
-**Close roundings** (tracked boats within 30 s of each other at a mark; zone = 3 lengths, 28 m; overlap from GPS)
+**Roundings** (every tracked boat at each mark and the finish; zone = 3 lengths, 28 m; overlap from GPS)
 
-- Windward 1: 1216 rounded +0 s; Mojo rounded +11 s (clear astern when 1216 reached the zone, 36 m (3.9 lengths) behind); closest: 1216 and Mojo 25 m (2.7 lengths).
-- Leeward 1: 1216 rounded +0 s; Mojo rounded +6 s (rounded the other gate mark when 1216 reached the zone); closest: 1216 and Mojo 27 m (2.9 lengths).
-- Windward 2: 1216 rounded +0 s; Mojo rounded +7 s (clear astern when 1216 reached the zone, 22 m (2.4 lengths) behind); closest: 1216 and Mojo 10 m (1.1 lengths).
+- Windward 1: 969 rounded +0 s; 1216 rounded +31 s (clear astern when 969 reached the zone, 94 m (10 lengths) behind); Mojo rounded +42 s (clear astern when 969 reached the zone, 130 m (14 lengths) behind); closest: 1216 and Mojo 25 m (2.7 lengths).
+- Leeward 1: 969 rounded +0 s; 1216 rounded +43 s (clear astern when 969 reached the zone, 110 m (12 lengths) behind); Mojo rounded +49 s (rounded the other gate mark when 969 reached the zone); closest: 1216 and Mojo 27 m (2.9 lengths).
+- Windward 2: 969 rounded +0 s; 1216 rounded +1:15 (clear astern when 969 reached the zone, 116 m (12 lengths) behind); Mojo rounded +1:22 (clear astern when 969 reached the zone, 71 m (7.6 lengths) behind); closest: 1216 and Mojo 10 m (1.1 lengths).
+- Finish: 969 +0 s at 6.4 kt, 93% along the line from the left; 1216 +54 s at 6.86 kt, 36% along the line from the left; Mojo +1:08 at 7.05 kt, 16% along the line from the left.
 
 ## Race 3 (15:15)
 
@@ -215,10 +217,11 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 | Run 1 | 269° → 258° | 13° / 10° | persistent left shift (-11° trend) | Mojo -66 m (+51 s), 1216 -57 m (+48 s), 969 -7 m (fastest) | left, but the boats were 59 m (6.3 lengths) apart across the course: the shift was worth about 4 s, so speed decided it |
 | Beat 2 | 273° → 271° | 4° / 5° | steady (-1° trend) | 969 +199 m (+7 s), 1216 +257 m (fastest), Mojo +346 m (+18 s) | no side: steady, speed and lanes decided it |
 
-**Close roundings** (tracked boats within 30 s of each other at a mark; zone = 3 lengths, 28 m; overlap from GPS)
+**Roundings** (every tracked boat at each mark and the finish; zone = 3 lengths, 28 m; overlap from GPS)
 
-- Windward 1: Mojo rounded +0 s; 1216 rounded +11 s (clear astern when Mojo reached the zone, 23 m (2.5 lengths) behind); closest: Mojo and 1216 8 m (0.9 lengths).
-- Leeward 1: Mojo rounded +0 s; 1216 rounded +8 s (rounded the other gate mark when Mojo reached the zone); closest: Mojo and 1216 17 m (1.8 lengths).
+- Windward 1: 969 rounded +0 s; Mojo rounded +1:08 (clear astern when 969 reached the zone, 94 m (10 lengths) behind); 1216 rounded +1:19 (clear astern when 969 reached the zone, 108 m (12 lengths) behind); closest: Mojo and 1216 7 m (0.8 lengths).
+- Leeward 1: 969 rounded +0 s; Mojo rounded +1:59 (clear astern when 969 reached the zone, 346 m (37 lengths) behind); 1216 rounded +2:07 (rounded the other gate mark when 969 reached the zone); closest: Mojo and 1216 8 m (0.8 lengths).
+- Finish: 969 +0 s at 6.07 kt, 51% along the line from the left; 1216 +2:00 at 6.8 kt, 37% along the line from the left; Mojo +2:10 at 6.17 kt, 45% along the line from the left.
 
 ## Race 4 (12:30)
 
@@ -282,9 +285,12 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 | Beat 2 | 272° → 273° | 7° / 1° | steady (+2° trend) | 1216 +183 m (+47 s), 969 +307 m (fastest), Mojo +311 m (+16 s) | no side: steady, speed and lanes decided it |
 | Run 2 | 280° → 280° | 3° / 4° | steady (+1° trend) | Mojo +148 m (+10 s), 969 +218 m (+5 s), 1216 +277 m (fastest) | no side: steady, speed and lanes decided it |
 
-**Close roundings** (tracked boats within 30 s of each other at a mark; zone = 3 lengths, 28 m; overlap from GPS)
+**Roundings** (every tracked boat at each mark and the finish; zone = 3 lengths, 28 m; overlap from GPS)
 
-- Leeward 1: 1216 rounded +0 s; 969 rounded +7 s (rounded the other gate mark when 1216 reached the zone); closest: 1216 and 969 44 m (4.8 lengths).
+- Windward 1: 1216 rounded +0 s; 969 rounded +57 s (clear astern when 1216 reached the zone, 18 m (1.9 lengths) behind); Mojo rounded +1:52 (clear astern when 1216 reached the zone, 31 m (3.4 lengths) behind); closest: 969 and Mojo 22 m (2.4 lengths).
+- Leeward 1: 1216 rounded +0 s; 969 rounded +7 s (rounded the other gate mark when 1216 reached the zone); Mojo rounded +1:36 (rounded the other gate mark when 1216 reached the zone); closest: 969 and Mojo 23 m (2.5 lengths).
+- Windward 2: 969 rounded +0 s; 1216 rounded +40 s (clear astern when 969 reached the zone, 39 m (4.2 lengths) behind); Mojo rounded +1:45 (clear astern when 969 reached the zone, 109 m (12 lengths) behind).
+- Finish: 969 +0 s at 5.67 kt, 84% along the line from the left; 1216 +35 s at 5.54 kt, 8% along the line from the left; Mojo +1:50 at 4.73 kt, 15% along the line from the left.
 
 ## Race 5 (14:00)
 
@@ -344,10 +350,11 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 | Run 1 | 284° → 280° | 16° / 0° | oscillating (-5° trend) | 1216 -8 m (+157 s), 969 +106 m (fastest), Mojo +137 m (+35 s) | no side: oscillating ±4°, the shifts paid, not a side |
 | Beat 2 | 274° → 294° | 11° / 37° | persistent right shift (+17° trend) | 1216 -305 m (+570 s), Mojo +36 m (+275 s), 969 +138 m (fastest) | right paid: 969, furthest right (443 m (48 lengths) further than 1216), gained 570 s; the shift alone was worth about 119 s |
 
-**Close roundings** (tracked boats within 30 s of each other at a mark; zone = 3 lengths, 28 m; overlap from GPS)
+**Roundings** (every tracked boat at each mark and the finish; zone = 3 lengths, 28 m; overlap from GPS)
 
 - Windward 1: Mojo rounded +0 s; 1216 rounded +15 s (clear astern when Mojo reached the zone, 12 m (1.3 lengths) behind); 969 rounded +24 s (clear astern when Mojo reached the zone, 25 m (2.7 lengths) behind); closest: Mojo and 1216 6 m (0.7 lengths).
-- Leeward 1: 969 rounded +0 s; Mojo rounded +11 s (clear astern when 969 reached the zone, 15 m (1.7 lengths) behind); closest: 969 and Mojo 8 m (0.8 lengths).
+- Leeward 1: 969 rounded +0 s; Mojo rounded +11 s (clear astern when 969 reached the zone, 15 m (1.7 lengths) behind); 1216 rounded +2:28 (clear astern when 969 reached the zone, 289 m (31 lengths) behind); closest: 969 and Mojo 8 m (0.8 lengths).
+- Finish: 969 +0 s at 2.03 kt, 4% along the line from the left; Mojo +4:46 at 2.9 kt, 30% along the line from the left; 1216 +11:58 at 3.39 kt, 18% along the line from the left.
 
 *Time and vs fastest are what count. VMC to mark: the leg's distance to sail (at the boats' tacking or gybing angle) over its time. SOG explains it, over ground. % right of rhumb: share of the leg spent right of the line from the previous mark to the next, looking at the mark.*
 
