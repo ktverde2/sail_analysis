@@ -116,11 +116,23 @@ nav.sub a { background: none; border: 1px solid var(--line); color: var(--ink2);
 .exec h2 { font-size: 1.1rem; }
 .exec li { margin: 0.5em 0; }
 details { margin: 8px 0; } summary { cursor: pointer; color: var(--accent); }
+details.dd { background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px 20px; margin: 12px 0; }
+details.dd > summary { list-style: none; display: grid; gap: 2px; color: var(--ink); }
+details.dd > summary::-webkit-details-marker { display: none; }
+details.dd > summary .dd-h { font-size: 1.15rem; font-weight: 700; }
+details.dd > summary .dd-h::after { content: " ▸"; color: var(--ink2); font-weight: 400; }
+details.dd[open] > summary .dd-h::after { content: " ▾"; }
+details.dd > summary .dd-l { color: var(--ink2); font-size: 0.92rem; }
+details.dd[open] > summary { margin-bottom: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--line); }
+h2.dd-group { font-size: 1.05rem; color: var(--ink2); text-transform: uppercase; letter-spacing: 0.04em;
+  margin: 24px 0 4px; }
 .js .page { display: none; } .js .page.active { display: block; }
 @media print {
   nav { display: none; } .js .page { display: block; }
   .page { break-before: page; } .page:first-of-type { break-before: auto; }
   section.card { break-inside: avoid-page; }
+  details.dd > summary .dd-h::after { content: ""; }
 }
 """
 PAGE_JS = """
@@ -145,6 +157,13 @@ function show() {
 }
 window.addEventListener('hashchange', show);
 document.addEventListener('DOMContentLoaded', show);
+// Dropdown sections: charts inside a closed one are drawn when it opens (Plotly can't size hidden charts)
+document.addEventListener('toggle', e => {
+  if (!e.target.matches || !e.target.matches('details.dd') || !e.target.open) return;
+  if (window.renderCharts) window.renderCharts(e.target);
+  window.dispatchEvent(new Event('sections:open'));
+}, true);
+window.addEventListener('beforeprint', () => document.querySelectorAll('details.dd').forEach(d => { d.open = true; }));
 """
 
 
@@ -413,6 +432,20 @@ def card(inner: str, cls: str = "") -> str:
     return f'<section class="card {cls}">{inner}</section>'
 
 
+def dropdown(title: str, body: str, line: str = "", open_: bool = False, sid: str = "") -> str:
+    """One section of a page that opens and closes, headed by its title and a one-line summary."""
+    return (
+        f'<details class="dd"{f" id={chr(34)}{sid}{chr(34)}" if sid else ""}{" open" if open_ else ""}>'
+        f'<summary><span class="dd-h">{html.escape(title)}</span>'
+        + (f'<span class="dd-l">{line}</span>' if line else "")
+        + f"</summary>{body}</details>"
+    )
+
+
+def group(title: str) -> str:
+    return f'<h2 class="dd-group">{html.escape(title)}</h2>'
+
+
 def ocs_label(s: dict) -> str:
     """Same wording as analyze.ocs_label (kept separate: this script has no pandas)."""
     if s.get("ocs_returned_s") is not None and s.get("late_s") is not None:
@@ -492,7 +525,8 @@ def starts_page(runs) -> str:
     )
 
 
-def maneuvers_page(runs) -> str:
+def tacks_gybes_page(runs, overlay_pages) -> str:
+    """Maneuver costs, the tack calls, the tack and gybe overlays and each race's maneuvers, one dropdown each."""
     summ, calls = [], []
     for d, s in runs:
         for kind in ("Tack", "Gybe"):
@@ -548,6 +582,8 @@ def maneuvers_page(runs) -> str:
     per_race = ""
     for d, s in runs:
         mans = s.get("maneuvers") or []
+        nt = sum(m["kind"] == "Tack" for m in mans)
+        ng = sum(m["kind"] == "Gybe" for m in mans)
         calls_by_t = {c["time_s"]: c for c in (s.get("shifts") or {}).get("tacks", [])}
         rows = [dict(m, call=(calls_by_t.get(m["time_s"]) or {}).get("verdict")) for m in mans]
         detail = html_table(
@@ -566,22 +602,45 @@ def maneuvers_page(runs) -> str:
                 ("Note", "note"),
             ],
         )
-        per_race += card(
-            f"<h2>{html.escape(s['race'])}</h2>"
-            + plot(
-                d, ["maneuvers"], "maneuvers.png", "Distance lost per maneuver (vs. VMG before it)"
-            )
-            + f"<details><summary>Every tack and gybe ({len(mans)})</summary>{detail}</details>"
+        lost = sum(m.get("distance_lost_m") or 0 for m in mans)
+        per_race += dropdown(
+            s["race"],
+            plot(d, ["maneuvers"], "maneuvers.png", "Distance lost per maneuver (vs. VMG before it)")
+            + "<h3>Every tack and gybe</h3>"
+            + detail,
+            f"{nt} tack{'s' * (nt != 1)}, {ng} gybe{'s' * (ng != 1)} · {html.escape(m_bl(lost))} lost in all",
         )
+    tot_t = sum(r["count"] for r in summ if r["kind"] == "Tacks")
+    tot_g = sum(r["count"] for r in summ if r["kind"] == "Gybes")
+    calls_head = ""
+    if calls:
+        h = sum(c["h"] for c in calls)
+        l_ = sum(c["l"] for c in calls)
+        calls_head = f"{h} on a header, {l_} on a lift, {sum(c['over'] for c in calls)} laylines overstood"
+    head = f"{tot_t} tacks and {tot_g} gybes over {len(runs)} race{'s' * (len(runs) != 1)}"
+    overlays = "".join(
+        dropdown(
+            f"{name} lined up",
+            f'<p class="facts">{lede}</p><div id="{pid}">{body}</div>',
+            "Every comparable one overlaid: the best highlighted, and what they did differently",
+        )
+        for pid, name, lede, body in overlay_pages
+    )
     return page(
-        "maneuvers",
-        "Maneuvers",
-        "Tacks and gybes: how much each one cost, and whether the tacks were good wind calls.",
-        card("<h2>Tacks and gybes</h2>" + t1) + card("<h2>Tack calls</h2>" + t2) + per_race,
+        "tacks-gybes",
+        "Tacks and Gybes",
+        "How much each tack and gybe cost, whether the tacks were good wind calls, and every one side by side. Open a section to see it.",
+        group("The regatta")
+        + dropdown("What they cost", t1, head, open_=True)
+        + dropdown("Tack calls", t2, calls_head)
+        + overlays
+        + group("Race by race")
+        + per_race,
     )
 
 
-def upwind_page(runs) -> str:
+def upwind_parts(runs):
+    """Upwind sections: (regatta-wide [(title, line, body)], {race: per-race html})."""
     beats, tgts = [], []
     for d, s in runs:
         shifts = {b["leg"]: b for b in (s.get("shifts") or {}).get("beats", [])}
@@ -600,7 +659,7 @@ def upwind_page(runs) -> str:
                     "missed": b.get("missed_header_s"),
                     "split": f"{lg['sog_stbd']}/{lg['sog_port']}",
                     # shown magnetic, like the compass
-                    "twd_est": (lg["twd_est"] - s["mag_var"]) % 360
+                    "twd_est": round((lg["twd_est"] - s["mag_var"]) % 360, 1)
                     if lg.get("twd_est") is not None and s.get("mag_var") is not None
                     else lg.get("twd_est"),
                 }
@@ -628,11 +687,16 @@ def upwind_page(runs) -> str:
             ("Headed > 5° s", "missed"),
         ],
     )
-    body = card("<h2>Every beat</h2>" + t1) + distance_card(runs, "upwind")
+    secs = [("Every beat", _legs_line(beats), t1)]
+    dist = distance_card(runs, "upwind", bare=True)
+    if dist:
+        secs.append(("Distance sailed upwind", "Sailed against the straight line and the ideal at our angle", dist))
     if tgts:
-        body += card(
-            "<h2>Vs. the Etchells card</h2>"
-            + html_table(
+        secs.append(
+            (
+                "Vs. the Etchells card",
+                "Speed, heel and wind angle against the target card",
+                html_table(
                 tgts,
                 [
                     ("Race", "race"),
@@ -648,8 +712,10 @@ def upwind_page(runs) -> str:
                     ("Target TWA", "twa_tgt"),
                     ("Δ TWA", "twa_delta"),
                 ],
+            ),
             )
         )
+    per_race = {}
     for d, s in runs:
         beats_ = [lg for lg in s["legs"] if lg["type"] == "upwind"]
         if interactive(d):
@@ -672,17 +738,13 @@ def upwind_page(runs) -> str:
                     (d / "shifts.png", "Wind shifts upwind and the call on each tack"),
                 ]
             )
-        body += card(f"<h2>{html.escape(s['race'])}</h2>" + inner)
-    return page(
-        "upwind",
-        "Upwind",
-        "Beats only: each beat's track and polar, speed and heel against the card, the wind pattern and which side we sailed.",
-        body,
-    )
+        per_race[s["race"]] = inner
+    return secs, per_race
 
 
-def downwind_page(runs) -> str:
-    rows, gybes = [], []
+def downwind_parts(runs):
+    """Downwind sections, like upwind_parts. Gybe details are on the Tacks and Gybes page."""
+    rows = []
     for d, s in runs:
         for lg in s["legs"]:
             if lg["type"] == "downwind":
@@ -694,9 +756,6 @@ def downwind_page(runs) -> str:
                         "split": f"{lg['sog_stbd']}/{lg['sog_port']}",
                     }
                 )
-        for m in s.get("maneuvers") or []:
-            if m["kind"] == "Gybe":
-                gybes.append({"race": s["race"], **m})
     t1 = html_table(
         rows,
         [
@@ -712,25 +771,11 @@ def downwind_page(runs) -> str:
             ("SOG stbd/port", "split"),
         ],
     )
-    t2 = (
-        html_table(
-            gybes,
-            [
-                ("Race", "race"),
-                ("From gun", lambda r: _mmss(r["time_s"])),
-                ("Onto", "onto"),
-                ("Leg", "leg"),
-                ("Entry kt", "entry_sog"),
-                ("Min kt", "min_sog"),
-                ("Loss %", "speed_loss_pct"),
-                ("Recover s", "recovery_s"),
-                ("m lost (lengths)", lambda r: mbl_cell(r.get("distance_lost_m"))),
-            ],
-        )
-        if gybes
-        else "<p>No gybes.</p>"
-    )
-    plots = ""
+    secs = [("Every run", _legs_line(rows), t1)]
+    dist = distance_card(runs, "downwind", bare=True)
+    if dist:
+        secs.append(("Distance sailed downwind", "Sailed against the straight line and the ideal at our angle", dist))
+    per_race = {}
     for d, s in runs:
         runs_ = [lg for lg in s["legs"] if lg["type"] == "downwind"]
         if not runs_:
@@ -750,15 +795,43 @@ def downwind_page(runs) -> str:
             )
         else:
             inner = figures([(d / "downwind.png", "Speed down each run, by gybe")])
-        plots += card(f"<h2>{html.escape(s['race'])}</h2>" + inner)
+        per_race[s["race"]] = inner
+    return secs, per_race
+
+
+def _legs_line(rows) -> str:
+    if not rows:
+        return ""
+    sog = [r["sog_steady"] for r in rows if r.get("sog_steady") is not None]
+    avg = f", {sum(sog) / len(sog):.2f} kt steady SOG on average" if sog else ""
+    return f"{len(rows)} legs{avg}"
+
+
+def up_down_page(runs) -> str:
+    """Beats and runs on one page: the regatta-wide tables, then each race's legs, one dropdown each."""
+    up, up_r = upwind_parts(runs)
+    dn, dn_r = downwind_parts(runs)
+    per_race = ""
+    for _, s in runs:
+        r = s["race"]
+        nb = sum(lg["type"] == "upwind" for lg in s["legs"])
+        nr = sum(lg["type"] == "downwind" for lg in s["legs"])
+        body = (
+            (f"<h3>Upwind</h3>{up_r[r]}" if up_r.get(r) else "")
+            + (f"<h3>Downwind</h3>{dn_r[r]}" if dn_r.get(r) else "")
+        )
+        if body:
+            per_race += dropdown(r, body, f"{nb} beat{'s' * (nb != 1)}, {nr} run{'s' * (nr != 1)}: tracks, polars, shifts and speed")
     return page(
-        "downwind",
-        "Downwind",
-        "Runs only: each run's track, speed, VMG away from the wind, angle, and gybes.",
-        card("<h2>Every run</h2>" + t1)
-        + distance_card(runs, "downwind")
-        + card("<h2>Gybes</h2>" + t2)
-        + plots,
+        "upwind-downwind",
+        "Upwind and Downwind Analysis",
+        "Every beat and run: speed, VMG, heel and angles, the wind pattern and which side we sailed, and the distance sailed. Open a section to see it.",
+        group("Upwind")
+        + "".join(dropdown(t, b, l, open_=(i == 0)) for i, (t, l, b) in enumerate(up))
+        + group("Downwind")
+        + "".join(dropdown(t, b, l) for t, l, b in dn)
+        + group("Race by race")
+        + per_race,
     )
 
 
@@ -895,7 +968,7 @@ def _tips_html(r: dict) -> str:
     return f"<ul>{''.join(f'<li>{html.escape(t)}</li>' for t in tips)}</ul>" if tips else ""
 
 
-def distance_card(runs, kind: str) -> str:
+def distance_card(runs, kind: str, bare: bool = False) -> str:
     rows = [
         {"race": s["race"], **lg}
         for _, s in runs
@@ -917,12 +990,13 @@ def distance_card(runs, kind: str) -> str:
             ("Track angle to wind", "track_angle"),
         ],
     )
-    return card(
-        '<h2>Distance sailed</h2><p class="facts">Straight line: mark to mark. Ideal: the shortest '
+    note = (
+        '<p class="facts">Straight line: mark to mark. Ideal: the shortest '
         "path at our average angle to the wind over the ground (leeway included) in steady wind. "
         "Extra vs ideal is distance sailed beyond what our angles needed: sailing below our angle, "
-        "overstanding, extra zig-zags. Shifts can make it negative.</p>" + table
+        "overstanding, extra zig-zags. Shifts can make it negative.</p>"
     )
+    return note + table if bare else card("<h2>Distance sailed</h2>" + note + table)
 
 
 def _plus(v):
@@ -1027,13 +1101,8 @@ def build(
     if runs:
         pages += [
             starts_page(runs),
-            maneuvers_page(runs),
-            *(
-                page(pid, name, re.sub(r"</?b>", "", lede), body, 3)
-                for pid, name, lede, body in overlay_pages
-            ),
-            upwind_page(runs),
-            downwind_page(runs),
+            tacks_gybes_page(runs, overlay_pages),
+            up_down_page(runs),
             roundings_page(runs),
         ]
     # Current: COG vs heading, from this boat and any others analysed alongside it
@@ -1065,11 +1134,8 @@ def build(
         "debrief": "Debrief",
         "notes": "Race notes",
         "starts": "Starts",
-        "maneuvers": "Maneuvers",
-        "tacks": "Tacks",
-        "gybes": "Gybes",
-        "upwind": "Upwind",
-        "downwind": "Downwind",
+        "tacks-gybes": "Tacks and Gybes",
+        "upwind-downwind": "Upwind and Downwind",
         "roundings": "Roundings",
         "current": "Current",
         "races": "Race by race",

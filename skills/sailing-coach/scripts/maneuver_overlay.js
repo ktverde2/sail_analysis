@@ -300,6 +300,7 @@ function TackOverlay(root, DATA) {
   render();
   // In a report the page may only become visible after its own nav script runs
   window.addEventListener("hashchange", () => setTimeout(render, 0));
+  window.addEventListener("sections:open", () => setTimeout(render, 0));
   document.addEventListener("DOMContentLoaded", () => setTimeout(render, 0));
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
   new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });

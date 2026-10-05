@@ -563,6 +563,7 @@ function CurrentMap(root, D) {
   }
   render();
   window.addEventListener("hashchange", () => setTimeout(render, 0));
+  window.addEventListener("sections:open", () => setTimeout(render, 0));
   document.addEventListener("DOMContentLoaded", () => setTimeout(render, 0));
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", render);
   new MutationObserver(render).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });

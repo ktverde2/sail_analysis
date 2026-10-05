@@ -516,6 +516,7 @@
     }
     const c = colors();
     root.querySelectorAll('.chart:not([data-done])').forEach(el => {
+      if (el.closest('details:not([open])')) return;  // drawn when its dropdown opens
       el.dataset.done = '1';
       try { CHARTS[el.dataset.chart](el, race(el.dataset.race), c); }
       catch (e) { el.textContent = 'Chart failed: ' + e.message; }
