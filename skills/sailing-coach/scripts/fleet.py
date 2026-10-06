@@ -31,6 +31,7 @@ import re
 from pathlib import Path
 
 import analyze as A
+import report_extras as RX
 import ladder as LD
 import current as CU
 import html_report as H
@@ -3064,6 +3065,24 @@ FLEET_JS = r"""
 """
 
 
+def _start_line(r: dict) -> str:
+    """One line for a race's start: who was closest to the line at the gun, and the favoured end."""
+    st = r.get("starts") or {}
+    bs = [b for b in (st.get("boats") or {}).values() if (b.get("below") or {}).get("0") is not None]
+    if not bs:
+        return ""
+    best = min(bs, key=lambda b: b["below"]["0"])
+    bits = [
+        f"Best: {html.escape(best['name'])}, {html.escape(A.m_bl(best['below']['0']))} back at "
+        f"{best['sog'].get('0', '–')} kt, {best['late_s']:.0f} s late"
+        if best.get("late_s") is not None
+        else f"Best: {html.escape(best['name'])}"
+    ]
+    if st.get("favoured"):
+        bits.append(f"{html.escape(str(st['favoured']))} favoured")
+    return " · ".join(bits)
+
+
 def _chart(kind: str, stem: str | None = None) -> str:
     race = f' data-race="{stem}"' if stem else ""
     return f'<div class="chart" data-fleet="{kind}"{race}></div>'
@@ -3406,8 +3425,10 @@ def pairs_html(fa: dict) -> str:
     """The Side by side page: the rule, each pair's totals and chart, every stretch with a link
     that plays it on that race's replay."""
     out = [
-        H.card(
-            "<h2>How this works</h2><ul>"
+        H.group("The regatta"),
+        H.dropdown(
+            "How this works",
+            "<ul>"
             f"<li>A stretch counts when two boats are within {PAIR_RADIUS_M} m on the same leg and "
             f"the same tack or gybe for at least {PAIR_MIN_S} s, starting {PAIR_SETTLE_S} s after "
             "a mark or a tack or gybe.</li>"
@@ -3420,22 +3441,26 @@ def pairs_html(fa: dict) -> str:
             "and rungs come from the boats' own tacking and gybing angles on that leg. The split "
             "into speed and angle is from each boat's average SOG and how much of each metre it "
             "sailed brought the mark closer.</li>"
-            "<li><strong>Watch</strong> plays the stretch on that race's replay.</li></ul>"
+            "<li><strong>Watch</strong> plays the stretch on that race's replay.</li></ul>",
+            "What counts as a stretch, and how the gain is split into speed and course",
         ),
-        H.card(
-            "<h2>Where on the course</h2>"
+        H.dropdown(
+            "Where on the course",
             '<p class="chart-hint">Each stretch is drawn where it happened, both boats in their '
             "colours; the thick line is the boat that gained. Pick a race, or all races overlaid "
             "(each in its own course frame: start line at 0, upwind up). Hover for the numbers; "
             "click a stretch to watch it on the replay.</p>"
-            '<div class="pairmap"></div>' + where_html(fa)
+            '<div class="pairmap"></div>' + where_html(fa),
+            "Every stretch drawn where it happened",
+            open_=True,
         ),
+        H.group("Boat against boat"),
     ]
     for row in fa["pairs"]:
         a, b = row["a"], row["b"]
         na, nb = _pair_names(fa, a, b)
         lines = [x for k in ("upwind", "downwind") if (x := pair_sentence(fa, row, k))]
-        body = f"<h2>{html.escape(na)} vs {html.escape(nb)}</h2><ul>"
+        body = "<ul>"
         body += "".join(f"<li>{H.inline(x)}</li>" for x in lines) + "</ul>"
         body += f'<div class="chart" data-fleet="pair" data-a="{a}" data-b="{b}"></div>'
         body += f'<div class="pairmap" data-a="{a}" data-b="{b}"></div>'
@@ -3490,7 +3515,15 @@ def pairs_html(fa: dict) -> str:
             "heading is dotted, and differs between boats' sensors.</p>"
             + "".join(stretch_html(fa, r, p) for r, p in stretches(fa, a, b))
         )
-        out.append(H.card(body))
+        n = len(stretches(fa, a, b))
+        out.append(
+            H.dropdown(
+                f"{na} vs {nb}",
+                body,
+                f"{n} stretch{'es' * (n != 1)} side by side",
+                sid=f"pair-{a}-{b}",
+            )
+        )
     return "".join(out)
 
 
@@ -3600,7 +3633,11 @@ def write_html(
         if s.startswith(("## Order among", "## Official results", "## Where the time"))
     ]
     per_race = [s for s in rest if s not in results and not s.startswith("## Side by side")]
-    summary = (H.coach_card(debrief) if debrief else "") + H.card(H.md_to_html("\n".join(results)))
+    summary = (
+        RX.fleet_scorecard(reports_dir)
+        + (H.coach_card(debrief) if debrief else "")
+        + H.card(H.md_to_html("\n".join(results)))
+    )
     pages = [
         H.page(
             "summary",
@@ -3623,16 +3660,12 @@ def write_html(
             )
         )
     race_cur = CU.race_summaries([reports_dir / b["id"] for b in boats])
-    race_body = (
-        '<nav class="race-links">'
-        + "".join(f'<a href="#race-{r["stem"]}">{html.escape(r["race"])}</a>' for r in fa["races"])
-        + "</nav>"
-    )
+    race_body = ""
     for r, sec in zip(fa["races"], per_race, strict=False):
         line1, line2 = race_summary(r)
         race_body += (
-            f'<details class="race card" id="race-{r["stem"]}"><summary><span class="race-h">{html.escape(r["race"])}</span>'
-            f'<span class="race-l1">{line1}</span><span class="race-l2">{line2}</span></summary>'
+            f'<details class="dd race" id="race-{r["stem"]}"><summary><span class="dd-h">{html.escape(r["race"])}</span>'
+            f'<span class="dd-l race-l1">{line1}</span><span class="dd-l">{line2}</span></summary>'
             + '<p class="chart-hint">Hover the gaps chart for times. Press play on the replay, '
             "or drag the slider; the panel shows each boat at that moment.</p>"
             + _chart("gaps", r["stem"])
@@ -3661,10 +3694,9 @@ def write_html(
         )
     )
     if any((r.get("starts") or {}).get("boats") for r in fa["races"]):
-        start_body = "".join(
-            H.card(f"<h2>{html.escape(r['race'])}</h2>" + _chart("starts", r["stem"]))
-            for r in fa["races"]
-            if (r.get("starts") or {}).get("boats")
+        start_body = H.group("Race by race") + "".join(
+            H.dropdown(r["race"], _chart("starts", r["stem"]), _start_line(r), open_=i == 0, sid=f"starts-{r['stem']}")
+            for i, r in enumerate(x for x in fa["races"] if (x.get("starts") or {}).get("boats"))
         )
         pages.append(
             H.page(
@@ -3672,7 +3704,7 @@ def write_html(
                 "Starts",
                 "Every tracked boat from three minutes before the gun to two after, zoomed on the line, "
                 "and each boat's start against the others: its spot on the line, distance and speed at "
-                "the gun, time on distance, and who led up the first beat after it.",
+                "the gun, time on distance, and who led up the first beat after it. Open a race to see it.",
                 start_body,
             )
         )
@@ -3688,16 +3720,34 @@ def write_html(
         )
     cur = CU.page_parts([reports_dir / b["id"] for b in boats], embedded=True)
     wind_body = "".join(
-        H.card(
-            f"<h2>{html.escape(r['race'])}: wind</h2>" + _chart("wind", r["stem"])
+        H.dropdown(
+            f"{r['race']}: wind",
+            _chart("wind", r["stem"])
             + (_chart("shifts", r["stem"]) if any(lg.get("shifts") for lg in r["wind"]["legs"]) else "")
-            + H.md_to_html("\n".join(wind_md(r) + shifts_md(r)))
+            + H.md_to_html("\n".join(wind_md(r) + shifts_md(r))),
+            "The wind through each leg, and which side paid",
+            sid=f"wind-{r['stem']}",
         )
         for r in fa["races"]
         if (r.get("wind") or {}).get("legs")
     )
+    if wind_body:
+        wind_body = H.group("Wind, race by race") + wind_body
     if shift_totals_md(fa):
-        wind_body = H.card("<h2>Shifts</h2>" + H.md_to_html("\n".join(shift_totals_md(fa)))) + wind_body
+        wind_body = (
+            H.group("The regatta")
+            + H.dropdown(
+                "Shifts",
+                H.md_to_html("\n".join(shift_totals_md(fa))),
+                "How each boat played the shifts on the beats",
+                open_=True,
+            )
+            + wind_body
+        )
+    if cur:
+        wind_body += H.group("Current") + H.dropdown(
+            "Current", cur[0], "COG against heading, NOAA's tide and current, and VMC across the course"
+        )
     if cur or wind_body:
         pages.append(
             H.page(
@@ -3705,7 +3755,7 @@ def write_html(
                 "Wind and current",
                 "The wind through each race from all the boats' tracks, and which side paid; then the current: "
                 "COG against heading, NOAA's tide and current, and whether the water changed VMC across the course.",
-                wind_body + (cur[0] if cur else ""),
+                wind_body,
             )
         )
     names = {
@@ -3732,7 +3782,7 @@ def write_html(
     doc = (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
-        f"<title>{html.escape(title)}</title><style>{H.CSS}{REPLAY_CSS}</style><script>{H.PAGE_JS}</script></head>"
+        f"<title>{html.escape(title)}</title><style>{H.CSS}{REPLAY_CSS}{RX.CSS}</style><script>{H.PAGE_JS}</script></head>"
         f'<body><main><header class="top"><h1>{html.escape(title)}</h1>'
         "<p>Fleet comparison from Njord data</p></header>"
         + nav
@@ -3741,7 +3791,8 @@ def write_html(
         "Times are local to the event.</footer></main>"
         f'<script type="application/json" id="fleet-data">{data}</script>{lib}'
         f"<script>{(Path(__file__).parent / 'ladder.js').read_text()}</script>"
-        f"<script>{FLEET_JS.replace('%BL%', str(A.BOAT_LENGTH_M))}</script>{cur[1] if cur else ''}</body></html>"
+        f"<script>{FLEET_JS.replace('%BL%', str(A.BOAT_LENGTH_M))}</script>{cur[1] if cur else ''}"
+        f"<script>{RX.fleet_assets(fa)}</script></body></html>"
     )
     path = out / "fleet.html"
     path.write_text(doc)

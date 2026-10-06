@@ -189,12 +189,12 @@ def scorecard(report_dir: Path) -> str:
         cmp_ = (
             "Best of the tracked boats"
             if bb == me or not others
-            else f"Best: {html.escape(bb)}, {bv:.0f} m"
+            else f"Best: {html.escape(bb)}, {bv:.1f} m"
         )
         tiles.append(
             tile(
                 "Tacks",
-                f"{m['tack_m']:.0f} m lost",
+                f"{m['tack_m']:.1f} m lost",
                 f"per tack on average ({m['tack_pct']:.0f}% speed loss)"
                 if m["tack_pct"] is not None
                 else "per tack on average",
@@ -315,7 +315,7 @@ def trend_page(history: list[dict]) -> str:
 
 CSS = """
 .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(145px, 1fr)); gap: 10px; margin: 8px 0; }
-a.tile { display: grid; gap: 2px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px;
+a.tile { display: grid; align-content: start; gap: 2px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px;
   background: var(--bg); color: var(--ink); text-decoration: none; }
 a.tile:hover { border-color: var(--accent); }
 .t-area { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink2); font-weight: 600; }
@@ -352,6 +352,7 @@ JS = r"""
 (function () {
   const TERMS = __TERMS__;
   const RACES = __RACES__;
+  const IDS = __IDS__;  // section id prefix for each topic on this report ('' = not on this report)
   // ---- tables: race column stays put; on a phone, the key columns first ----
   function tables() {
     document.querySelectorAll('.scroll > table').forEach(t => {
@@ -440,13 +441,14 @@ JS = r"""
       TOPICS.forEach(([rx, pre, what]) => {
         if (!rx.test(own)) return;
         races.forEach(n => {
-          const id = pre + '-' + RACES['Race ' + n];
+          if (!IDS[pre]) return;
+          const id = IDS[pre] + RACES['Race ' + n];
           if (!document.getElementById(id)) return;
           found.set(id, found.has(id) ? found.get(id) + ' and ' + what : `Race ${n} ${what}`);
         });
       });
       const links = [...found].slice(0, 3).map(([id, label]) => `<a href="#${id}">${label}</a>`);
-      if (!links.length) races.slice(0, 2).forEach(n => links.push(`<a href="#${RACES['Race ' + n]}">Race ${n}</a>`));
+      if (!links.length) races.slice(0, 2).forEach(n => links.push(`<a href="#${IDS.race}${RACES['Race ' + n]}">Race ${n}</a>`));
       const span = document.createElement('span'); span.className = 'show-me';
       span.innerHTML = ' <span class="sm-l">Show me:</span>' + links.join('');
       const sub = li.querySelector(':scope > ul, :scope > ol');
@@ -483,6 +485,64 @@ JS = r"""
 """
 
 
+BOAT_IDS = {"starts": "starts-", "roundings": "roundings-", "tg": "tg-", "ud": "ud-", "race": ""}
+FLEET_IDS = {"starts": "starts-", "roundings": "race-", "tg": "", "ud": "wind-", "race": "race-"}
+
+
+def _js(races: dict, ids: dict) -> str:
+    return (
+        JS.replace("__TERMS__", json.dumps(TERMS))
+        .replace("__RACES__", json.dumps(races))
+        .replace("__IDS__", json.dumps(ids))
+    )
+
+
 def assets(runs) -> tuple[str, str]:
-    js = JS.replace("__TERMS__", json.dumps(TERMS)).replace("__RACES__", json.dumps(race_ids(runs)))
-    return CSS, js
+    return CSS, _js(race_ids(runs), BOAT_IDS)
+
+
+def fleet_assets(fa: dict) -> str:
+    """The same reading aids for the fleet report (fleet.py)."""
+    return _js({r["race"]: r["stem"] for r in fa["races"]}, FLEET_IDS)
+
+
+def fleet_scorecard(reports_dir: Path) -> str:
+    """The fleet version of the scorecard: each area's best tracked boat, and every boat's number."""
+    fleet = {}
+    for d in sorted(Path(reports_dir).iterdir()):
+        if d.is_dir():
+            runs = _boat_runs(d)
+            if runs:
+                fleet[runs[0][1]["boat"]] = runs
+    if len(fleet) < 2:
+        return ""
+    mets = {b: boat_metrics(r) for b, r in fleet.items()}
+    up = {b: leg_losses(fleet, b, "upwind")[0] for b in fleet}
+    dn = {b: leg_losses(fleet, b, "downwind")[0] for b in fleet}
+    areas = [
+        ("Starts", "starts", {b: mets[b]["back_m"] for b in fleet}, lambda v: f"{v:.1f} m", "back at the gun on average",
+         f"Worlds standard: {WORLDS_BACK_M[0]}–{WORLDS_BACK_M[1]} m back at full speed"),
+        ("Upwind", "pairs", up, _mmss, "lost to the fastest boat, summed over the beats", ""),
+        ("Downwind", "pairs", dn, _mmss, "lost to the fastest boat, summed over the runs", ""),
+        ("Tacks", "races", {b: mets[b]["tack_m"] for b in fleet}, lambda v: f"{v:.1f} m", "lost per tack on average", ""),
+        ("Roundings", "races", {b: mets[b]["round_m"] for b in fleet}, lambda v: f"{v:.0f} m", "lost toward the marks per rounding", ""),
+    ]
+    tiles = []
+    for area, link, vals, fmt, what, extra in areas:
+        vals = {b: v for b, v in vals.items() if v is not None}
+        if not vals:
+            continue
+        order = sorted(vals, key=lambda b: vals[b])
+        best = order[0]
+        rest = ", ".join(f"{html.escape(b)} {fmt(vals[b])}" for b in order[1:])
+        tiles.append(
+            f'<a class="tile" href="#{link}"><span class="t-area">{area}</span>'
+            f'<span class="t-big">{html.escape(best)}</span>'
+            f'<span class="t-sub">{fmt(vals[best])} {what}</span>'
+            f'<span class="t-cmp">{rest}{(". " + extra) if extra else ""}</span></a>'
+        )
+    return (
+        '<section class="card"><h2>Scorecard</h2><div class="tiles">'
+        + "".join(tiles)
+        + '</div><p class="facts">The best tracked boat in each area, then the others. Tap a tile for the detail.</p></section>'
+    )
