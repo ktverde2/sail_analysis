@@ -20,4 +20,4 @@ Reports, named `<regatta>_<boat>_<kind>`:
 
 Open the `.html` files in a browser. They work offline.
 
-To regenerate everything with the same names after editing a debrief: `./rebuild.sh`. It uses the skill copy in `../skills/sailing-coach`; set `SAILING_COACH_SCRIPTS` to use another.
+To regenerate everything with the same names after editing a debrief: `./rebuild.sh`. Mojo's Across regattas page uses MidWinters West and July ODW, analysed in the project folders `midwinters-west-2026/` and `odw-july-2026/`: run `HISTORY="/mnt/project-files/midwinters-west-2026/report /mnt/project-files/odw-july-2026/report" ./rebuild.sh` to keep it. It uses the skill copy in `../skills/sailing-coach`; set `SAILING_COACH_SCRIPTS` to use another.

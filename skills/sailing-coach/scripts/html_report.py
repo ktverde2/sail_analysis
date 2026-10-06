@@ -30,6 +30,7 @@ from datetime import datetime
 from pathlib import Path
 
 import current as CU
+import report_extras as RX
 from analyze import lengths, m_bl, mbl_cell  # metres and boat lengths
 import maneuver_overlay as MO
 
@@ -153,7 +154,10 @@ function show() {
     else a.removeAttribute('aria-current');
   });
   const el = id && document.getElementById(id);
-  if (el && el !== target) el.scrollIntoView(); else window.scrollTo(0, 0);
+  if (el && el !== target) {
+    for (let d = el.closest('details'); d; d = d.parentElement && d.parentElement.closest('details')) d.open = true;
+    el.scrollIntoView();
+  } else window.scrollTo(0, 0);
 }
 window.addEventListener('hashchange', show);
 document.addEventListener('DOMContentLoaded', show);
@@ -323,10 +327,30 @@ def race_section(race_dir: Path) -> tuple[str, str, str]:
             if (race_dir / f).exists()
         ]
         plots = f'<h2>Plots</h2><div class="plots">{"".join(figs)}</div>' if figs else ""
+    line = ""
+    sj = race_dir / "summary.json"
+    if sj.exists():
+        sm = json.loads(sj.read_text())
+        when = sm.get("gun_local") or ""
+        try:
+            from datetime import datetime
+
+            when = datetime.fromisoformat(when).strftime("%a %-d %b, %H:%M")
+        except ValueError:
+            pass
+        line = " · ".join(
+            x
+            for x in [
+                html.escape(when),
+                f"{sm['duration_min']:.0f} min" if sm.get("duration_min") else "",
+                "start " + _start_line(sm.get("start") or {}) if sm.get("start") else "",
+            ]
+            if x
+        )
     return (
         anchor,
         title,
-        f'<section class="card" id="{anchor}"><h1>{html.escape(title)}</h1>{body}{plots}</section>',
+        dropdown(title, body + plots, line, sid=anchor),
     )
 
 
@@ -351,8 +375,9 @@ def default_title(races: list[Path]) -> str:
     return " · ".join(p for p in parts if p) or "Race report"
 
 
-def html_table(rows: list[dict], cols: list[tuple]) -> str:
-    """cols: (header, key or callable). None renders as an en dash."""
+def html_table(rows: list[dict], cols: list[tuple], keep: list[int] | None = None) -> str:
+    """cols: (header, key or callable). None renders as an en dash. keep: the columns a phone shows
+    before "Show all columns" (default the first four)."""
     head = "".join(f"<th>{html.escape(h)}</th>" for h, _ in cols)
     body = ""
     for r in rows:
@@ -361,7 +386,8 @@ def html_table(rows: list[dict], cols: list[tuple]) -> str:
             v = k(r) if callable(k) else r.get(k)
             cells.append(f"<td>{inline('–' if v is None else str(v))}</td>")
         body += "<tr>" + "".join(cells) + "</tr>"
-    return f'<div class="scroll"><table><tr>{head}</tr>{body}</table></div>'
+    dk = f' data-keep="{",".join(map(str, keep))}"' if keep else ""
+    return f'<div class="scroll"><table{dk}><tr>{head}</tr>{body}</table></div>'
 
 
 def _mmss(sec):
@@ -494,35 +520,63 @@ def starts_page(runs) -> str:
             ("m back (lengths) −60 s", "b60"),
             ("−30 s", "b30"),
             ("−10 s", "b10"),
-            ("Gun", "b0"),
+            ("m back at gun", "b0"),
             ("SOG −30 s", "s30"),
             ("−10 s", "s10"),
-            ("Gun", "s0"),
+            ("kt at gun", "s0"),
             ("+10 s", "s10p"),
             ("Accel ±5 s", "acc"),
             ("% stbd last min", "stbd"),
             ("Last tack/gybe", "last"),
             ("Tacks/gybes last 5 min", "n"),
         ],
+        keep=[0, 1, 3, 7, 10],
     )
     plots = "".join(
-        card(
-            f"<h2>{html.escape(s['race'])}</h2>"
-            + plot(
+        dropdown(
+            s["race"],
+            plot(
                 d,
                 ["startMap", "startTime"],
                 "start.png",
                 "Approach from 5 minutes, then the last 2 minutes",
-            )
+            ),
+            _start_line(s.get("start") or {}),
+            sid=f"starts-{d.name}",
         )
         for d, s in runs
     )
+    lates = [r["late"] for r in rows if isinstance(r["late"], (int, float))]
     return page(
         "starts",
         "Starts",
-        "Every start side by side: timing, position on the line, and speed through the gun.",
-        card("<h2>Start comparison</h2>" + table) + plots,
+        "Every start side by side: timing, position on the line, and speed through the gun. Open a section to see it.",
+        group("The regatta")
+        + dropdown(
+            "Start comparison",
+            table,
+            f"{len(rows)} starts" + (f", {min(lates):.0f}–{max(lates):.0f} s late" if lates else ""),
+            open_=True,
+        )
+        + group("Race by race")
+        + plots,
     )
+
+
+def _start_line(st: dict) -> str:
+    """One line for a start: late, where on the line, how far back and how fast at the gun."""
+    bits = []
+    if st.get("ocs_at_gun_m"):
+        bits.append(html.escape(ocs_label(st)))
+    elif st.get("late_s") is not None:
+        bits.append("on time" if st["late_s"] == 0 else f"{st['late_s']:.0f} s late")
+    if st.get("line_pos_label"):
+        bits.append(html.escape(str(st["line_pos_label"])))
+    if st.get("below_line_+0s_m") is not None:
+        bits.append(f"{html.escape(m_bl(st['below_line_+0s_m']))} back at the gun")
+    if st.get("sog_+0s") is not None:
+        bits.append(f"{st['sog_+0s']} kt")
+    return " · ".join(bits)
 
 
 def tacks_gybes_page(runs, overlay_pages) -> str:
@@ -566,6 +620,7 @@ def tacks_gybes_page(runs, overlay_pages) -> str:
             ("m lost onto port (lengths)", lambda r: mbl_cell(r.get("distance_lost_avg_onto_port_m"))),
             ("m lost onto stbd (lengths)", lambda r: mbl_cell(r.get("distance_lost_avg_onto_stbd_m"))),
         ],
+        keep=[0, 1, 2, 6, 9],
     )
     t2 = html_table(
         calls,
@@ -578,6 +633,7 @@ def tacks_gybes_page(runs, overlay_pages) -> str:
             ("Laylines overstood", "over"),
             ("Start / mark / double", "other"),
         ],
+        keep=[0, 1, 2, 3, 5],
     )
     per_race = ""
     for d, s in runs:
@@ -601,6 +657,7 @@ def tacks_gybes_page(runs, overlay_pages) -> str:
                 ("Call", "call"),
                 ("Note", "note"),
             ],
+            keep=[0, 1, 2, 6, 8],
         )
         lost = sum(m.get("distance_lost_m") or 0 for m in mans)
         per_race += dropdown(
@@ -609,6 +666,7 @@ def tacks_gybes_page(runs, overlay_pages) -> str:
             + "<h3>Every tack and gybe</h3>"
             + detail,
             f"{nt} tack{'s' * (nt != 1)}, {ng} gybe{'s' * (ng != 1)} · {html.escape(m_bl(lost))} lost in all",
+            sid=f"tg-{d.name}",
         )
     tot_t = sum(r["count"] for r in summ if r["kind"] == "Tacks")
     tot_g = sum(r["count"] for r in summ if r["kind"] == "Gybes")
@@ -686,6 +744,7 @@ def upwind_parts(runs):
             ("SOG stbd/port", "split"),
             ("Headed > 5° s", "missed"),
         ],
+        keep=[0, 1, 2, 3, 4, 9],
     )
     secs = [("Every beat", _legs_line(beats), t1)]
     dist = distance_card(runs, "upwind", bare=True)
@@ -770,6 +829,7 @@ def downwind_parts(runs):
             ("% stbd", "pct_time_stbd"),
             ("SOG stbd/port", "split"),
         ],
+        keep=[0, 1, 2, 3, 4],
     )
     secs = [("Every run", _legs_line(rows), t1)]
     dist = distance_card(runs, "downwind", bare=True)
@@ -812,7 +872,7 @@ def up_down_page(runs) -> str:
     up, up_r = upwind_parts(runs)
     dn, dn_r = downwind_parts(runs)
     per_race = ""
-    for _, s in runs:
+    for d, s in runs:
         r = s["race"]
         nb = sum(lg["type"] == "upwind" for lg in s["legs"])
         nr = sum(lg["type"] == "downwind" for lg in s["legs"])
@@ -821,7 +881,12 @@ def up_down_page(runs) -> str:
             + (f"<h3>Downwind</h3>{dn_r[r]}" if dn_r.get(r) else "")
         )
         if body:
-            per_race += dropdown(r, body, f"{nb} beat{'s' * (nb != 1)}, {nr} run{'s' * (nr != 1)}: tracks, polars, shifts and speed")
+            per_race += dropdown(
+                r,
+                body,
+                f"{nb} beat{'s' * (nb != 1)}, {nr} run{'s' * (nr != 1)}: tracks, polars, shifts and speed",
+                sid=f"ud-{d.name}",
+            )
     return page(
         "upwind-downwind",
         "Upwind and Downwind Analysis",
@@ -857,6 +922,7 @@ def roundings_page(runs) -> str:
             ("Closest to mark m (lengths)", lambda r: mbl_cell(r.get("mark_dist_m"))),
             ("Gate", "gate_side"),
         ],
+        keep=[0, 1, 2, 4],
     )
     summary = []
     for kind in ("windward", "leeward"):
@@ -871,9 +937,9 @@ def roundings_page(runs) -> str:
                 f"{html.escape(worst['race'])} #{worst['n']} ({m_bl(worst['metres_lost'])}).</li>"
             )
     goal = _rounding_goal(rows)
-    body = card(
-        "<h2>Every rounding</h2>"
-        + goal
+    body = group("The regatta") + dropdown(
+        "Every rounding",
+        goal
         + (f"<ul>{''.join(summary)}</ul>" if summary else "")
         + '<p class="facts">Metres lost toward the marks: VMC (speed toward this mark, then the next) from 30 s '
         "before to 60 s after the rounding, against the steady VMC of the leg before and after. Settled: 10 s "
@@ -882,8 +948,10 @@ def roundings_page(runs) -> str:
         "lengths, 28 m, where mark-room applies) and the open circle is where the boat entered it. "
         "<em>Wider view</em> shows the minute either side. The fleet report shows the roundings where "
         "boats arrived together.</p>"
-        + table
-    ) + card(TIGHT_ROUNDINGS)
+        + table,
+        "; ".join(re.sub(r"<[^>]+>", "", x)[:-1] for x in summary) if summary else "",
+        open_=True,
+    ) + dropdown("Keeping roundings tight", TIGHT_ROUNDINGS.split("</h2>", 1)[1], "The habits behind a tight rounding") + group("Race by race")
     for d, s in runs:
         rs = s.get("roundings") or []
         if not rs:
@@ -918,11 +986,18 @@ def roundings_page(runs) -> str:
                 + _tips_html(r)
                 for r in rs
             ) + figures([(d / "roundings.png", "Speed through the roundings")])
-        body += card(f"<h2>{html.escape(s['race'])}</h2>" + inner)
+        lost = [r["metres_lost"] for r in rs if r.get("metres_lost") is not None]
+        body += dropdown(
+            s["race"],
+            inner,
+            f"{len(rs)} rounding{'s' * (len(rs) != 1)}"
+            + (f", {html.escape(m_bl(sum(lost)))} lost in all" if lost else ""),
+            sid=f"roundings-{d.name}",
+        )
     return page(
         "roundings",
         "Roundings",
-        "Windward and leeward marks: approach, speed through the turn, and what each one cost.",
+        "Windward and leeward marks: approach, speed through the turn, and what each one cost. Open a section to see it.",
         body,
     )
 
@@ -989,6 +1064,7 @@ def distance_card(runs, kind: str, bare: bool = False) -> str:
             ("Extra vs ideal m (lengths)", lambda r: mbl_cell(r.get("extra_vs_ideal_m"))),
             ("Track angle to wind", "track_angle"),
         ],
+        keep=[0, 1, 2, 4, 6],
     )
     note = (
         '<p class="facts">Straight line: mark to mark. Ideal: the shortest '
@@ -1024,6 +1100,7 @@ def build(
     cdn: bool = False,
     overview: str | None = None,
     deep: str | None = None,
+    history: list[Path] | None = None,
 ) -> str:
     global INTERACTIVE
     INTERACTIVE = interactive and VENDOR.exists() and CHARTS_JS.exists()
@@ -1053,7 +1130,7 @@ def build(
                 "quick",
                 "Quick look",
                 "The main takeaways. Switch to Debrief or Deep dive above for more.",
-                quick,
+                RX.scorecard(report_dir) + quick,
                 1,
             )
         )
@@ -1080,6 +1157,20 @@ def build(
             2,
         )
     )
+    # level 2: this boat regatta by regatta (needs --history: the same boat's report folder at other regattas)
+    if history and runs:
+        hist = [h for h in (RX.event_metrics(Path(p)) for p in [report_dir, *history]) if h]
+        trend = RX.trend_page(hist)
+        if trend:
+            pages.append(
+                page(
+                    "trends",
+                    "Across regattas",
+                    "Is the work paying off? This boat's starts, speed, tacks and roundings at each regatta.",
+                    trend,
+                    2,
+                )
+            )
     # level 3: the coach's race notes, then every number
     if deep:
         pages.append(
@@ -1110,20 +1201,12 @@ def build(
     if cur:
         pages.append(page("current", "Current", CU.INTRO, cur[0], 3))
         overlay_js += cur[1]
-    sub_nav = (
-        '<nav class="sub">'
-        + "".join(
-            f'<a href="#{a}">{html.escape(nav_label(report_dir / a, t))}</a>'
-            for a, t, _ in sections
-        )
-        + "</nav>"
-    )
     pages.append(
         page(
             "races",
             "Race by race",
-            "Everything for one race in one place.",
-            sub_nav + "".join(s for _, _, s in sections),
+            "Everything for one race in one place. Open a race to see it.",
+            "".join(s for _, _, s in sections),
             3,
         )
     )
@@ -1131,6 +1214,7 @@ def build(
     names = {
         "quick": "Quick look",
         "summary": "Summary",
+        "trends": "Across regattas",
         "debrief": "Debrief",
         "notes": "Race notes",
         "starts": "Starts",
@@ -1188,9 +1272,10 @@ def build(
     return (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
-        f"<title>{html.escape(page_title)}</title><style>{CSS}</style>"
+        f"<title>{html.escape(page_title)}</title><style>{CSS}{RX.CSS}</style>"
         f"<script>{PAGE_JS}</script></head>"
-        f"<body><main>{''.join(parts)}</main>{chart_scripts(races, cdn)}{overlay_js}</body></html>"
+        f"<body><main>{''.join(parts)}</main>{chart_scripts(races, cdn)}{overlay_js}"
+        f"<script>{RX.assets(runs)[1]}</script></body></html>"
     )
 
 
@@ -1221,6 +1306,7 @@ def write_html(
     cdn: bool = False,
     overview_path: Path | None = None,
     deep_path: Path | None = None,
+    history: list[Path] | None = None,
 ) -> Path:
     def text(p):
         return p.read_text() if p else None
@@ -1235,6 +1321,7 @@ def write_html(
             cdn,
             text(overview_path),
             text(deep_path),
+            history,
         )
     )
     return out
@@ -1250,6 +1337,12 @@ def main():
     ap.add_argument("--deep", type=Path, help="Deep dive race notes (Markdown)")
     ap.add_argument("--out", type=Path, help="default: <report_dir>/report.html")
     ap.add_argument("--title")
+    ap.add_argument(
+        "--history",
+        type=Path,
+        nargs="*",
+        help="this boat's report folder at other regattas, for the Across regattas page",
+    )
     ap.add_argument("--static", action="store_true", help="PNG plots instead of interactive charts")
     ap.add_argument(
         "--cdn",
@@ -1258,7 +1351,9 @@ def main():
     )
     a = ap.parse_args()
     print(
-        write_html(a.report_dir, a.debrief, a.out, a.title, not a.static, a.cdn, a.overview, a.deep)
+        write_html(
+            a.report_dir, a.debrief, a.out, a.title, not a.static, a.cdn, a.overview, a.deep, a.history
+        )
     )
 
 
