@@ -1,0 +1,8 @@
+time_s,kind,onto,leg,entry_sog,min_sog,speed_loss_kt,speed_loss_pct,recovery_s,distance_lost_m,heading_change,note,call_m
+48,Tack,Port,1,4.07,2.75,1.31,32,18.0,-4.4,93,,-4.9
+555,Tack,Stbd,1,3.93,2.3,1.63,41,11.0,2.6,-111,,2.9
+835,Tack,Port,1,3.68,2.1,1.58,43,24.0,8.5,104,,8.4
+965,Tack,Stbd,1,3.91,2.73,1.17,30,19.0,-13.6,-103,from past the layline (ending an overstand),-24.2
+1697,Gybe,Stbd,2,4.46,3.72,0.75,17,16.0,1.6,75,,-5.2
+1758,Gybe,Port,2,3.71,2.54,1.18,32,,,-30,at a mark (counted in the rounding),
+2179,Tack,Stbd,3,3.88,2.57,1.3,34,10.0,8.1,-89,,4.5

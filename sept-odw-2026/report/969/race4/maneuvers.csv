@@ -1,0 +1,12 @@
+time_s,kind,onto,leg,entry_sog,min_sog,speed_loss_kt,speed_loss_pct,recovery_s,distance_lost_m,heading_change,note,call_m
+87,Tack,Port,1,5.18,3.88,1.3,25,11.0,21.4,83,,12.8
+640,Tack,Stbd,1,4.28,2.36,1.91,45,17.0,6.9,-93,,6.4
+865,Tack,Port,1,3.25,1.7,1.55,48,22.0,6.2,93,,13.1
+973,Tack,Stbd,1,3.69,2.6,1.09,30,15.0,3.7,-99,,15.0
+1115,Tack,Port,1,4.09,1.87,2.23,54,46.0,-5.6,110,gained through the turn (a shift or puff): handling can't be judged,18.5
+1735,Gybe,Port,2,4.61,2.8,1.81,39,19.0,0.1,-77,,3.5
+2087,Gybe,Stbd,2,5.14,3.42,1.72,33,,-26.2,61,from past the layline (ending an overstand),32.4
+2617,Tack,Stbd,3,5.44,3.7,1.74,32,11.0,11.7,-90,,0.7
+2939,Tack,Port,3,4.64,3.8,0.84,18,13.0,3.7,83,double (<30 s apart; loss numbers overlap),18.2
+2964,Tack,Stbd,3,4.77,3.56,1.21,25,8.0,,-100,double (<30 s apart; loss numbers overlap),
+3340,Gybe,Port,4,4.67,3.62,1.05,22,12.0,5.9,-69,,-16.1
