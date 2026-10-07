@@ -1188,7 +1188,10 @@ def build(
         for d, _ in runs
         if INTERACTIVE and (d / "overlay.json").exists()
     ]
-    overlay_pages, overlay_js = MO.report_pages(overlays, MO.boat_order(o["boat"] for o in overlays))
+    overlay_data: dict[str, str] = {}
+    overlay_pages, overlay_js = MO.report_pages(
+        overlays, MO.boat_order(o["boat"] for o in overlays), overlay_data
+    )
     if runs:
         pages += [
             starts_page(runs),
@@ -1274,21 +1277,27 @@ def build(
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>{html.escape(page_title)}</title><style>{CSS}{RX.CSS}</style>"
         f"<script>{PAGE_JS}</script></head>"
-        f"<body><main>{''.join(parts)}</main>{chart_scripts(races, cdn)}{overlay_js}"
+        f"<body><main>{''.join(parts)}</main>{chart_scripts(races, cdn, overlay_data)}{overlay_js}"
         f"<script>{RX.assets(runs)[1]}</script></body></html>"
     )
 
 
-def chart_scripts(races: list[Path], cdn: bool = False) -> str:
-    """Race data (once each) plus the chart library and renderer, inline unless cdn."""
+def chart_scripts(races: list[Path], cdn: bool = False, overlays: dict[str, str] | None = None) -> str:
+    """All the report's data in one JSON block, {"races": {<race folder>: plotdata.json},
+    "overlays": {<page id>: tack/gybe overlay}}, as in the fleet report, then the chart library
+    (inline unless cdn) and renderer. charts.js reads it with reportData()."""
     if not INTERACTIVE:
         return ""
-    data = "".join(
-        f'<script type="application/json" id="race-{d.name}">'
-        + (d / "plotdata.json").read_text().replace("</", "<\\/")
-        + "</script>"
+    race_data = ",".join(
+        json.dumps(d.name) + ":" + (d / "plotdata.json").read_text()
         for d in races
         if (d / "plotdata.json").exists()
+    )
+    over = ",".join(json.dumps(k) + ":" + v for k, v in (overlays or {}).items())
+    data = (
+        '<script type="application/json" id="report-data">'
+        + f'{{"races":{{{race_data}}},"overlays":{{{over}}}}}'.replace("</", "<\\/")
+        + "</script>"
     )
     lib = (
         f'<script src="{PLOTLY_CDN}"></script>' if cdn else f"<script>{VENDOR.read_text()}</script>"

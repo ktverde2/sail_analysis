@@ -1,11 +1,15 @@
 // Interactive race charts for report.html (Plotly basic bundle, inlined by html_report.py or loaded from jsDelivr with --cdn).
 // Each .chart element (data-chart = chart kind, data-race = race folder) is drawn the first time
-// its page is shown. Race data comes from <script type="application/json" id="race-<id>">, written by
-// analyze.py (plotdata.json): 1 Hz series in metres, upwind up, t = seconds from the gun.
+// its page is shown. Race data comes from the report's one <script type="application/json" id="report-data">
+// block (races: each race folder's plotdata.json from analyze.py, 1 Hz series in metres, upwind up,
+// t = seconds from the gun; overlays: the tack and gybe overlays, read by their own script).
+function reportData() {
+  return reportData.d || (reportData.d = JSON.parse(document.getElementById('report-data').textContent));
+}
 (function () {
   const DATA = {};
   function race(id) {
-    if (!DATA[id]) DATA[id] = prep(JSON.parse(document.getElementById('race-' + id).textContent));
+    if (!DATA[id]) DATA[id] = prep(reportData().races[id]);
     return DATA[id];
   }
 

@@ -351,8 +351,12 @@ def boat_order(boats) -> list[str]:
     return sorted(set(boats), key=lambda b: (b != "Mojo", b))
 
 
-def report_pages(overlays: list[dict], boats: list[str]) -> tuple[list[tuple[str, str, str]], str]:
-    """For html_report.py: [(page id, title, body html)] and the scripts to put after Plotly."""
+def report_pages(
+    overlays: list[dict], boats: list[str], data: dict | None = None
+) -> tuple[list[tuple[str, str, str]], str]:
+    """For html_report.py: [(page id, title, body html)] and the scripts to put after Plotly. With
+    data, each overlay's payload goes in it by page id (for the report's one data block) and the
+    script reads it back with reportData() from charts.js, instead of carrying it inline."""
     css, js = assets()
     pages, init = [], []
     for kind in KINDS:
@@ -361,10 +365,10 @@ def report_pages(overlays: list[dict], boats: list[str]) -> tuple[list[tuple[str
             continue
         pid = kind + "s"
         pages.append((pid, WORDS[kind]["Many"], intro(kind), fragment(kind, "tk-embedded")))
-        init.append(
-            f'TackOverlay(document.querySelector("#{pid} .tk"), '
-            f"{payload(items, boats, skipped_note(skipped, kind), kind)});"
-        )
+        arg = payload(items, boats, skipped_note(skipped, kind), kind)
+        if data is not None:
+            data[pid], arg = arg, f'reportData().overlays["{pid}"]'
+        init.append(f'TackOverlay(document.querySelector("#{pid} .tk"), {arg});')
     if not pages:
         return [], ""
     return pages, f"<style>{css}</style><script>{js}</script><script>{''.join(init)}</script>"
