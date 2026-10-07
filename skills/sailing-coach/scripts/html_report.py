@@ -15,8 +15,9 @@ PNGs instead. Everything is inlined, so the HTML file works offline, shared or u
 own. No third-party Python packages.
 
 --cdn loads Plotly from jsDelivr instead of inlining it: the file is ~1 MB smaller, but the charts
-need an internet connection when it is opened. Gmail's virus scan still flags interactive HTML
-attachments either way, so share reports by a Google Drive link rather than as an attachment.
+need an internet connection when it is opened. All the report's data goes in one JSON block (as in
+the fleet report): with the race data and the tack overlay data in separate scripts, Google Drive's
+virus scan flagged the file (a false positive, found by upload tests in Oct 2026).
 """
 
 from __future__ import annotations
