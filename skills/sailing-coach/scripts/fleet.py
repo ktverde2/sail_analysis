@@ -52,7 +52,7 @@ BOAT_COLORS = [
 ]
 SERIES_STEP_S = 2  # track overlay and replay resolution
 # Side by side: two boats within this distance on the same leg and the same tack or gybe
-PAIR_RADIUS_M = 200
+PAIR_RADIUS_M = 500
 PAIR_MIN_S = 60  # shortest stretch worth comparing
 PAIR_SETTLE_S = 20  # skip this long after a mark or a tack/gybe (either boat)
 PAIR_MIDDLE_M = 100  # within this of the rhumb line counts as the middle of the course
