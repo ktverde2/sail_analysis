@@ -827,6 +827,27 @@ def _per_second(race: A.Race, df: pd.DataFrame, legs: list[dict], xy, summ: dict
     g["side"] = side
     change = side.ne(side.shift()).cumsum()
     g["since_side"] = g.groupby(change).cumcount()
+    # Side by side needs the gybe, not the track's sign: a run sailed close to dead downwind
+    # wanders either side of straight down the course with no gybe. So on runs the gybe changes
+    # only at a gybe analyze.py found (or a mark); between them it's the side the boat made
+    # ground toward. Beats keep the track's side (tacks are unmistakable).
+    pair = side.copy()
+    if summ.get("maneuvers") is not None:
+        cuts = sorted({m["time_s"] for m in summ["maneuvers"] if m.get("time_s") is not None})
+        legs_ix = g.leg.to_numpy()
+        xs = g.x.to_numpy()
+        for j, lg in enumerate(legs):
+            on = legs_ix == j
+            if lg.get("type") != "downwind" or not on.any():
+                continue
+            t = s[on]
+            edges = [t[0]] + [c for c in cuts if t[0] < c < t[-1]] + [t[-1] + 1]
+            for e0, e1 in zip(edges[:-1], edges[1:]):
+                seg = on & (s >= e0) & (s < e1)
+                if seg.sum() > 1 and xs[seg][-1] != xs[seg][0]:
+                    pair[seg] = np.sign(xs[seg][-1] - xs[seg][0])
+    g["pair_side"] = pair
+    g["since_pair_side"] = g.groupby(pair.ne(pair.shift()).cumsum()).cumcount()
     return g
 
 
@@ -851,15 +872,15 @@ def side_by_side(per: dict[str, pd.DataFrame], leg_types: list[str], ladders: li
                 (np.hypot(pa.x - pb.x, pa.y - pb.y) < PAIR_RADIUS_M)
                 & (pa.leg == pb.leg)
                 & (pa.leg < len(leg_types))
-                & (pa.side == pb.side)
+                & (pa.pair_side == pb.pair_side)
                 & (pa.since_leg >= PAIR_SETTLE_S)
                 & (pb.since_leg >= PAIR_SETTLE_S)
-                & (pa.since_side >= PAIR_SETTLE_S)
-                & (pb.since_side >= PAIR_SETTLE_S)
+                & (pa.since_pair_side >= PAIR_SETTLE_S)
+                & (pb.since_pair_side >= PAIR_SETTLE_S)
             ).to_numpy()
             runs: list[list[int]] = []
             for s in idx[ok]:
-                if runs and s - runs[-1][1] <= 5 and pa.side.loc[s] == pa.side.loc[runs[-1][1]]:
+                if runs and s - runs[-1][1] <= 5 and pa.pair_side.loc[s] == pa.pair_side.loc[runs[-1][1]]:
                     runs[-1][1] = s
                 else:
                     runs.append([s, s])
@@ -972,7 +993,7 @@ def _pair_row(a, b, pa, pb, leg_types, names, ladders) -> dict:
         "leg": leg,
         "leg_name": names[leg],
         "leg_type": leg_types[leg],
-        "side": ("starboard" if pa.side.iloc[0] < 0 else "port") + (" tack" if up else " gybe"),
+        "side": ("starboard" if pa.pair_side.iloc[0] < 0 else "port") + (" tack" if up else " gybe"),
         "apart_m": [
             round(float(math.hypot(pa.x.iloc[k] - pb.x.iloc[k], pa.y.iloc[k] - pb.y.iloc[k])))
             for k in (0, -1)
