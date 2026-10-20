@@ -1,6 +1,6 @@
 ---
 name: sailing-coach
-description: Race-debrief coach for Kevin's Etchells (Mojo) that pulls regatta data from Njord Analytics and turns it into a prioritized, practical coaching debrief — starts (time-on-distance, line position, acceleration), upwind speed/TWA/heel vs. the Etchells flat-water target card, maneuvers, and leg-by-leg gains and losses. Use this skill whenever Kevin asks to debrief, review, analyze, or get coaching on a regatta, race, weekend of racing, or practice session; mentions Njord, Vakaros, RaceSense, race data, starts, target speeds, heel angle, or "how did we sail"; or asks what to work on next time — even if he never says "coach".
+description: Race-debrief coach for Kevin's Etchells (Mojo) that pulls regatta data from Njord Analytics, or reads Vakaros .vkx logs directly, and turns it into a prioritized, practical coaching debrief — starts (time-on-distance, line position, acceleration), upwind speed/TWA/heel vs. the Etchells flat-water target card, maneuvers, and leg-by-leg gains and losses. Use this skill whenever Kevin asks to debrief, review, analyze, or get coaching on a regatta, race, weekend of racing, or practice session; mentions Njord, Vakaros or .vkx files, RaceSense, race data, starts, target speeds, heel angle, or "how did we sail"; or asks what to work on next time — even if he never says "coach".
 ---
 
 # Sailing Coach
@@ -17,6 +17,8 @@ The debrief structure follows the topic areas Steve Hunt teaches publicly in his
 - Prioritize ruthlessly. Three things to work on, max. A debrief with twelve findings changes nothing.
 
 ## Workflow
+
+The data comes from Njord (steps 1–4) or straight from the boats' Vakaros `.vkx` logs. For `.vkx` files, **From Vakaros .vkx files** below replaces the data pull in steps 1–4: it builds the same per-race files, with the course marks confirmed by Kevin on a map. Then carry on from step 4's `analyze.py`.
 
 ### 1. Find the races
 
@@ -105,6 +107,41 @@ python scripts/html_report.py <dir>/report --debrief <dir>/report/debrief.md \
 ```
 
 The page opens on **Quick look**, and a three-way switch at the top moves between the depths; each depth has its own pages. Without `--overview` the Quick look is the coach's summary lifted from the debrief; without `--deep` the Deep dive is just the data pages. It writes `<dir>/report/report.html`: **Quick look**; **Debrief** and **Summary** (the executive summary and the all-races table); then, at Deep dive, **Race notes**, **Starts**, **Tacks and Gybes** (what each maneuver cost, the tack calls, the tack and gybe overlays when there are comparable ones, and each race's maneuvers), **Upwind and Downwind Analysis** (every beat and run, distance sailed, then each race's beat tracks, polars and shifts and run tracks), **Roundings** (a close-up track and speed/VMG chart for every mark), **Current** (COG vs heading and the course map; in the fleet layout it uses every boat analysed alongside this one, so analyse all boats before building any report), each comparing every race side by side, and **Race by race** (the whole-race track). Charts are interactive: hover (or tap on a phone) shows time from the gun (time *to* the gun on the start charts), speed, VMG, heading and heel; drag to zoom, double-click to reset. They come from each race's `plotdata.json` and the Plotly library in `scripts/vendor/`, all inlined, so the file still works offline. Add `--static` to `html_report.py` for PNG charts instead. **To send the report**, upload the HTML to Google Drive (or similar) and email the link; recipients download the file and open it in a browser. Keep all of a report's data in its one `report-data` JSON block: when the race data and the tack overlay data were separate scripts, Google Drive's virus scan flagged boat reports (a false positive). `--cdn` (on `html_report.py` or `analyze.py`) loads Plotly online instead of inlining it for a ~1 MB smaller file; the charts then need internet when the file is opened. The Tacks and Gybes and the Upwind and Downwind Analysis pages are split into sections that open and close (the first one open); charts in a section are drawn when it opens. Printing puts each page on its own sheet, with every section open. Reading aids: the **Quick look** opens on a scorecard (starts, upwind, downwind, tacks, roundings: this boat against the best tracked boat, and the 2026 Worlds start standard), each tile linking to its page; Starts, Roundings and Race by race are dropdown sections too; each debrief point that names a race gets **Show me** links to that race's start, beats and runs, tacks and gybes or roundings; terms like VMC, lifted/headed, layline and time on distance are dotted-underlined the first time they appear on a page and explained on tap or hover (edit `TERMS` in `scripts/report_extras.py`); and on a phone the wide tables keep the race column fixed and show only their key columns until **Show all columns** is tapped. The fleet report (`fleet.py --html`) has the same reading aids: a scorecard on its Summary (the best tracked boat in each area, then the others), dropdown sections on Race by race, Starts, Side by side and Wind and current, Show me links in the fleet debrief, the term help and the phone tables. **Across regattas:** pass `--history <report>/<boat> ...` (this boat's report folder at earlier regattas, analysed the same way) to add a Debrief-level page with this boat's start, speed, tack and rounding numbers regatta by regatta, as a table and trend charts. (`analyze.py ... --html --debrief <file>` does steps 4 and 7 in one go when the debrief already exists.) Share the HTML file itself; nothing else is needed to open it.
+
+## From Vakaros .vkx files (no Njord)
+
+When Kevin sends Vakaros Atlas logs instead of a Njord event, `scripts/vkx/` reads them into the same per-race files Njord gives (`raceN.csv`, `raceN-race.json`, `raceN-raceInfo.json`), so everything from `analyze.py` on is unchanged. A `.vkx` has the boat's GPS and motion sensor (position, SOG, COG, heading, heel, trim), the race timer (gun and reset) and the start-line ends the device pinged. It has **no wind, no marks and no finish line**: the marks come from the tracks, and Kevin confirms them on a map before any analysis.
+
+1. **Organise the files**, one folder per boat named exactly for the boat: `<dir>/vkx/<boat>/*.vkx`. The file is named after the device's name in the Vakaros app, not the boat ("San Diego 10-11-2026.vkx" was 1018's), so ask which boat a file is from if it isn't clear. A log can run for days; only the races are used.
+2. **Parse each boat without a course:**
+   ```bash
+   python scripts/vkx/vkx_report.py --boat <boat> --event "<Event>" --data-dir <dir>/raw <dir>/vkx/<boat>/*.vkx
+   ```
+   Each race is a gun on the device's race timer, running to the next timer reset. Every boat should show the same guns; a boat missing one didn't start its timer for that race, so say so. Directions use San Diego's 10.7° E variation (`--variation` elsewhere).
+3. **Estimate the course:**
+   ```bash
+   python scripts/course.py detect --data <dir>/raw --out <dir>/regatta-proposed.json --event "<Event>"
+   ```
+   It finds the course axis from the boats' tacks, splits every track into beats and runs, and puts each mark at the boats' rounding points. A leeward mark becomes a gate when boats rounded points more than 25 m apart across the course. The finish goes square to the course where the first boat stopped racing. It prints notes for each race and every boat's closest pass at each mark. It handles windward-leeward courses only; anything else needs its marks placed on the map. Marks usually land within 10 m. The finish is the weakest guess (20–70 m off on Oct 11 2026), and a gate where every boat rounded the same end shows as one mark; the notes say when another race had a gate there.
+4. **Kevin checks it on a map:**
+   ```bash
+   python scripts/course.py page --data <dir>/raw --regatta <dir>/regatta-proposed.json --out <dir>/course-check.html \
+     --title "<Event> course check · <boats>" --doc courses/<event-slug>
+   ```
+   One self-contained page: every boat's track course up (or north up), zoom and pan, a time slider, and the course on top. Kevin drags marks and line ends, switches a mark to a gate, adds, removes or reorders marks, or puts the finish on the start line. Under each mark it lists how close every boat passed it (and which gate end), and under the finish when each boat crossed, so a wrong mark shows at once. The start line is the boats' own pings and can't be moved.
+   - **Where the Artifact tool exists** (a claude.ai project, Claude Code): publish the page as an artifact with the `db` capability and send Kevin the link. Save writes the course to the doc named by `--doc`. Read it back with ArtifactData `get` (collection `courses`, doc id `<event-slug>`). It's a complete regatta file (`event`, `timezone`, `races`), so write it to `<dir>/regatta.json`. To re-check after a change, or when another boat is added, republish to the same URL with the same `--doc`: his saved course loads over the estimate.
+   - **Anywhere else**, send the HTML file. Save then downloads `regatta-<event>.json`, which Kevin sends back.
+   - Go round until Kevin says it's right. Nothing is analysed on an unconfirmed course.
+5. **Check it, then parse with it:**
+   ```bash
+   python scripts/course.py check --data <dir>/raw --regatta <dir>/regatta.json
+   python scripts/vkx/vkx_report.py --regatta <dir>/regatta.json --boat <boat> --data-dir <dir>/data <dir>/vkx/<boat>/*.vkx
+   ```
+   `check` lists each boat's pass at every mark and its finish crossing. A boat more than about 30 m from a mark, or one that never crosses the finish, means the course is wrong: show Kevin before going on. With a finish line in the course, `vkx_report.py` ends each race 30 s after that boat crosses it (`--finish-pad`), so each boat's race ends at its own finish, as in Njord. An `endTime` in the regatta file overrides it for every boat.
+6. **Wind:** there's no wind channel, so the target comparison needs `analyze.py --tws <lo>-<hi>` (step 5). Get the race-time wind from the nearest weather stations. For San Diego Bay, the 5-minute KSAN (airport) and hourly KNZY (North Island) reports from the Iowa Environmental Mesonet ASOS archive sit right beside the course. Otherwise use Kevin's estimate. Say where it came from in the Data notes. Wind *direction* still comes from the boats' tacks, as with Njord.
+7. **Analyse as usual** from step 4's `analyze.py` on `<dir>/data/<boat>/race*.csv` (and `fleet.py` over `<dir>/data` for two or more boats). The reports' subtitles say "from Vakaros data" on their own, from the `"source"` the parser writes into `raceN-race.json`. In the debrief's Data notes, say the source was the `.vkx` file and that the marks were estimated from the tracks and checked by Kevin.
+
+`scripts/vkx/` is a copy of github.com/ktverde2/vkx-parser (Apache-2.0, `scripts/vkx/LICENSE`; the file format is in `vkx_format_spec.md`), changed to end races at each boat's finish and to tag the source.
 
 ## Fleet comparison (several tracked boats in one event)
 
@@ -218,3 +255,4 @@ When Kevin shares a link or article to learn from: read it, distil the useful po
 - `references/playbook/*.md` — racing principles distilled from outside sources, by topic, each tied to what the data shows. Read the relevant file during step 6.
 - `references/sources.md` — the sources behind the playbook, plus an inbox of links still to read.
 - `references/njord-queries.md` — tested GraphQL queries and `get_data` patterns. Read during steps 1–4.
+- `scripts/vkx/` and `scripts/course.py` — reading `.vkx` logs and finding their course marks. See **From Vakaros .vkx files**.

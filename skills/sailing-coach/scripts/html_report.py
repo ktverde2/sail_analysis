@@ -1114,6 +1114,7 @@ def build(
     ]
     runs.sort(key=lambda x: x[1].get("gun_local") or "")
     page_title = title or default_title(races)
+    source = next((s["source"] for _, s in runs if s.get("source")), "Njord")
 
     pages = []
     exec_md = report_dir / "executive.md"
@@ -1264,7 +1265,7 @@ def build(
     )
     parts = [
         f'<header class="top"><h1>{html.escape(page_title)}</h1>',
-        "<p>Race analysis from Njord data</p></header>",
+        f"<p>Race analysis from {html.escape(source)} data</p></header>",
         levels,
         nav,
         *pages,

@@ -398,6 +398,7 @@ def analyze_race(race: Race, tws_override: float | None) -> dict:
         "stem": race.stem,
         "event": race.meta.get("event"),
         "boat": race.meta.get("boat"),
+        "source": race.meta.get("source", "Njord"),  # "Vakaros" from vkx/vkx_report.py
         "timezone": str(race.tz),
         "gun_local": _local(gun, race.tz),
         "finish_local": _local(legs[-1]["end"], race.tz) if legs else None,

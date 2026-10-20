@@ -1,7 +1,7 @@
 # sail_analysis
 Build tools designed to help analyze sailing data.
 
-- `skills/sailing-coach/`: the source of the sailing-coach skill (Njord data to a coaching debrief and HTML reports). `skills/sailing-coach.skill` is the packaged version to install: upload it in Claude's Skills settings.
+- `skills/sailing-coach/`: the source of the sailing-coach skill (Njord data, or Vakaros .vkx logs, to a coaching debrief and HTML reports). For .vkx logs it has the parser (`scripts/vkx/`, from ktverde2/vkx-parser) and `scripts/course.py`, which estimates the marks, gates and finish from the tracks and builds a map page to check and save them. `skills/sailing-coach.skill` is the packaged version to install: upload it in Claude's Skills settings.
 - `sept-odw-2026/`: Sept ODW 2026 (26–27 Sep, San Diego) data, reports and debriefs for the three tracked boats, Mojo, 969 and 1216. Open `report/Sept-ODW-2026_fleet.html` or `report/<boat>/Sept-ODW-2026_<boat>_report.html` in a browser; they work offline. `rebuild.sh` regenerates them (see `sept-odw-2026/README.md`).
 
 ## The reports

@@ -3774,6 +3774,10 @@ def write_html(
         + "</nav>"
     )
     data = json.dumps(fa).replace("</", "<\\/")
+    source = next(
+        (r["summary"]["source"] for b in boats for r in b["races"].values() if r["summary"].get("source")),
+        "Njord",
+    )
     lib = (
         f'<script src="{H.PLOTLY_CDN}"></script>'
         if cdn
@@ -3784,7 +3788,7 @@ def write_html(
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>{html.escape(title)}</title><style>{H.CSS}{REPLAY_CSS}{RX.CSS}</style><script>{H.PAGE_JS}</script></head>"
         f'<body><main><header class="top"><h1>{html.escape(title)}</h1>'
-        "<p>Fleet comparison from Njord data</p></header>"
+        f"<p>Fleet comparison from {html.escape(source)} data</p></header>"
         + nav
         + "".join(pages)
         + "<footer>Numbers from analyze.py and fleet.py. Speeds are over ground. "
