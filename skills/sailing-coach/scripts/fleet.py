@@ -1934,7 +1934,7 @@ def write_md(fa: dict, out: Path, title: str) -> str:
                 )
         L += [
             "",
-            "**Roundings (metres lost toward the marks, boat lengths in brackets; each boat against its own steady VMC)**",
+            "**Roundings (metres lost toward the marks, boat lengths in brackets; each boat against its own steady VMC, beyond a clean rounding)**",
             "",
             "| Boat | " + " | ".join(r["marks"][: len(bs[ids[0]]["roundings"])]) + " |",
             "|---|" + "---|" * len(bs[ids[0]]["roundings"]),

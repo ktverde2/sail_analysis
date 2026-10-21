@@ -799,18 +799,20 @@ def estimate_twd(df, legs, hdg_col, axis):
 
 
 ROUNDING_WINDOW_S = (-30, 60)  # VMG compared with the steady legs either side over this window
-# A clean rounding, the 0 m reference: what a well-sailed Etchells does in Kevin's data (the
-# better half of 79 roundings at four 2026 regattas). It arrives at the old leg's steady speed and
-# angle, passes the mark this close (GPS antenna to mark), turns at a steady rate, and leaves at
-# the new leg's steady angle. At a windward mark speed goes straight from upwind to downwind
-# speed through the turn; at a leeward mark it drops this much through the turn (spinnaker down,
-# rounding up) and builds back to upwind speed with this time constant. The model's own metres
-# (the turn's geometry and the speed change) are what any rounding costs; metres_lost is what this
-# rounding cost beyond it.
+# A clean rounding, the 0 m reference. It arrives at the old leg's steady speed and angle, passes
+# the mark this close (GPS antenna to mark, the hull about a metre clear), turns at a steady rate
+# and leaves at the new leg's steady angle. Turn rate and pass distance are the better half of 79
+# roundings at four 2026 regattas. At a windward mark speed goes straight from upwind to downwind
+# speed through the turn. At a leeward mark it builds from run speed to upwind speed from the
+# start of the turn (rounding up onto a reach is what accelerates it; no dip) with this time
+# constant, after 1018's leeward rounding in Oct 11 2026 Race 3 (the best in that data; Kevin
+# agreed it as the standard), which still beats it by about 5 m. The model's own
+# metres (the turn's geometry and the speed change) are what any rounding costs; metres_lost is
+# what this rounding cost beyond it.
 CLEAN_PASS_M = 3.0
 CLEAN_TURN_DEG_S = 15.0
-CLEAN_LEEWARD_DIP = 0.10
-CLEAN_ACCEL_TAU_S = 10.0
+CLEAN_LEEWARD_DIP = 0.0
+CLEAN_ACCEL_TAU_S = 4.5
 ROUNDING_FLAG_M = 60  # a rounding this costly gets a flag in the executive summary
 SETTLED_VMG = 0.9  # 10 s VMC back to this share of the next leg's steady VMC = settled
 
@@ -818,7 +820,8 @@ SETTLED_VMG = 0.9  # 10 s VMC back to this share of the next leg's steady VMC = 
 def rounding_stats(race: Race, df, legs, leg_rows, man_rows, shifts, progress="vmg_wind") -> list[dict]:
     """Each mark rounding (the boundary between two legs): approach, speed through, and metres
     lost toward the marks against sailing the steady VMC of the leg before (to this mark) and
-    after (to the next one). Without marks, VMG along the wind stands in for VMC."""
+    after (to the next one), beyond what a clean rounding loses (clean_rounding). Without marks,
+    VMG along the wind stands in for VMC and there is no clean model."""
     steady_key = "closing_steady" if progress == "closing" else "vmg_steady"
     show_key = "vmc_steady" if progress == "closing" else "vmg_steady"
     course = race.course
@@ -1013,11 +1016,9 @@ def _clean_path(df, rel, kind, v_in, v_out, off_s, off, gb, ga, mark, b_in, b_ou
         elif kind == "windward":
             v[i] = v_in + (v_out - v_in) * min((t + T1 / 2) / max(t_end + T1 / 2, 1), 1.0)
         else:
+            # rounding up onto a reach builds speed as the boat turns, so it starts in the turn
             v_low = v_in * (1 - CLEAN_LEEWARD_DIP)
-            if t <= t_end:
-                v[i] = v_in + (v_low - v_in) * (t + T1 / 2) / max(t_end + T1 / 2, 1)
-            else:
-                v[i] = v_out - (v_out - v_low) * math.exp(-(t - t_end) / CLEAN_ACCEL_TAU_S)
+            v[i] = v_out - (v_out - v_low) * math.exp(-(t + T1 / 2) / CLEAN_ACCEL_TAU_S)
     ms = v * KT_TO_MS
     x = np.concatenate([[0.0], np.cumsum(ms[:-1] * np.sin(np.radians(h[:-1])) * dt)])
     y = np.concatenate([[0.0], np.cumsum(ms[:-1] * np.cos(np.radians(h[:-1])) * dt)])
@@ -2433,7 +2434,9 @@ def roundings_md(rs: list | None) -> list[str]:
             "## Mark roundings",
             (
                 "Metres lost toward the marks: VMC (speed toward this mark, then the next) from 30 s "
-                "before to 60 s after the rounding against the steady VMC of the leg before and after. "
+                "before to 60 s after the rounding against the steady VMC of the leg before and after, "
+                "beyond what a clean rounding loses (3 m off the mark, a steady 15° a second turn, and "
+                "at a leeward mark straight back to upwind speed): 0 m is clean, below 0 beat it. "
                 "Settled: 10 s VMC back to 90% of the next leg's."
                 + (
                     " With an offset mark the window runs to 60 s after the offset, and the exit "

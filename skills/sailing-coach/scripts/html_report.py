@@ -943,7 +943,9 @@ def roundings_page(runs) -> str:
         goal
         + (f"<ul>{''.join(summary)}</ul>" if summary else "")
         + '<p class="facts">Metres lost toward the marks: VMC (speed toward this mark, then the next) from 30 s '
-        "before to 60 s after the rounding, against the steady VMC of the leg before and after. Settled: 10 s "
+        "before to 60 s after the rounding, against the steady VMC of the leg before and after, beyond what a "
+        "clean rounding loses (3 m off the mark, a steady 15° a second turn, and at a leeward mark straight "
+        "back to upwind speed): 0 m is clean, below 0 beat it. Settled: 10 s "
         "VMC back to 90% of the next leg's.</p>"
         '<p class="facts">Each track map opens zoomed on the mark: the dashed circle is the zone (three Etchells '
         "lengths, 28 m, where mark-room applies) and the open circle is where the boat entered it. "
