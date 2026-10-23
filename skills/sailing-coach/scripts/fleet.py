@@ -52,7 +52,7 @@ BOAT_COLORS = [
 ]
 SERIES_STEP_S = 2  # track overlay and replay resolution
 # Side by side: two boats within this distance on the same leg and the same tack or gybe
-PAIR_RADIUS_M = 200
+PAIR_RADIUS_M = 500
 PAIR_MIN_S = 60  # shortest stretch worth comparing
 PAIR_SETTLE_S = 20  # skip this long after a mark or a tack/gybe (either boat)
 PAIR_MIDDLE_M = 100  # within this of the rhumb line counts as the middle of the course
@@ -827,6 +827,27 @@ def _per_second(race: A.Race, df: pd.DataFrame, legs: list[dict], xy, summ: dict
     g["side"] = side
     change = side.ne(side.shift()).cumsum()
     g["since_side"] = g.groupby(change).cumcount()
+    # Side by side needs the gybe, not the track's sign: a run sailed close to dead downwind
+    # wanders either side of straight down the course with no gybe. So on runs the gybe changes
+    # only at a gybe analyze.py found (or a mark); between them it's the side the boat made
+    # ground toward. Beats keep the track's side (tacks are unmistakable).
+    pair = side.copy()
+    if summ.get("maneuvers") is not None:
+        cuts = sorted({m["time_s"] for m in summ["maneuvers"] if m.get("time_s") is not None})
+        legs_ix = g.leg.to_numpy()
+        xs = g.x.to_numpy()
+        for j, lg in enumerate(legs):
+            on = legs_ix == j
+            if lg.get("type") != "downwind" or not on.any():
+                continue
+            t = s[on]
+            edges = [t[0]] + [c for c in cuts if t[0] < c < t[-1]] + [t[-1] + 1]
+            for e0, e1 in zip(edges[:-1], edges[1:]):
+                seg = on & (s >= e0) & (s < e1)
+                if seg.sum() > 1 and xs[seg][-1] != xs[seg][0]:
+                    pair[seg] = np.sign(xs[seg][-1] - xs[seg][0])
+    g["pair_side"] = pair
+    g["since_pair_side"] = g.groupby(pair.ne(pair.shift()).cumsum()).cumcount()
     return g
 
 
@@ -851,15 +872,15 @@ def side_by_side(per: dict[str, pd.DataFrame], leg_types: list[str], ladders: li
                 (np.hypot(pa.x - pb.x, pa.y - pb.y) < PAIR_RADIUS_M)
                 & (pa.leg == pb.leg)
                 & (pa.leg < len(leg_types))
-                & (pa.side == pb.side)
+                & (pa.pair_side == pb.pair_side)
                 & (pa.since_leg >= PAIR_SETTLE_S)
                 & (pb.since_leg >= PAIR_SETTLE_S)
-                & (pa.since_side >= PAIR_SETTLE_S)
-                & (pb.since_side >= PAIR_SETTLE_S)
+                & (pa.since_pair_side >= PAIR_SETTLE_S)
+                & (pb.since_pair_side >= PAIR_SETTLE_S)
             ).to_numpy()
             runs: list[list[int]] = []
             for s in idx[ok]:
-                if runs and s - runs[-1][1] <= 5 and pa.side.loc[s] == pa.side.loc[runs[-1][1]]:
+                if runs and s - runs[-1][1] <= 5 and pa.pair_side.loc[s] == pa.pair_side.loc[runs[-1][1]]:
                     runs[-1][1] = s
                 else:
                     runs.append([s, s])
@@ -972,7 +993,7 @@ def _pair_row(a, b, pa, pb, leg_types, names, ladders) -> dict:
         "leg": leg,
         "leg_name": names[leg],
         "leg_type": leg_types[leg],
-        "side": ("starboard" if pa.side.iloc[0] < 0 else "port") + (" tack" if up else " gybe"),
+        "side": ("starboard" if pa.pair_side.iloc[0] < 0 else "port") + (" tack" if up else " gybe"),
         "apart_m": [
             round(float(math.hypot(pa.x.iloc[k] - pb.x.iloc[k], pa.y.iloc[k] - pb.y.iloc[k])))
             for k in (0, -1)
@@ -1913,7 +1934,7 @@ def write_md(fa: dict, out: Path, title: str) -> str:
                 )
         L += [
             "",
-            "**Roundings (metres lost toward the marks, boat lengths in brackets; each boat against its own steady VMC)**",
+            "**Roundings (metres lost toward the marks, boat lengths in brackets; each boat against its own steady VMC, beyond a clean rounding)**",
             "",
             "| Boat | " + " | ".join(r["marks"][: len(bs[ids[0]]["roundings"])]) + " |",
             "|---|" + "---|" * len(bs[ids[0]]["roundings"]),
@@ -3774,6 +3795,10 @@ def write_html(
         + "</nav>"
     )
     data = json.dumps(fa).replace("</", "<\\/")
+    source = next(
+        (r["summary"]["source"] for b in boats for r in b["races"].values() if r["summary"].get("source")),
+        "Njord",
+    )
     lib = (
         f'<script src="{H.PLOTLY_CDN}"></script>'
         if cdn
@@ -3784,7 +3809,7 @@ def write_html(
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>{html.escape(title)}</title><style>{H.CSS}{REPLAY_CSS}{RX.CSS}</style><script>{H.PAGE_JS}</script></head>"
         f'<body><main><header class="top"><h1>{html.escape(title)}</h1>'
-        "<p>Fleet comparison from Njord data</p></header>"
+        f"<p>Fleet comparison from {html.escape(source)} data</p></header>"
         + nav
         + "".join(pages)
         + "<footer>Numbers from analyze.py and fleet.py. Speeds are over ground. "

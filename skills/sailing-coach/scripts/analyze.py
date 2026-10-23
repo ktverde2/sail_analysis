@@ -398,6 +398,7 @@ def analyze_race(race: Race, tws_override: float | None) -> dict:
         "stem": race.stem,
         "event": race.meta.get("event"),
         "boat": race.meta.get("boat"),
+        "source": race.meta.get("source", "Njord"),  # "Vakaros" from vkx/vkx_report.py
         "timezone": str(race.tz),
         "gun_local": _local(gun, race.tz),
         "finish_local": _local(legs[-1]["end"], race.tz) if legs else None,
@@ -798,6 +799,20 @@ def estimate_twd(df, legs, hdg_col, axis):
 
 
 ROUNDING_WINDOW_S = (-30, 60)  # VMG compared with the steady legs either side over this window
+# A clean rounding, the 0 m reference. It arrives at the old leg's steady speed and angle, passes
+# the mark this close (GPS antenna to mark, the hull about a metre clear), turns at a steady rate
+# and leaves at the new leg's steady angle. Turn rate and pass distance are the better half of 79
+# roundings at four 2026 regattas. At a windward mark speed goes straight from upwind to downwind
+# speed through the turn. At a leeward mark it builds from run speed to upwind speed from the
+# start of the turn (rounding up onto a reach is what accelerates it; no dip) with this time
+# constant, after 1018's leeward rounding in Oct 11 2026 Race 3 (the best in that data; Kevin
+# agreed it as the standard), which still beats it by about 5 m. The model's own
+# metres (the turn's geometry and the speed change) are what any rounding costs; metres_lost is
+# what this rounding cost beyond it.
+CLEAN_PASS_M = 3.0
+CLEAN_TURN_DEG_S = 15.0
+CLEAN_LEEWARD_DIP = 0.0
+CLEAN_ACCEL_TAU_S = 4.5
 ROUNDING_FLAG_M = 60  # a rounding this costly gets a flag in the executive summary
 SETTLED_VMG = 0.9  # 10 s VMC back to this share of the next leg's steady VMC = settled
 
@@ -805,7 +820,8 @@ SETTLED_VMG = 0.9  # 10 s VMC back to this share of the next leg's steady VMC = 
 def rounding_stats(race: Race, df, legs, leg_rows, man_rows, shifts, progress="vmg_wind") -> list[dict]:
     """Each mark rounding (the boundary between two legs): approach, speed through, and metres
     lost toward the marks against sailing the steady VMC of the leg before (to this mark) and
-    after (to the next one). Without marks, VMG along the wind stands in for VMC."""
+    after (to the next one), beyond what a clean rounding loses (clean_rounding). Without marks,
+    VMG along the wind stands in for VMC and there is no clean model."""
     steady_key = "closing_steady" if progress == "closing" else "vmg_steady"
     show_key = "vmc_steady" if progress == "closing" else "vmg_steady"
     course = race.course
@@ -843,6 +859,16 @@ def rounding_stats(race: Race, df, legs, leg_rows, man_rows, shifts, progress="v
         ok_vmg = win[progress].notna().sum() > 30
         lost = float(np.nansum(gap)) if ok_vmg else None
         pre = (rel[win.index] < 0).values
+        clean = (
+            clean_rounding(df, rel, k, kind, rb[steady_key], ra[steady_key], off_s, offsets[k] if k < len(offsets) else None, race)
+            if ok_vmg and progress == "closing"
+            else None
+        )
+        lost_pre = float(np.nansum(gap[pre])) if ok_vmg else None
+        lost_post = float(np.nansum(gap[~pre])) if ok_vmg else None
+        raw = lost
+        if clean is not None:
+            lost, lost_pre, lost_post = lost - clean[0], lost_pre - clean[1], lost_post - clean[2]
         # 10 s trailing VMC, only over time after the rounding (before it, it was the other leg's)
         after_r = df[(rel >= off_s) & (rel <= 180 + off_s)]
         vmg10 = after_r[progress].rolling(10, min_periods=10).mean()
@@ -875,9 +901,12 @@ def rounding_stats(race: Race, df, legs, leg_rows, man_rows, shifts, progress="v
             # steady VMC (to the mark) of the legs either side: what the rounding is measured against
             "vmg_before": rb[show_key],
             "vmg_after": ra[show_key],
+            # beyond a clean rounding (CLEAN_*); the raw figure counts the turn itself too
             "metres_lost": _r(lost, 1),
-            "lost_before_m": _r(float(np.nansum(gap[pre])), 1) if ok_vmg else None,
-            "lost_after_m": _r(float(np.nansum(gap[~pre])), 1) if ok_vmg else None,
+            "metres_lost_raw": _r(raw, 1),
+            "clean_m": _r(clean[0], 1) if clean is not None else None,
+            "lost_before_m": _r(lost_pre, 1),
+            "lost_after_m": _r(lost_post, 1),
             # Angle to the wind coming in (−20..−5 s) and going out (+15..+40 s, after any offset)
             "entry_twa": _r(w(-20, -5).twa_gps.mean(), 0),
             "exit_twa": _r(w(15 + off_s, 40 + off_s).twa_gps.mean(), 0),
@@ -889,6 +918,138 @@ def rounding_stats(race: Race, df, legs, leg_rows, man_rows, shifts, progress="v
             row.update(mark_approach(df, rel, marks[k], race))
         out.append(row)
     return out
+
+
+def _bearing(dx, dy) -> float:
+    return math.degrees(math.atan2(dx, dy)) % 360
+
+
+def _snap(b: float, geo: dict) -> float:
+    """The leg's tack (or gybe) direction nearest the bearing b."""
+    opts = [(geo["up_deg"] - geo["half_deg"]) % 360, (geo["up_deg"] + geo["half_deg"]) % 360]
+    return min(opts, key=lambda o: abs((b - o + 180) % 360 - 180))
+
+
+def clean_rounding(df, rel, k, kind, v_in, v_out, off_s, off, race) -> tuple[float, float, float] | None:
+    """Metres a clean rounding (CLEAN_*) loses on the same measure as the real one: (total,
+    before the mark, after it). Sailed at this rounding's own steady speeds, tack and gybe angles,
+    side of the mark and turn direction, so only the handling is left to count against the boat.
+    None when the geometry isn't there to model it."""
+    lads = df.attrs.get("ladders")
+    if not lads or k + 1 >= len(lads) or not v_in or not v_out or "cx" not in df:
+        return None
+    gb, ga = lads[k], lads[k + 1]
+    if not gb.get("targets") or not ga.get("targets"):
+        return None
+
+    def at(a, b):
+        g = df[(rel >= a) & (rel <= b) & df.cx.notna()]
+        return (float(g.cx.iloc[0]), float(g.cy.iloc[0]), float(g.cx.iloc[-1]), float(g.cy.iloc[-1])) if len(g) > 2 else None
+
+    p_in, p_out, p_mark = at(-25, -12), at(25 + off_s, 40 + off_s), at(-1, 1)
+    if not (p_in and p_out and p_mark):
+        return None
+    b_in = _snap(_bearing(p_in[2] - p_in[0], p_in[3] - p_in[1]), gb)
+    # which way it turned, from the boat's own track through the rounding
+    g = df[(rel >= -25) & (rel <= 40 + off_s) & df.cx.notna()]
+    brg = np.degrees(np.unwrap(np.radians(np.degrees(np.arctan2(np.diff(g.cx), np.diff(g.cy))))))
+    if len(brg) < 10:
+        return None
+    turned = float(np.nanmedian(brg[-8:]) - np.nanmedian(brg[:8]))
+    mx, my = p_mark[0], p_mark[1]
+    mark = min(gb["targets"], key=lambda q: math.hypot(q[0] - mx, q[1] - my))
+    # leave on whichever tack or gybe is better: on a skewed course one of them runs straight
+    # past a layline, and that choice isn't part of the rounding
+    # (but not one that needs more than a 180 turn, which is a tack or gybe on top of the
+    # rounding, unless the approach leaves no other way, as from port tack at a windward mark)
+    outs = [(ga["up_deg"] - ga["half_deg"]) % 360, (ga["up_deg"] + ga["half_deg"]) % 360]
+    sweep = [abs(_turn(b_in, o, turned)) for o in outs]
+    outs = [o for o, d in zip(outs, sweep) if d <= 180] or outs
+    res = [
+        _clean_path(df, rel, kind, v_in, v_out, off_s, off, gb, ga, mark, b_in, b_out, turned)
+        for b_out in outs
+    ]
+    return min(res, key=lambda r: r[0])
+
+
+def _clean_path(df, rel, kind, v_in, v_out, off_s, off, gb, ga, mark, b_in, b_out, turned):
+    # one turn at the mark, or with an offset mark: round the mark onto a reach to the offset,
+    # then bear away round the offset
+    turns = []
+    if off is not None and off_s > 0:
+        ox, oy = _offset_xy(df, rel, off_s)
+        b_mid = _bearing(ox - mark[0], oy - mark[1])
+        turns = [(b_in, b_mid), (b_mid, b_out)]
+        reach_m = math.hypot(ox - mark[0], oy - mark[1])
+    else:
+        turns = [(b_in, b_out)]
+        reach_m = 0.0
+    sgn = 1.0 if turned >= 0 else -1.0
+    deltas = [_turn(a, b, turned) for a, b in turns]
+    dt, w = 1.0, CLEAN_TURN_DEG_S
+    t0, t1 = -45.0, 75.0 + off_s
+    ts = np.arange(t0, t1 + dt, dt)
+    # heading and speed through time: first turn centred on the mark (t = 0)
+    T1 = abs(deltas[0]) / w
+    h = np.empty(len(ts))
+    v = np.empty(len(ts))
+    v_reach = (v_in + v_out) / 2
+    t_end = T1 / 2
+    t2s = t2e = None
+    if len(turns) == 2:
+        t2s = T1 / 2 + max(reach_m / (v_reach * KT_TO_MS) - abs(deltas[1]) / w / 2 - T1 / 2, 0)
+        t2e = t2s + abs(deltas[1]) / w
+        t_end = t2e
+    for i, t in enumerate(ts):
+        if t < -T1 / 2:
+            h[i] = b_in
+        elif t <= T1 / 2:
+            h[i] = b_in + deltas[0] * (t + T1 / 2) / T1
+        elif t2s is None or t < t2s:
+            h[i] = b_in + deltas[0]
+        elif t <= t2e:
+            h[i] = b_in + deltas[0] + deltas[1] * (t - t2s) / (t2e - t2s)
+        else:
+            h[i] = b_in + deltas[0] + deltas[1]
+        if t < -T1 / 2:
+            v[i] = v_in
+        elif kind == "windward":
+            v[i] = v_in + (v_out - v_in) * min((t + T1 / 2) / max(t_end + T1 / 2, 1), 1.0)
+        else:
+            # rounding up onto a reach builds speed as the boat turns, so it starts in the turn
+            v_low = v_in * (1 - CLEAN_LEEWARD_DIP)
+            v[i] = v_out - (v_out - v_low) * math.exp(-(t + T1 / 2) / CLEAN_ACCEL_TAU_S)
+    ms = v * KT_TO_MS
+    x = np.concatenate([[0.0], np.cumsum(ms[:-1] * np.sin(np.radians(h[:-1])) * dt)])
+    y = np.concatenate([[0.0], np.cumsum(ms[:-1] * np.cos(np.radians(h[:-1])) * dt)])
+    # place it: the mark sits CLEAN_PASS_M inside the turn at its middle (t = 0)
+    i0 = int(np.argmin(np.abs(ts)))
+    hr = math.radians(h[i0])
+    nx, ny = (math.cos(hr), -math.sin(hr)) if sgn > 0 else (-math.cos(hr), math.sin(hr))
+    sx = mark[0] - (x[i0] + CLEAN_PASS_M * nx)
+    sy = mark[1] - (y[i0] + CLEAN_PASS_M * ny)
+    x, y = x + sx, y + sy
+    before = ts < 0
+    tg = np.where(before, ladder.to_go(x, y, gb, gb["targets"]), ladder.to_go(x, y, ga, ga["targets"]))
+    made = -np.diff(tg, prepend=np.nan)
+    made[made < -50] = np.nan
+    closing = pd.Series(made / dt / KT_TO_MS).rolling(5, center=True, min_periods=3).mean().to_numpy()
+    win = (ts >= ROUNDING_WINDOW_S[0]) & (ts <= ROUNDING_WINDOW_S[1] + off_s)
+    base = np.where(ts < 0, v_in, v_out)
+    gap = (base - closing) * KT_TO_MS
+    pre = win & before
+    post = win & ~before
+    return float(np.nansum(gap[win])), float(np.nansum(gap[pre])), float(np.nansum(gap[post]))
+
+
+def _turn(a: float, b: float, turned: float) -> float:
+    """Degrees from bearing a to bearing b, turning the way the boat turned (+ = clockwise)."""
+    return (b - a) % 360 if turned >= 0 else -((a - b) % 360)
+
+
+def _offset_xy(df, rel, off_s) -> tuple[float, float]:
+    g = df[(rel >= off_s - 1) & (rel <= off_s + 1) & df.cx.notna()]
+    return float(g.cx.mean()), float(g.cy.mean())
 
 
 def compare_roundings(results: list[dict]) -> None:
@@ -1136,6 +1297,8 @@ def mark_progress(race: Race, df, legs, axis) -> bool:
             rung[on] = math.cos(math.radians(lad["half_deg"]))
     df["to_go"] = to_go
     df["overstand"] = over
+    df["cx"], df["cy"] = x, y  # course frame, for the clean-rounding model in rounding_stats
+    df.attrs["ladders"] = lads
     dt = df.t.diff().dt.total_seconds()
     made = -df.to_go.diff()  # metres closer to the mark since the last fix
     made[made < -50] = np.nan  # a new leg starts: the distance jumps up
@@ -2271,7 +2434,9 @@ def roundings_md(rs: list | None) -> list[str]:
             "## Mark roundings",
             (
                 "Metres lost toward the marks: VMC (speed toward this mark, then the next) from 30 s "
-                "before to 60 s after the rounding against the steady VMC of the leg before and after. "
+                "before to 60 s after the rounding against the steady VMC of the leg before and after, "
+                "beyond what a clean rounding loses (3 m off the mark, a steady 15° a second turn, and "
+                "at a leeward mark straight back to upwind speed): 0 m is clean, below 0 beat it. "
                 "Settled: 10 s VMC back to 90% of the next leg's."
                 + (
                     " With an offset mark the window runs to 60 s after the offset, and the exit "

@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>__TITLE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400&display=swap">
+<style>
+/* Course check: chart-table map on the left, the course list on the right; stacks on phones.
+   Built by course.py page from course_check.html; __TITLE__ and __DATA__ are filled in. */
+:root{
+  --bg:#eef3f4; --paper:#f8fbfb; --ink:#14313a; --muted:#5c7680; --line:#c9d8dc; --warn:#b0412e;
+  --water:#dceaee; --grid:#c4d7dd; --mark:#e2711d; --finish:#2f8f4e; --start:#7b4fb0;
+  --b0:#1f6f8b; --b1:#b4366e; --b2:#7a5c00; --b3:#3d7a3a; --b4:#5b4bb5; --b5:#9a4a1c;
+  --display:"Barlow Condensed","Arial Narrow",sans-serif;
+  --body:"Source Sans 3","Segoe UI",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0e1b20; --paper:#132429; --ink:#e3eef0; --muted:#8fa8b0; --line:#28414a; --warn:#f08a74;
+  --water:#10262d; --grid:#1d3a43; --mark:#f39a4c; --finish:#5cc77f; --start:#b48ae6;
+  --b0:#5cc0dd; --b1:#f08bb5; --b2:#e3c35a; --b3:#8fd18a; --b4:#b0a4f5; --b5:#f0a070; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1b20; --paper:#132429; --ink:#e3eef0; --muted:#8fa8b0; --line:#28414a; --warn:#f08a74;
+  --water:#10262d; --grid:#1d3a43; --mark:#f39a4c; --finish:#5cc77f; --start:#b48ae6;
+  --b0:#5cc0dd; --b1:#f08bb5; --b2:#e3c35a; --b3:#8fd18a; --b4:#b0a4f5; --b5:#f0a070; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:16px 32px}
+h1{font-family:var(--display);font-weight:600;font-size:1.9rem;letter-spacing:.01em;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:2px 0 14px;max-width:72ch}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.tabs button{font-family:var(--display);font-size:1.05rem;letter-spacing:.04em;text-transform:uppercase;border:1px solid var(--line);
+  background:var(--paper);color:var(--ink);padding:6px 14px;border-radius:4px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.wrap{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+@media (max-width:820px){.wrap{grid-template-columns:minmax(0,1fr)}}
+.map{background:var(--water);border:1px solid var(--line);border-radius:6px;overflow:hidden;position:relative;min-width:0}
+svg{display:block;width:100%;height:min(72vh,680px);min-height:320px;touch-action:none;user-select:none}
+.gridl{stroke:var(--grid);stroke-width:1;vector-effect:non-scaling-stroke}
+.trk{fill:none;stroke-width:2;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+.lab{font-family:var(--mono);fill:var(--muted)}
+.mlab{font-family:var(--display);font-weight:600;fill:var(--ink);paint-order:stroke;stroke:var(--water)}
+.handle{cursor:grab}
+.handle:focus-visible{outline:none}
+.handle:focus-visible circle.vis{stroke:var(--ink);stroke-width:3}
+.zoom{position:absolute;top:10px;left:10px;display:flex;gap:4px;align-items:center}
+.zoom button{font-family:var(--display);font-size:1.1rem;min-width:36px;height:36px;border:1px solid var(--line);background:var(--paper);color:var(--ink);border-radius:4px;cursor:pointer}
+.zoom span{font-family:var(--mono);font-size:12px;color:var(--muted);padding-left:4px}
+svg.panning{cursor:grabbing}
+.scrub{display:flex;gap:10px;align-items:center;padding:10px 12px;border-top:1px solid var(--line);background:var(--paper)}
+.scrub input{flex:1;min-width:0}
+.clock{font-family:var(--mono);font-size:13px;min-width:15ch;text-align:right;font-variant-numeric:tabular-nums}
+.panel{background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.panel h2{font-family:var(--display);font-weight:600;font-size:1.2rem;letter-spacing:.04em;text-transform:uppercase;margin:0}
+.el{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:8px;align-items:start;padding:8px 0;border-top:1px solid var(--line)}
+.el:first-of-type{border-top:0}
+.num{font-family:var(--display);font-size:1.3rem;font-weight:600;text-align:center}
+.el .what{font-weight:600}
+.el .meta{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.el .pass{font-family:var(--mono);font-size:12px;font-variant-numeric:tabular-nums;margin-top:2px}
+.el .pass .miss{color:var(--warn)}
+.el select,.el button,.actions button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:4px;padding:4px 8px;cursor:pointer}
+.el .ctl{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.actions .primary{background:var(--ink);color:var(--paper);border-color:var(--ink);font-weight:600;padding:8px 14px}
+.note{font-size:13px;color:var(--muted)}
+.notes{margin:0;padding-left:18px;font-size:13px;color:var(--muted)}
+.status{font-size:13px;min-height:1.2em}
+.swatch{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;vertical-align:baseline}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:5px;border-radius:2px}
+button:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--b0);outline-offset:2px}
+</style>
+</head>
+<body>
+<h1 id="h1"></h1>
+<p class="sub">My estimate of each race's marks, gates and finish, drawn over every boat's track. Scroll or pinch to zoom and drag the water to pan. Drag a buoy or a line end to move it, switch a mark to a gate, then press Save. Under each mark you can see how close each boat passed it, and under the finish when each boat crossed.</p>
+
+<div class="tabs" role="tablist" id="tabs"></div>
+
+<div class="wrap">
+  <div class="map">
+    <svg id="svg" aria-label="Race tracks and course marks"></svg>
+    <div class="zoom"><button id="zin" aria-label="Zoom in">+</button><button id="zout" aria-label="Zoom out">−</button><button id="zfit" aria-label="Show whole course">Fit</button><span id="zlevel"></span></div>
+    <div class="scrub">
+      <label for="scrub" class="note">Boats at</label>
+      <input type="range" id="scrub" min="0" max="100" value="0">
+      <span class="clock" id="clock"></span>
+    </div>
+  </div>
+  <div class="panel">
+    <h2 id="ptitle">Course</h2>
+    <div id="els"></div>
+    <div class="actions">
+      <button id="addMark">Add mark</button>
+      <button id="finStart">Finish on start line</button>
+      <button id="reset">Reset race to my estimate</button>
+    </div>
+    <div class="actions"><button class="primary" id="save">Save course</button><button id="dl">Download regatta.json</button></div>
+    <div class="status" id="status" role="status"></div>
+    <ul class="notes" id="rnote"></ul>
+  </div>
+</div>
+<div class="legend" id="legend"></div>
+
+<script type="application/json" id="data">__DATA__</script>
+<script>
+(function(){
+const DATA=JSON.parse(document.getElementById('data').textContent);
+const TZ=DATA.regatta.timezone||'UTC', DOC=DATA.doc;
+const COL=DATA.boats.map((_,i)=>`var(--b${i%6})`), colOf=n=>COL[Math.max(0,DATA.boats.indexOf(n))];
+const svg=document.getElementById('svg'), NS="http://www.w3.org/2000/svg";
+const est=JSON.parse(JSON.stringify(DATA.regatta.races));
+let courses=JSON.parse(JSON.stringify(est)), cur=0, db=null, dirty=false, courseUp=true;
+document.getElementById('h1').textContent=DATA.title;
+document.getElementById('legend').innerHTML=DATA.boats.map((b,i)=>`<span><i style="background:${COL[i]}"></i>${esc(b)}</span>`).join('')+
+  '<span>Faded: before the gun and after each boat\'s finish</span>'+
+  '<span><span class="swatch" style="background:var(--start)"></span>Start line (from the boats\' pings)</span>'+
+  '<span><span class="swatch" style="background:var(--mark)"></span>Mark or gate</span>'+
+  '<span><span class="swatch" style="background:var(--finish)"></span>Finish line</span>';
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+function proj(r){const sl=courses[r].course[0];const lat0=(sl.coord1.lat+sl.coord2.lat)/2, lon0=(sl.coord1.lon+sl.coord2.lon)/2;
+  const kx=111320*Math.cos(lat0*Math.PI/180), ky=110540, axis=courseUp?DATA.races[r].axis:0, th=axis*Math.PI/180, c=Math.cos(th), s=Math.sin(th);
+  const en=(p)=>[(p.lon-lon0)*kx,(p.lat-lat0)*ky];
+  return {axis, en, to:(p)=>{const [e,n]=en(p);return [e*c-n*s,-(e*s+n*c)];},
+    from:(x,y)=>{const u=x,v=-y,e=u*c+v*s,n=-u*s+v*c;return {lat:+(lat0+n/ky).toFixed(6),lon:+(lon0+e/kx).toFixed(6)};}};}
+function el(n,a,p){const e=document.createElementNS(NS,n);for(const k in a)e.setAttribute(k,a[k]);(p||svg).appendChild(e);return e;}
+function fmt(s){const sg=s<0?'−':'+';s=Math.abs(Math.round(s));return sg+Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
+
+// Each boat's pass at every element after the start: closest point within 120 m (marks, gates), crossing (finish)
+function passages(R,course,P){return R.boats.map(B=>{
+  const en=B.track.map(p=>P.en({lat:p[0],lon:p[1]})), t=B.track.map(p=>p[2]), out=[];
+  let i0=t.findIndex(v=>v>=0);if(i0<0)return out;
+  for(const e of course){if(e.type==='StartLine')continue;
+    if(e.type==='FinishLine'&&e.coord2){const a=P.en(e.coord1),b=P.en(e.coord2),dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy||1,pad=20/Math.sqrt(L2);
+      const sd=q=>dx*(q[1]-a[1])-dy*(q[0]-a[0]), u=q=>((q[0]-a[0])*dx+(q[1]-a[1])*dy)/L2;let hit=-1;
+      for(let i=Math.max(i0,1);i<en.length;i++){const s1=sd(en[i-1]),s2=sd(en[i]);if((s1<0)!==(s2<0)){const f=s1/(s1-s2),uu=u(en[i-1])+f*(u(en[i])-u(en[i-1]));if(uu>=-pad&&uu<=1+pad){hit=i;break;}}}
+      if(hit<0){out.push(null);break;}out.push({t:t[hit]});i0=hit;continue;}
+    const ends=[e.coord1].concat(e.coord2?[e.coord2]:[]).map(q=>P.en(q));
+    const dist=i=>{let best=1e9,k=0;ends.forEach((q,j)=>{const d=Math.hypot(en[i][0]-q[0],en[i][1]-q[1]);if(d<best){best=d;k=j;}});return [best,k];};
+    let k=-1;for(let i=i0;i<en.length;i++){if(dist(i)[0]<120){k=i;break;}}
+    if(k<0){out.push(null);break;}
+    let j=k,bd=dist(k)[0];for(let i=k;i<en.length;i++){const d=dist(i)[0];if(d>200)break;if(d<bd){bd=d;j=i;}}
+    const [d,end]=dist(j);out.push({t:t[j],d,end:ends.length>1?'ab'[end]:null});i0=j;}
+  return out;});}
+
+function tabs(){const t=document.getElementById('tabs');t.innerHTML='';
+  courses.forEach((c,i)=>{const b=document.createElement('button');b.role='tab';b.textContent='Race '+c.race;b.setAttribute('aria-selected',i===cur);
+    b.onclick=()=>{cur=i;render();};t.appendChild(b);});
+  const o=document.createElement('button');o.textContent=courseUp?'North up':'Course up';o.setAttribute('aria-label','Switch map to '+o.textContent);
+  o.style.marginLeft='auto';o.onclick=()=>{courseUp=!courseUp;for(const z in zooms)delete zooms[z];render();};t.appendChild(o);}
+
+let view=null;
+function render(){tabs();const R=DATA.races[cur], P=proj(cur), c=courses[cur].course;
+  const pas=passages(R,c,P), fin=c.length&&c[c.length-1].type==='FinishLine'?c.filter(e=>e.type!=='StartLine').length-1:-1;
+  const finT=pas.map(p=>fin>=0&&p[fin]?p[fin].t:Infinity);
+  const bpts=R.boats.map(b=>b.track.map(p=>P.to({lat:p[0],lon:p[1]})));
+  let xs=bpts.flat().map(p=>p[0]), ys=bpts.flat().map(p=>p[1]);
+  c.forEach(e=>[e.coord1,e.coord2].forEach(q=>{if(q){const v=P.to(q);xs.push(v[0]);ys.push(v[1]);}}));
+  const pad=120, bx0=Math.min(...xs)-pad, bx1=Math.max(...xs)+pad, by0=Math.min(...ys)-pad, by1=Math.max(...ys)+pad;
+  const cw=svg.clientWidth||800, ch=svg.clientHeight||600, A=cw/ch;
+  let fw=bx1-bx0, fh=by1-by0; if(fw/fh<A)fw=fh*A; else fh=fw/A;
+  const Z=zoomFor(cur,(bx0+bx1)/2,(by0+by1)/2), w=fw/Z.s, h=fh/Z.s;
+  const x0=Z.cx-w/2, x1=Z.cx+w/2, y0=Z.cy-h/2, y1=Z.cy+h/2;
+  view={x0,y0,w,h,P,bpts};
+  svg.setAttribute('viewBox',`${x0} ${y0} ${w} ${h}`);svg.innerHTML='';
+  const k=w/cw; // metres per css px
+  const gs=[10,20,50,100,200,500].find(v=>v>=w/12)||1000, bar=[25,50,100,200,500,1000].filter(v=>v<=w/3).pop()||10;
+  for(let g=Math.ceil(x0/gs)*gs;g<x1;g+=gs)el('line',{x1:g,x2:g,y1:y0,y2:y1,class:'gridl'});
+  for(let g=Math.ceil(y0/gs)*gs;g<y1;g+=gs)el('line',{y1:g,y2:g,x1:x0,x2:x1,class:'gridl'});
+  document.getElementById('zlevel').textContent=Z.s>1.01?Z.s.toFixed(1)+'×':'';
+  const sb=el('g',{});el('line',{x1:x0+20*k,x2:x0+20*k+bar,y1:y1-20*k,y2:y1-20*k,stroke:'var(--muted)','stroke-width':3,'vector-effect':'non-scaling-stroke'},sb);
+  el('text',{x:x0+20*k,y:y1-28*k,class:'lab','font-size':11*k},sb).textContent=bar+' m · grid '+gs+' m';
+  // wind (the course axis from the boats' tacks) and north
+  const wx=x1-60*k, wy=y0+60*k, a=(R.axis-P.axis)*Math.PI/180, L=36*k, g=el('g',{});
+  el('line',{x1:wx+Math.sin(a)*L,y1:wy-Math.cos(a)*L,x2:wx-Math.sin(a)*L*0.6,y2:wy+Math.cos(a)*L*0.6,stroke:'var(--ink)','stroke-width':2.5,'vector-effect':'non-scaling-stroke'},g);
+  el('circle',{cx:wx-Math.sin(a)*L*0.6,cy:wy+Math.cos(a)*L*0.6,r:4*k,fill:'var(--ink)'},g);
+  el('text',{x:wx,y:wy+L+16*k,class:'lab','font-size':11*k,'text-anchor':'middle'},g).textContent='wind '+R.axis+'°T';
+  const nx=x1-170*k, ny=y0+60*k, na=-P.axis*Math.PI/180, nL=26*k, ng=el('g',{});
+  el('line',{x1:nx-Math.sin(na)*nL,y1:ny+Math.cos(na)*nL,x2:nx+Math.sin(na)*nL,y2:ny-Math.cos(na)*nL,stroke:'var(--muted)','stroke-width':1.5,'vector-effect':'non-scaling-stroke'},ng);
+  el('text',{x:nx+Math.sin(na)*(nL+12*k),y:ny-Math.cos(na)*(nL+12*k)+4*k,class:'lab','font-size':12*k,'text-anchor':'middle'},ng).textContent='N';
+  el('text',{x:nx,y:ny+nL+30*k,class:'lab','font-size':11*k,'text-anchor':'middle'},ng).textContent=courseUp?'course up':'north up';
+  // tracks: faded before the gun and after each boat's finish
+  R.boats.forEach((B,bi)=>{const pts=bpts[bi], col=colOf(B.name);
+    [[p=>p[2]<0,0.3],[p=>p[2]>=0&&p[2]<=finT[bi],1],[p=>p[2]>finT[bi],0.3]].forEach(([f,op])=>{
+      const ix=B.track.map((p,i)=>f(p)?i:-1).filter(i=>i>=0);if(!ix.length)return;
+      const lo=Math.max(ix[0]-1,0), hi=ix[ix.length-1];
+      el('polyline',{points:pts.slice(lo,hi+1).map(p=>p.join(',')).join(' '),class:'trk',stroke:col,'stroke-opacity':op});});});
+  // course
+  let n=0;
+  c.forEach((e,i)=>{const col=e.type==='StartLine'?'var(--start)':e.type==='FinishLine'?'var(--finish)':'var(--mark)';
+    const a1=P.to(e.coord1), a2=e.coord2?P.to(e.coord2):null;
+    if(a2)el('line',{x1:a1[0],y1:a1[1],x2:a2[0],y2:a2[1],stroke:col,'stroke-width':e.type==='Gate'?2:4,'stroke-dasharray':e.type==='Gate'?'6 5':'none','vector-effect':'non-scaling-stroke'});
+    const label=e.type==='StartLine'?'Start':e.type==='FinishLine'?'Finish':String(++n);
+    [['coord1',a1,'a'],['coord2',a2,'b']].forEach(([key,v,ab])=>{if(!v)return;
+      const hd=el('g',{class:e.type==='StartLine'?'':'handle',tabindex:e.type==='StartLine'?-1:0,'aria-label':label+(a2?' end '+ab:'')});
+      el('circle',{cx:v[0],cy:v[1],r:16*k,fill:'transparent'},hd);
+      el('circle',{cx:v[0],cy:v[1],r:(e.type==='Mark'||e.type==='Gate'?7:5)*k,fill:col,stroke:'var(--paper)','stroke-width':1.5,'vector-effect':'non-scaling-stroke',class:'vis'},hd);
+      if(e.type==='Gate')el('text',{x:v[0]+9*k,y:v[1]+14*k,class:'lab','font-size':11*k},hd).textContent=ab;
+      if(e.type!=='StartLine')drag(hd,i,key);});
+    const lp=a2?[(a1[0]+a2[0])/2,(a1[1]+a2[1])/2]:a1;
+    el('text',{x:lp[0]+12*k,y:lp[1]-10*k,class:'mlab','font-size':15*k,'stroke-width':3*k}).textContent=label;});
+  view.dots=R.boats.map(B=>el('circle',{r:5.5*k,fill:colOf(B.name),stroke:'var(--paper)','stroke-width':2,'vector-effect':'non-scaling-stroke'}));
+  const s=document.getElementById('scrub');const tmin=-120,tmax=Math.max(...R.boats.map(b=>b.track[b.track.length-1][2]));
+  s.min=tmin;s.max=tmax;s.step=2;if(+s.value<tmin||+s.value>tmax)s.value=tmin;scrub();
+  list(pas);
+  document.getElementById('rnote').innerHTML=(R.notes||[]).map(t=>'<li>'+esc(t)+'</li>').join('');}
+
+const zooms={};
+function zoomFor(r,cx,cy){if(!zooms[r])zooms[r]={cx,cy,s:1};return zooms[r];}
+function setBox(){svg.setAttribute('viewBox',`${view.x0} ${view.y0} ${view.w} ${view.h}`);}
+let raf=0;function later(){if(!raf)raf=requestAnimationFrame(()=>{raf=0;render();});}
+function zoomAt(px,py,f){const Z=zooms[cur],s2=Math.min(60,Math.max(1,Z.s*f)),q=Z.s/s2;
+  Z.cx=px+(Z.cx-px)*q;Z.cy=py+(Z.cy-py)*q;Z.s=s2;if(s2===1){delete zooms[cur];}later();}
+function toUnits(cx,cy){const m=svg.getScreenCTM().inverse(),pt=svg.createSVGPoint();pt.x=cx;pt.y=cy;return pt.matrixTransform(m);}
+svg.addEventListener('wheel',(ev)=>{ev.preventDefault();const q=toUnits(ev.clientX,ev.clientY);zoomAt(q.x,q.y,Math.exp(-ev.deltaY*0.0015));},{passive:false});
+const ptrs=new Map();let pan=null;
+svg.addEventListener('pointerdown',(ev)=>{if(ev.target.closest('.handle'))return;svg.setPointerCapture(ev.pointerId);
+  ptrs.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});
+  const Z=zoomFor(cur,view.x0+view.w/2,view.y0+view.h/2);
+  if(ptrs.size===1)pan={x:ev.clientX,y:ev.clientY,cx:Z.cx,cy:Z.cy,a:svg.getScreenCTM().a};
+  else{const [p,q]=[...ptrs.values()];pan={pinch:Math.hypot(p.x-q.x,p.y-q.y),s:Z.s,cx:Z.cx,cy:Z.cy,mid:toUnits((p.x+q.x)/2,(p.y+q.y)/2)};}
+  svg.classList.add('panning');});
+svg.addEventListener('pointermove',(ev)=>{if(!ptrs.has(ev.pointerId)||!pan)return;ptrs.set(ev.pointerId,{x:ev.clientX,y:ev.clientY});const Z=zooms[cur];
+  if(pan.pinch&&ptrs.size>=2){const [p,q]=[...ptrs.values()],f=Math.hypot(p.x-q.x,p.y-q.y)/pan.pinch,s2=Math.min(60,Math.max(1,pan.s*f)),r=pan.s/s2;
+    Z.s=s2;Z.cx=pan.mid.x+(pan.cx-pan.mid.x)*r;Z.cy=pan.mid.y+(pan.cy-pan.mid.y)*r;later();}
+  else if(!pan.pinch){Z.cx=pan.cx-(ev.clientX-pan.x)/pan.a;Z.cy=pan.cy-(ev.clientY-pan.y)/pan.a;
+    view.x0=Z.cx-view.w/2;view.y0=Z.cy-view.h/2;setBox();}});
+const endPtr=(ev)=>{if(!ptrs.delete(ev.pointerId))return;if(ptrs.size===0){pan=null;svg.classList.remove('panning');render();}
+  else{const [p]=[...ptrs.values()],Z=zooms[cur];pan={x:p.x,y:p.y,cx:Z.cx,cy:Z.cy,a:svg.getScreenCTM().a};}};
+svg.addEventListener('pointerup',endPtr);svg.addEventListener('pointercancel',endPtr);
+document.getElementById('zin').onclick=()=>{zoomFor(cur,view.x0+view.w/2,view.y0+view.h/2);zoomAt(view.x0+view.w/2,view.y0+view.h/2,1.6);};
+document.getElementById('zout').onclick=()=>{zoomFor(cur,view.x0+view.w/2,view.y0+view.h/2);zoomAt(view.x0+view.w/2,view.y0+view.h/2,1/1.6);};
+document.getElementById('zfit').onclick=()=>{delete zooms[cur];render();};
+
+function scrub(){const R=DATA.races[cur],ts=+document.getElementById('scrub').value;
+  R.boats.forEach((B,bi)=>{let j=0,best=1e9;B.track.forEach((p,i)=>{const d=Math.abs(p[2]-ts);if(d<best){best=d;j=i;}});
+    const p=view.bpts[bi][j],dot=view.dots[bi];dot.style.display=best>10?'none':'';dot.setAttribute('cx',p[0]);dot.setAttribute('cy',p[1]);});
+  const t=new Date(Date.parse(R.gun)+ts*1000);
+  document.getElementById('clock').textContent='gun '+fmt(ts)+' · '+t.toLocaleTimeString('en-US',{timeZone:TZ,hour:'numeric',minute:'2-digit'});}
+document.getElementById('scrub').addEventListener('input',scrub);
+
+function drag(h,i,key){
+  h.addEventListener('pointerdown',(ev)=>{ev.preventDefault();h.setPointerCapture(ev.pointerId);h.style.cursor='grabbing';
+    const mv=(e2)=>{const q=toUnits(e2.clientX,e2.clientY);courses[cur].course[i][key]=view.P.from(q.x,q.y);dirty=true;quick(h,i,key);};
+    const up=()=>{h.removeEventListener('pointermove',mv);h.removeEventListener('pointerup',up);h.removeEventListener('pointercancel',up);render();setStatus('Unsaved changes');};
+    h.addEventListener('pointermove',mv);h.addEventListener('pointerup',up);h.addEventListener('pointercancel',up);});
+  h.addEventListener('keydown',(ev)=>{const d={ArrowLeft:[-5,0],ArrowRight:[5,0],ArrowUp:[0,-5],ArrowDown:[0,5]}[ev.key];if(!d)return;ev.preventDefault();
+    const e=courses[cur].course[i],v=view.P.to(e[key]);e[key]=view.P.from(v[0]+d[0],v[1]+d[1]);dirty=true;render();setStatus('Unsaved changes');
+    const again=[...svg.querySelectorAll('.handle')].find(x=>x.getAttribute('aria-label')===h.getAttribute('aria-label'));if(again)again.focus();});}
+function quick(h,i,key){const e=courses[cur].course[i],v=view.P.to(e[key]);h.querySelectorAll('circle').forEach(c=>{c.setAttribute('cx',v[0]);c.setAttribute('cy',v[1]);});}
+
+function dist(P,a,b){const p=P.to(a),q=P.to(b);return Math.hypot(p[0]-q[0],p[1]-q[1]);}
+function list(pas){const box=document.getElementById('els');box.innerHTML='';const c=courses[cur].course,P=view.P,R=DATA.races[cur];
+  document.getElementById('ptitle').textContent='Race '+courses[cur].race+' course';
+  const sl=c[0],mid={lat:(sl.coord1.lat+sl.coord2.lat)/2,lon:(sl.coord1.lon+sl.coord2.lon)/2};let n=0,k=-1;
+  c.forEach((e,i)=>{const row=document.createElement('div');row.className='el';
+    const label=e.type==='StartLine'?'S':e.type==='FinishLine'?'F':String(++n);if(e.type!=='StartLine')k++;
+    const ctr=e.coord2?{lat:(e.coord1.lat+e.coord2.lat)/2,lon:(e.coord1.lon+e.coord2.lon)/2}:e.coord1;
+    const v=P.en(ctr),brg=Math.round((Math.atan2(v[0],v[1])*180/Math.PI+360)%360);
+    const meta=e.type==='StartLine'?`${Math.round(dist(P,sl.coord1,sl.coord2))} m long`:
+      `${Math.round(dist(P,mid,ctr))} m from start, ${brg}°T`+(e.coord2?` · ${Math.round(dist(P,e.coord1,e.coord2))} m wide`:'');
+    let pass='';
+    if(e.type!=='StartLine')pass=R.boats.map((B,bi)=>{const q=pas[bi][k],nm=`<span style="color:${colOf(B.name)}">${esc(B.name)}</span>`;
+      if(!q)return nm+' <span class="miss">'+(e.type==='FinishLine'?'doesn\'t cross':'not within 120 m')+'</span>';
+      return nm+' '+(e.type==='FinishLine'?fmt(q.t):Math.round(q.d)+' m'+(q.end?' ('+q.end+')':''));}).join(' · ');
+    const name={StartLine:'Start line',Mark:'Mark',Gate:'Gate',FinishLine:'Finish line'}[e.type];
+    row.innerHTML=`<div class="num">${label}</div><div><div class="what">${name}</div><div class="meta">${meta}</div>${pass?'<div class="pass">'+pass+'</div>':''}</div><div class="ctl"></div>`;
+    const ctl=row.querySelector('.ctl');
+    if(e.type==='Mark'||e.type==='Gate'){
+      const s=document.createElement('select');s.setAttribute('aria-label','Type of mark '+label);
+      ['Mark','Gate'].forEach(t=>{const o=document.createElement('option');o.value=t;o.textContent=t;o.selected=t===e.type;s.appendChild(o);});
+      s.onchange=()=>{if(s.value==='Gate'){const a=(R.axis+90-P.axis)*Math.PI/180,p=P.to(e.coord1);
+          e.coord2=P.from(p[0]+Math.sin(a)*60,p[1]-Math.cos(a)*60);}else e.coord2=null;e.type=s.value;dirty=true;render();setStatus('Unsaved changes');};
+      ctl.appendChild(s);
+      if(i>1)ctl.appendChild(btn('↑','Move earlier',()=>{[c[i-1],c[i]]=[c[i],c[i-1]];dirty=true;render();setStatus('Unsaved changes');}));
+      ctl.appendChild(btn('✕','Remove mark '+label,()=>{c.splice(i,1);dirty=true;render();setStatus('Unsaved changes');}));}
+    box.appendChild(row);});}
+function btn(t,l,f){const b=document.createElement('button');b.textContent=t;b.setAttribute('aria-label',l);b.title=l;b.onclick=f;return b;}
+
+document.getElementById('addMark').onclick=()=>{const c=courses[cur].course,P=view.P,at=c.length&&c[c.length-1].type==='FinishLine'?c.length-1:c.length;
+  c.splice(at,0,{type:'Mark',coord1:P.from(view.x0+view.w/2,view.y0+view.h/2),coord2:null});dirty=true;render();setStatus('New mark in the middle of the map. Drag it into place.');};
+document.getElementById('finStart').onclick=()=>{const c=courses[cur].course;let f=c[c.length-1];
+  if(f.type!=='FinishLine'){f={type:'FinishLine'};c.push(f);}
+  f.coord1={...c[0].coord1};f.coord2={...c[0].coord2};dirty=true;render();setStatus('Finish moved onto the start line. Unsaved.');};
+document.getElementById('reset').onclick=()=>{courses[cur]=JSON.parse(JSON.stringify(est[cur]));dirty=true;render();setStatus('Race '+courses[cur].race+' back to my estimate. Unsaved.');};
+function setStatus(t){document.getElementById('status').textContent=t;}
+
+function regatta(){return {event:DATA.regatta.event,timezone:TZ,races:courses,savedAt:new Date().toISOString()};}
+function download(){const b=new Blob([JSON.stringify(regatta(),null,1)],{type:'application/json'}),a=document.createElement('a');
+  a.href=URL.createObjectURL(b);a.download=DATA.file||'regatta.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+document.getElementById('dl').onclick=()=>{download();setStatus('Downloaded. Send the file back to Claude to rerun the analysis with this course.');};
+document.getElementById('save').onclick=async()=>{
+  if(!db){download();dirty=false;setStatus('Downloaded. Send the file back to Claude to rerun the analysis with this course.');return;}
+  try{await db.doc(DOC).set(regatta());dirty=false;setStatus('Saved. Tell Claude, and it will rerun the analysis with this course.');}
+  catch(e){setStatus(e&&e.code==='invalid_argument'?'You don\'t have permission to save this page. Use Download instead.':'Save failed ('+(e&&e.code||'error')+'). Try again, or use Download.');}};
+
+render();
+let rz=0;addEventListener('resize',()=>{clearTimeout(rz);rz=setTimeout(render,150);});
+(async()=>{try{db=(typeof claude!=='undefined'&&claude.use)?await claude.use("db"):null;}catch(e){db=null;}
+  if(!db){setStatus('Save downloads regatta.json. Send that file back to Claude.');return;}
+  try{const s=await db.doc(DOC).get();if(s.exists&&!dirty){const d=s.data(),same=Array.isArray(d.races)&&d.races.length===courses.length&&d.races.every((r,i)=>r.startTime===courses[i].startTime);
+    if(same){courses=JSON.parse(JSON.stringify(d.races));render();
+      setStatus('Showing your saved course from '+new Date(d.savedAt).toLocaleString('en-US',{timeZone:TZ,month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})+'.');}}}
+  catch(e){/* keep the estimate */}})();
+})();
+</script>
+</body>
+</html>
