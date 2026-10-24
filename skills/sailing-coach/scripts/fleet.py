@@ -4,7 +4,7 @@ starts, upwind and downwind speed, sides of the course, and roundings.
 
 Usage:
   python fleet.py --data <dir> --reports <dir> --out <dir> [--html] [--debrief fleet.md]
-                  [--title "PCC 2026"] [--cdn]
+                  [--title "PCC 2026"] [--cdn] [--data-only] [--notes about.md]
 
 --data holds one folder per boat with Njord exports (raceN.csv plus raceN-race.json with the
 course); --reports holds the matching analyze.py output per boat (same folder names). Races are
@@ -3645,7 +3645,11 @@ def write_html(
     reports_dir: Path,
     boats: list[dict],
     cdn: bool,
+    data_only: bool = False,
+    notes: str | None = None,
 ) -> Path:
+    if data_only:  # no coaching: a coach debriefs from the data
+        debrief = None
     sections = md.split("\n## ")
     rest = ["## " + s for s in sections[1:]]
     results = [
@@ -3667,6 +3671,10 @@ def write_html(
             summary,
         )
     ]
+    if notes:
+        pages.append(
+            H.page("about", "About the data", "How the numbers were measured, and what they can't see.", H.card(H.md_to_html(notes)))
+        )
     if debrief:
         pages.append(
             H.page(
@@ -3781,6 +3789,7 @@ def write_html(
         )
     names = {
         "summary": "Summary",
+        "about": "About the data",
         "debrief": "Fleet debrief",
         "races": "Race by race",
         "starts": "Starts",
@@ -3794,7 +3803,7 @@ def write_html(
         )
         + "</nav>"
     )
-    data = json.dumps(fa).replace("</", "<\\/")
+    data = json.dumps(H.no_tips(fa) if data_only else fa).replace("</", "<\\/")
     source = next(
         (r["summary"]["source"] for b in boats for r in b["races"].values() if r["summary"].get("source")),
         "Njord",
@@ -3809,7 +3818,7 @@ def write_html(
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>{html.escape(title)}</title><style>{H.CSS}{REPLAY_CSS}{RX.CSS}</style><script>{H.PAGE_JS}</script></head>"
         f'<body><main><header class="top"><h1>{html.escape(title)}</h1>'
-        f"<p>Fleet comparison from {html.escape(source)} data</p></header>"
+        f"<p>Fleet comparison from {html.escape(source)} data{' · the data only, no coaching' if data_only else ''}</p></header>"
         + nav
         + "".join(pages)
         + "<footer>Numbers from analyze.py and fleet.py. Speeds are over ground. "
@@ -3839,6 +3848,8 @@ def main():
     ap.add_argument("--html", action="store_true")
     ap.add_argument("--debrief", type=Path, help="fleet debrief (Markdown) for the HTML")
     ap.add_argument("--cdn", action="store_true", help="load Plotly online instead of inlining it")
+    ap.add_argument("--data-only", action="store_true", help="leave the coaching (fleet debrief) out, for a coach to debrief from")
+    ap.add_argument("--notes", type=Path, help="About the data page (Markdown)")
     ap.add_argument("--official", type=Path, help="official results from yachtscoring.py")
     ap.add_argument(
         "--sail",
@@ -3858,7 +3869,8 @@ def main():
     print(md)
     if a.html or a.debrief:
         debrief = a.debrief.read_text() if a.debrief else None
-        print(write_html(fa, md, a.out, a.title, debrief, a.reports, boats, a.cdn))
+        notes = a.notes.read_text() if a.notes else None
+        print(write_html(fa, md, a.out, a.title, debrief, a.reports, boats, a.cdn, a.data_only, notes))
 
 
 if __name__ == "__main__":
