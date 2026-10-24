@@ -4,6 +4,7 @@
 Usage:
   python html_report.py <report_dir> [--debrief debrief.md] [--overview overview.md]
                         [--deep deep-dive.md] [--out report.html]
+                        [--data-only] [--notes about-the-data.md]
 
 Reads <report_dir>/event.md, each <race>/report.md and its PNGs, and the coach's Markdown: the
 debrief, and optionally a short overview and a deep-dive. The page has three depths, each with
@@ -13,6 +14,11 @@ downwind, roundings and every race). Charts are interactive (hover for time, spe
 drag to zoom) using the bundled Plotly library and each race's plotdata.json; --static uses the
 PNGs instead. Everything is inlined, so the HTML file works offline, shared or uploaded on its
 own. No third-party Python packages.
+
+--data-only leaves the coaching out, for someone else (a coach) to debrief from: no Quick look,
+debrief or race notes, no rounding tips or goals, and the judgments in the race text ("right call",
+"what pays") cut back to the facts. --notes adds an About the data page (how it was measured, what
+it can't see) at the front.
 
 --cdn loads Plotly from jsDelivr instead of inlining it: the file is ~1 MB smaller, but the charts
 need an internet connection when it is opened. All the report's data goes in one JSON block (as in
@@ -311,9 +317,32 @@ def img_tag(path: Path, caption: str, narrow: bool) -> str:
 
 RACE_PLOTS = [("track.png", "Track"), ("timeline.png", "Speed and heel")]
 
+DATA_ONLY = False  # build() sets it for --data-only
+
+# --data-only: the judgments analyze.py writes into its Markdown, cut back to the facts
+NEUTRAL = [
+    (r", which pays the (left|right)", ""),
+    (r" - right call\.", "."),
+    (r" - the other side should have paid\.", "."),
+    (r"\): tacking on the headers is what pays\. We", "). We"),
+    (r" \(a good time to tack\)", ""),
+    (r" Compare tacks before coaching small differences\.", ""),
+    (r" The goal is zero lost; the best is the next milestone\.", ""),
+    (r"(?m)^- #\d+ (windward|leeward): .*\n?", ""),  # rounding tips
+    (r"Facts only; the debrief decides what matters\.", "Facts only."),
+]
+
+
+def neutral(md: str) -> str:
+    if not DATA_ONLY:
+        return md
+    for pat, rep in NEUTRAL:
+        md = re.sub(pat, rep, md)
+    return md
+
 
 def race_section(race_dir: Path) -> tuple[str, str, str]:
-    md = (race_dir / "report.md").read_text()
+    md = neutral((race_dir / "report.md").read_text())
     md = md.split("\n## Plots")[0]  # the HTML shows the plots themselves
     title = md.splitlines()[0].lstrip("# ").strip()
     body = md_to_html("\n".join(md.splitlines()[1:]))
@@ -452,6 +481,11 @@ LEVELS = [
     (1, "Quick look", "The takeaways, 2 minutes"),
     (2, "Debrief", "The coaching and the numbers"),
     (3, "Deep dive", "Every race, leg and maneuver"),
+]
+# --data-only: no coaching, so two depths
+DATA_LEVELS = [
+    (1, "Overview", "The event, and how it was measured"),
+    (2, "Detail", "Every race, leg and maneuver"),
 ]
 
 
@@ -937,7 +971,12 @@ def roundings_page(runs) -> str:
                 f"{html.escape(best['race'])} #{best['n']} ({m_bl(best['metres_lost'])}), worst "
                 f"{html.escape(worst['race'])} #{worst['n']} ({m_bl(worst['metres_lost'])}).</li>"
             )
-    goal = _rounding_goal(rows)
+    goal = "" if DATA_ONLY else _rounding_goal(rows)
+    tight = (
+        ""
+        if DATA_ONLY
+        else dropdown("Keeping roundings tight", TIGHT_ROUNDINGS.split("</h2>", 1)[1], "The habits behind a tight rounding")
+    )
     body = group("The regatta") + dropdown(
         "Every rounding",
         goal
@@ -954,7 +993,7 @@ def roundings_page(runs) -> str:
         + table,
         "; ".join(re.sub(r"<[^>]+>", "", x)[:-1] for x in summary) if summary else "",
         open_=True,
-    ) + dropdown("Keeping roundings tight", TIGHT_ROUNDINGS.split("</h2>", 1)[1], "The habits behind a tight rounding") + group("Race by race")
+    ) + tight + group("Race by race")
     for d, s in runs:
         rs = s.get("roundings") or []
         if not rs:
@@ -1042,7 +1081,7 @@ def _rounding_goal(rows: list[dict]) -> str:
 
 
 def _tips_html(r: dict) -> str:
-    tips = r.get("tips") or []
+    tips = [] if DATA_ONLY else r.get("tips") or []
     return f"<ul>{''.join(f'<li>{html.escape(t)}</li>' for t in tips)}</ul>" if tips else ""
 
 
@@ -1104,9 +1143,15 @@ def build(
     overview: str | None = None,
     deep: str | None = None,
     history: list[Path] | None = None,
+    data_only: bool = False,
+    notes: str | None = None,
 ) -> str:
-    global INTERACTIVE
+    global INTERACTIVE, DATA_ONLY
     INTERACTIVE = interactive and VENDOR.exists() and CHARTS_JS.exists()
+    DATA_ONLY = data_only
+    if data_only:
+        debrief = overview = deep = None
+    data_lv = 2 if data_only else 3  # the level of the data pages
     races = sorted(p.parent for p in report_dir.glob("*/report.md"))
     sections = [race_section(d) for d in races]
     runs = [
@@ -1149,8 +1194,13 @@ def build(
                 2,
             )
         )
+    if notes:
+        pages.append(
+            page("about", "About the data", "How the numbers were measured, and what they can't see.", card(md_to_html(notes)), 1)
+        )
     summary_body = coach_card(debrief) if debrief and overview else ""
-    summary_body += card(md_to_html(exec_md.read_text()), "exec") if exec_md.exists() else ""
+    summary_body += RX.scorecard(report_dir) if data_only else ""
+    summary_body += card(md_to_html(neutral(exec_md.read_text())), "exec") if exec_md.exists() else ""
     summary_body += card(md_to_html(event))
     pages.append(
         page(
@@ -1158,7 +1208,7 @@ def build(
             "Summary",
             "The whole event at a glance, then each day and each race.",
             summary_body,
-            2,
+            1 if data_only else 2,
         )
     )
     # level 2: this boat regatta by regatta (needs --history: the same boat's report folder at other regattas)
@@ -1172,7 +1222,7 @@ def build(
                     "Across regattas",
                     "Is the work paying off? This boat's starts, speed, tacks and roundings at each regatta.",
                     trend,
-                    2,
+                    1 if data_only else 2,
                 )
             )
     # level 3: the coach's race notes, then every number
@@ -1206,7 +1256,7 @@ def build(
     # Current: COG vs heading, from this boat and any others analysed alongside it
     cur = CU.page_parts(CU.fleet_dirs(report_dir), focus=runs[0][1].get("boat") if runs else None) if INTERACTIVE and runs else None
     if cur:
-        pages.append(page("current", "Current", CU.INTRO, cur[0], 3))
+        pages.append(page("current", "Current", CU.INTRO, cur[0], data_lv))
         overlay_js += cur[1]
     pages.append(
         page(
@@ -1214,12 +1264,13 @@ def build(
             "Race by race",
             "Everything for one race in one place. Open a race to see it.",
             "".join(s for _, _, s in sections),
-            3,
+            data_lv,
         )
     )
 
     names = {
         "quick": "Quick look",
+        "about": "About the data",
         "summary": "Summary",
         "trends": "Across regattas",
         "debrief": "Debrief",
@@ -1235,7 +1286,7 @@ def build(
     ids = re.findall(r'<section class="page" id="([^"]+)"', joined)
     lvl = dict(re.findall(r'<section class="page" id="([^"]+)" data-level="(\d)"', joined))
     for i in ids:  # the data pages (starts, upwind, ...) are deep-dive pages
-        lvl.setdefault(i, "3")
+        lvl.setdefault(i, str(data_lv))
     pages = [
         re.sub(
             r'^<section class="page" id="([^"]+)">',
@@ -1248,10 +1299,12 @@ def build(
     for i in ids:
         first.setdefault(lvl[i], i)
     levels = (
-        '<nav class="levels" aria-label="Depth">'
+        '<nav class="levels" aria-label="Depth"'
+        + (' style="grid-template-columns: repeat(2, 1fr)"' if data_only else "")
+        + ">"
         + "".join(
             f'<a href="#{first[str(n)]}" data-level="{n}">{name}<small>{hint}</small></a>'
-            for n, name, hint in LEVELS
+            for n, name, hint in (DATA_LEVELS if data_only else LEVELS)
             if str(n) in first
         )
         + "</nav>"
@@ -1267,7 +1320,7 @@ def build(
     )
     parts = [
         f'<header class="top"><h1>{html.escape(page_title)}</h1>',
-        f"<p>Race analysis from {html.escape(source)} data</p></header>",
+        f"<p>Race analysis from {html.escape(source)} data{' · the data only, no coaching' if data_only else ''}</p></header>",
         levels,
         nav,
         *pages,
@@ -1293,7 +1346,7 @@ def chart_scripts(races: list[Path], cdn: bool = False, overlays: dict[str, str]
     if not INTERACTIVE:
         return ""
     race_data = ",".join(
-        json.dumps(d.name) + ":" + (d / "plotdata.json").read_text()
+        json.dumps(d.name) + ":" + _plotdata(d / "plotdata.json")
         for d in races
         if (d / "plotdata.json").exists()
     )
@@ -1310,6 +1363,20 @@ def chart_scripts(races: list[Path], cdn: bool = False, overlays: dict[str, str]
     return data + lib + f"<script>{ladder_js}</script><script>{CHARTS_JS.read_text()}</script>"
 
 
+def no_tips(o):
+    """o without its rounding tips, for --data-only (the charts don't show them)."""
+    if isinstance(o, dict):
+        return {k: no_tips(v) for k, v in o.items() if k != "tips"}
+    if isinstance(o, list):
+        return [no_tips(v) for v in o]
+    return o
+
+
+def _plotdata(path: Path) -> str:
+    text = path.read_text()
+    return json.dumps(no_tips(json.loads(text)), separators=(",", ":")) if DATA_ONLY else text
+
+
 def write_html(
     report_dir: Path,
     debrief_path: Path | None = None,
@@ -1320,6 +1387,8 @@ def write_html(
     overview_path: Path | None = None,
     deep_path: Path | None = None,
     history: list[Path] | None = None,
+    data_only: bool = False,
+    notes_path: Path | None = None,
 ) -> Path:
     def text(p):
         return p.read_text() if p else None
@@ -1335,6 +1404,8 @@ def write_html(
             text(overview_path),
             text(deep_path),
             history,
+            data_only,
+            text(notes_path),
         )
     )
     return out
@@ -1362,10 +1433,26 @@ def main():
         action="store_true",
         help="load Plotly from jsDelivr instead of inlining it (smaller; needs internet)",
     )
+    ap.add_argument(
+        "--data-only",
+        action="store_true",
+        help="leave the coaching out (debrief, tips, goals), for a coach to debrief from",
+    )
+    ap.add_argument("--notes", type=Path, help="About the data page (Markdown)")
     a = ap.parse_args()
     print(
         write_html(
-            a.report_dir, a.debrief, a.out, a.title, not a.static, a.cdn, a.overview, a.deep, a.history
+            a.report_dir,
+            a.debrief,
+            a.out,
+            a.title,
+            not a.static,
+            a.cdn,
+            a.overview,
+            a.deep,
+            a.history,
+            a.data_only,
+            a.notes,
         )
     )
 
