@@ -1983,6 +1983,7 @@ FLEET_JS = r"""
   function signed(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v) + ' s'; }
   // metres with boat lengths (Etchells, 9.3 m): '45 m (4.8 lengths)'
   const BOAT_LENGTH_M = %BL%;
+  const START_RUNG_M = 25;  // rung spacing on the start charts
   function lens(v) { const x = Math.abs(v) / BOAT_LENGTH_M; return Math.round(x * 10) / 10 < 10 ? x.toFixed(1) : x.toFixed(0); }
   function mbl(v) { return v == null ? '–' : Math.round(Math.abs(v)) + ' m (' + lens(v) + ' lengths)'; }
   // Boats on the maps: an Etchells hull (pointed bow, square transom; beam 0.23 of the length), across
@@ -2238,14 +2239,16 @@ FLEET_JS = r"""
       });
       const moving = tr.length;  // per boat: hull, name
       ids.forEach(id => tr.push(...boatTraces(S.boats[id].name, col(FLEET.day[id]))));
-      const lad = ladderTraces(r, 0, false, 'Rungs, ');
+      // the first beat's rungs every 25 m (100 m elsewhere): a start is won by a boat length or two
+      const mid = [(S.line.pin[0] + S.line.boat[0]) / 2, (S.line.pin[1] + S.line.boat[1]) / 2];
+      const lad = ladderTraces(r, 0, false, 'Rungs, ', { step: START_RUNG_M, focus: mid });
       tr.push(...lad);
       const lay = base('', 500, plot);
       delete lay.title;
       lay.margin.t = 10;
       lay.xaxis = Object.assign(lay.xaxis, { range: [cx - half, cx + half], title: 'metres (upwind is up)', zeroline: false });
       lay.yaxis = Object.assign(lay.yaxis, { range: [cy - half, cy + half], scaleanchor: 'x', zeroline: false });
-      if (lad.length) lay.updatemenus = LADDER.button(tr, ladColors(), 'First beat’s rungs');
+      if (lad.length) lay.updatemenus = LADDER.button(tr, ladColors(), 'First beat’s rungs (' + START_RUNG_M + ' m)');
       Plotly.newPlot(plot, tr, lay, CONFIG);
       const slider = ctl.querySelector('input'), label = ctl.querySelector('.mk-t'), btn = ctl.querySelector('button'), spd = ctl.querySelector('select');
       function idx(q, t) {
@@ -2751,9 +2754,9 @@ FLEET_JS = r"""
   }
   // ---------------------------------------------------------------- laylines and rungs
   function ladColors() { return { ink: css('--ink'), ink2: css('--ink2'), line: css('--line'), card: css('--card') }; }
-  function ladderTraces(r, j, on, prefix) {
+  function ladderTraces(r, j, on, prefix, opt) {
     const lad = r && r.ladders && r.ladders[j];
-    return lad ? LADDER.traces(lad, ladColors(), (prefix || '') + r.leg_names[j], on) : [];
+    return lad ? LADDER.traces(lad, ladColors(), (prefix || '') + r.leg_names[j], on, opt) : [];
   }
   function replay(el) {
     const races = el.dataset.race ? FLEET.races.filter(x => x.stem === el.dataset.race) : FLEET.races;

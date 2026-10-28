@@ -136,6 +136,16 @@ function reportData() {
     }
     return out;
   }
+  // The first beat's rungs on the start map, every START_RUNG_M (100 m elsewhere): a start is
+  // won by a boat length or two. Labels sit on the rungs nearest the middle of the line.
+  const START_RUNG_M = 25;
+  function startLadder(d, c) {
+    const lad = window.LADDER && d.ladders && d.ladders[0];
+    const line = d.course.find(e => e.type === 'StartLine');
+    if (!lad || !lad.targets || !lad.targets.length || !line) return [];
+    const mid = [(line.pts[0][0] + line.pts[1][0]) / 2, (line.pts[0][1] + line.pts[1][1]) / 2];
+    return LADDER.traces(lad, c, 'Leg 1 ' + (d.legType[1] || ''), false, { step: START_RUNG_M, focus: mid });
+  }
   function withLadder(traces, lay, c) {
     lay.updatemenus = window.LADDER ? LADDER.button(traces, c) : [];
     return lay;
@@ -173,18 +183,21 @@ function reportData() {
         { x: [s.x[gun]], y: [s.y[gun]], mode: 'markers+text', text: ['gun'], textposition: 'bottom right',
           marker: { size: 12, color: c.orange, line: { color: c.card, width: 2 } }, hovertext: [hov(gun)],
           hovertemplate: '%{hovertext}<extra></extra>' },
+        ...startLadder(d, c),
       ];
       const line = d.course.find(e => e.type === 'StartLine');
       const xs = idx.map(i => s.x[i]).concat(line ? line.pts.map(p => p[0]) : []).filter(v => v !== null);
       const ys = idx.map(i => s.y[i]).concat(line ? line.pts.map(p => p[1]) : []).filter(v => v !== null);
       const pad = (lo, hi) => [lo - 0.08 * (hi - lo) - 10, hi + 0.08 * (hi - lo) + 10];
       const xr = pad(Math.min(...xs), Math.max(...xs)), yr = pad(Math.min(...ys), Math.max(...ys));
-      Plotly.newPlot(el, traces, layout(c, {
+      const lay = layout(c, {
         title: title(c, 'Approach from 5:00 (hover for time to gun, speed, VMG, heading)', 'Approach from 5:00'),
         xaxis: axis(c, { title: 'metres (upwind is up)', zeroline: false, range: xr }),
         yaxis: axis(c, { scaleanchor: 'x', zeroline: false, range: yr }), annotations: lineEnds(d).map(a => Object.assign(a, { font: { color: c.ink } })),
         hovermode: 'closest', height: mapHeight(el, xr, yr, 300, 520),
-      }), CONFIG);
+      });
+      lay.updatemenus = window.LADDER ? LADDER.button(traces, c, 'Rungs every ' + START_RUNG_M + ' m') : [];
+      Plotly.newPlot(el, traces, lay, CONFIG);
     },
 
     // Speed and distance behind the line: last 2 minutes shown, zoom out to 5
