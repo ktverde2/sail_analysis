@@ -237,13 +237,17 @@ function reportData() {
       });
     },
 
-    // Speed and distance behind the line: last 2 minutes shown, zoom out to 5
+    // Speed and distance behind the line: last 3 minutes shown, zoom out to 5
     startTime(el, d, c) {
       const s = d.series, { idx, g } = pick(d, (i, t) => t >= -300 && t <= 60);
+      const T0 = -180;  // shown from 3 minutes before the gun; zoom out for 5
+      // beside the map (a wide screen): as tall as the map, so both fit on one screen
+      const map = startSibling(el, 'startMap');
+      const beside = map && Math.abs(map.getBoundingClientRect().top - el.getBoundingClientRect().top) < 5;
       const below = i => (s.below ? s.below[i] : null);
-      // the last 2 minutes' distances, bottom to top (flipped: the line near the top), to the 10 m
+      // the distances shown (from T0), bottom to top (flipped: the line near the top), to the 10 m
       function belowRange() {
-        const v = idx.filter(i => s.t[i] >= -120 && s.t[i] <= 30).map(below).filter(b => b != null);
+        const v = idx.filter(i => s.t[i] >= T0 && s.t[i] <= 30).map(below).filter(b => b != null);
         if (!v.length) return undefined;
         const lo = Math.max(-60, Math.min(0, ...v)), hi = Math.max(10, ...v);
         return [Math.ceil(hi / 10) * 10 + 5, Math.floor(lo / 10) * 10 - 5];
@@ -263,13 +267,13 @@ function reportData() {
           text: idx.map(i => clock(s.t[i])), hovertemplate: '%{text}: %{y:.1f} m behind the line<extra></extra>' },
         ...cur,
       ], layout(c, {
-        title: title(c, 'Speed and distance behind the line (zoom out for the full 5 minutes)', 'Last 2 minutes'),
-        xaxis: axis(c, { title: 'seconds from gun', range: [-120, 30], anchor: 'y2', ...SPIKE }),
+        title: title(c, 'Speed and distance behind the line, last 3:00 (zoom out for 5)', 'Last 3 minutes'),
+        xaxis: axis(c, { title: 'seconds from gun', range: [T0, 30], anchor: 'y2', ...SPIKE }),
         yaxis: axis(c, { title: 'SOG (kt)', domain: [0.62, 1] }),
         // flipped, so the trace climbs to the line (0, at the top) as the gun nears; a line every 10 m
         yaxis2: axis(c, { title: 'm behind line', domain: [0, 0.54], zeroline: true, zerolinecolor: c.ink2,
           range: belowRange(), dtick: 10, tickfont: { size: 10 } }),
-        shapes: [vline(0, c, 'dash')], hovermode: 'x', height: 560,
+        shapes: [vline(0, c, 'dash')], hovermode: 'x', height: beside ? Math.max(460, map.clientHeight) : 560,
       }), CONFIG);
       el._cursorAt = t => {
         const i = d.idxAt(t), v = s.sog[i], b = below(i);

@@ -102,6 +102,14 @@ figure.narrow figcaption { text-align: center; }
 .chart { width: 100%; min-height: 300px; margin: 8px 0 16px; }
 .pair { display: grid; grid-template-columns: 1fr; gap: 8px; }
 @media (min-width: 900px) { .pair { grid-template-columns: 1fr 1fr; } }
+/* a start's map and its speed and distance chart: side by side, wider than the page column */
+.start-pair { display: grid; grid-template-columns: 1fr; gap: 8px; }
+@media (min-width: 1000px) {
+  .start-pair { grid-template-columns: 1.1fr 1fr; align-items: start;
+    width: min(1440px, calc(100vw - 48px)); margin-left: calc((100% - min(1440px, calc(100vw - 48px))) / 2);
+    box-sizing: border-box; padding: 12px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+  .start-pair .chart { margin: 0; }
+}
 h3.leg { margin: 18px 0 2px; }
 p.facts { color: var(--ink2); margin: 2px 0 6px; font-size: 0.92rem; }
 .chart-hint { color: var(--muted); font-size: 0.85rem; margin: 0 0 4px; }
@@ -570,11 +578,11 @@ def starts_page(runs) -> str:
     plots = "".join(
         dropdown(
             s["race"],
-            plot(
-                d,
-                ["startMap", "startTime"],
-                "start.png",
-                "Approach from 5 minutes, then the last 2 minutes",
+            (
+                # side by side on a wide screen, so the boat and its speed and distance are both in view
+                HINT + f'<div class="start-pair">{chart_div(d, "startMap")}{chart_div(d, "startTime")}</div>'
+                if interactive(d)
+                else figures([(d / "start.png", "Approach from 5 minutes, then the last 2 minutes")])
             ),
             _start_line(s.get("start") or {}),
             sid=f"starts-{d.name}",
