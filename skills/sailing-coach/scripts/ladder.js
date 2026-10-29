@@ -127,5 +127,69 @@ window.LADDER = (function () {
     }];
   }
 
-  return { toGo, traces, button, rungsAt, startGrid };
+  // The start charts' frame: the line straight across (pin left, boat right), upwind up, the
+  // middle of the line at 0, 0. rot(x, y) and rotTrace(trace) move course-frame points into it;
+  // dDeg turns a course-frame heading into it. mark and wind are the first beat's windward mark
+  // and wind axis as bearings from straight up (+ to the right), so a skewed line shows.
+  function lineFrame(pin, boat, lad) {
+    const mx = (pin[0] + boat[0]) / 2, my = (pin[1] + boat[1]) / 2;
+    const len = Math.hypot(boat[0] - pin[0], boat[1] - pin[1]);
+    let phi = (Math.atan2(boat[1] - pin[1], boat[0] - pin[0]) * 180) / Math.PI;
+    const up = lad && lad.up_deg != null ? lad.up_deg : 0;
+    if (Math.cos(rad(up + phi)) < 0) phi += 180;  // keep the wind at the top
+    const cs = Math.cos(rad(phi)), sn = Math.sin(rad(phi));
+    const rot = (x, y) => (x == null || y == null ? [null, null]
+      : [cs * (x - mx) + sn * (y - my), -sn * (x - mx) + cs * (y - my)]);
+    const rotTrace = t => {
+      if (!t.x || !t.y || !t.x.length) return t;
+      const xs = [], ys = [];
+      t.x.forEach((x, i) => { const q = rot(x, t.y[i]); xs.push(q[0]); ys.push(q[1]); });
+      return Object.assign({}, t, { x: xs, y: ys });
+    };
+    const bearing = b => ((((b + phi) % 360) + 540) % 360) - 180;
+    let mark = null;
+    if (lad && lad.targets && lad.targets.length) {
+      const n = lad.targets.length;
+      const q = rot(lad.targets.reduce((a, p) => a + p[0], 0) / n, lad.targets.reduce((a, p) => a + p[1], 0) / n);
+      mark = { bearing: (Math.atan2(q[0], q[1]) * 180) / Math.PI, dist: Math.hypot(q[0], q[1]) };
+    }
+    return { rot, rotTrace, dDeg: phi, len, mark, wind: lad && lad.up_deg != null ? bearing(lad.up_deg) : null };
+  }
+
+  // Annotations for a lineFrame chart: the top mark above the plot and the wind just inside its
+  // top edge, each where its bearing from the middle of the line meets the top (yTop, the
+  // y axis's top; xr, the x range), and a note of the skew in the bottom corner.
+  function pointers(F, xr, yTop, c) {
+    const side = b => (Math.abs(b) < 0.5 ? 'square to the line' : Math.abs(b).toFixed(0) + '° ' + (b > 0 ? 'right' : 'left') + ' of square');
+    const at = b => Math.max(xr[0], Math.min(xr[1], yTop * Math.tan(rad(b))));
+    const font = { size: 11, color: c.ink };
+    const out = [];
+    if (F.mark && Math.abs(F.mark.bearing) < 85) {
+      out.push({ xref: 'x', yref: 'paper', x: at(F.mark.bearing), y: 1, yanchor: 'bottom', showarrow: false, font,
+        text: '▲ top mark, ' + side(F.mark.bearing), meta: 'ptr' });
+    }
+    if (F.wind != null && Math.abs(F.wind) < 85) {
+      out.push({ xref: 'x', yref: 'paper', x: at(F.wind), y: 1, yanchor: 'top', showarrow: false, font,
+        text: '▼ wind, ' + side(F.wind), meta: 'ptr' });
+    }
+    if (F.wind != null) {
+      const up = F.len * Math.sin(rad(Math.abs(F.wind)));
+      out.push({ xref: 'paper', yref: 'paper', x: 1, y: 0, xanchor: 'right', yanchor: 'bottom', showarrow: false,
+        font: { size: 11, color: c.ink2 }, meta: 'ptr',
+        text: Math.abs(F.wind) < 0.5 ? 'Line square to the wind'
+          : 'Wind ' + side(F.wind) + ': ' + (F.wind > 0 ? 'boat' : 'pin') + ' end ' + up.toFixed(0) + ' m upwind' });
+    }
+    return out;
+  }
+
+  // Keep the pointers on the top edge as the chart is zoomed or panned
+  function keepPointers(plot, F, c, extra) {
+    plot.on('plotly_relayout', ev => {
+      if (ev && Object.keys(ev).every(k => k.startsWith('annotations'))) return;  // our own update
+      const fl = plot._fullLayout;
+      Plotly.relayout(plot, { annotations: (extra || []).concat(pointers(F, fl.xaxis.range, fl.yaxis.range[1], c)) });
+    });
+  }
+
+  return { toGo, traces, button, rungsAt, startGrid, lineFrame, pointers, keepPointers };
 })();

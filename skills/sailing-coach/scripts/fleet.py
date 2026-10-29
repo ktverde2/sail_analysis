@@ -2224,9 +2224,12 @@ FLEET_JS = r"""
       ctl.innerHTML = '<button type="button">▶ Play</button><select><option value="250">4×</option><option value="100" selected>10×</option><option value="1000">1×</option></select>' +
         '<input type="range" style="flex:1" min="-180" max="120" step="1" value="-60"><span class="mk-t"></span>';
       el.appendChild(ctl);
+      // drawn with the line straight across and upwind up (Kevin): the top mark and the wind are
+      // pointers on the top edge, so a skewed line shows
+      const F = LADDER.lineFrame(S.line.pin, S.line.boat, r.ladders && r.ladders[0]);
       // zoom: the line, and every boat from −60 s to +40 s
-      const xs = [S.line.pin[0], S.line.boat[0]], ys = [S.line.pin[1], S.line.boat[1]];
-      ids.forEach(id => { const q = S.boats[id].series; q.s.forEach((t, i) => { if (t >= -60 && t <= 40) { xs.push(q.x[i]); ys.push(q.y[i]); } }); });
+      const xs = [-F.len / 2, F.len / 2], ys = [0, 0];
+      ids.forEach(id => { const q = S.boats[id].series; q.s.forEach((t, i) => { if (t >= -60 && t <= 40) { const p = F.rot(q.x[i], q.y[i]); xs.push(p[0]); ys.push(p[1]); } }); });
       const pad = 20, cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
       const half = Math.max(Math.max(...xs) - Math.min(...xs), (Math.max(...ys) - Math.min(...ys)) * 1.2) / 2 + pad;
       const tr = [{ x: [S.line.pin[0], S.line.boat[0]], y: [S.line.pin[1], S.line.boat[1]], mode: 'lines+markers+text', showlegend: false,
@@ -2246,12 +2249,14 @@ FLEET_JS = r"""
       const grid = LADDER.startGrid(S.line.pin, S.line.boat, r.ladders && r.ladders[0], ladColors(), START_RUNG_M, true);
       const lad = ladderTraces(r, 0, false, 'Rungs, ', { step: 100, focus: mid });
       tr.push(...grid, ...lad);
+      tr.forEach((t, i) => { tr[i] = F.rotTrace(t); });
       const lay = base('', 500, plot);
       delete lay.title;
-      lay.margin.t = 10;
+      lay.margin.t = 28;  // room for the top mark's pointer
       // no background grid: the start grid is the only one (Kevin)
-      lay.xaxis = Object.assign(lay.xaxis, { range: [cx - half, cx + half], title: 'metres (upwind is up)', zeroline: false, showgrid: false });
+      lay.xaxis = Object.assign(lay.xaxis, { range: [cx - half, cx + half], title: 'metres along the line (upwind is up)', zeroline: false, showgrid: false });
       lay.yaxis = Object.assign(lay.yaxis, { range: [cy - half, cy + half], scaleanchor: 'x', zeroline: false, showgrid: false });
+      lay.annotations = LADDER.pointers(F, lay.xaxis.range, lay.yaxis.range[1], ladColors());
       lay.updatemenus = [
         ...LADDER.button(tr, ladColors(), 'Start grid (' + START_RUNG_M + ' m)', 'start', true),
         ...LADDER.button(tr, ladColors(), 'First beat’s ladder', 'ladder', false, grid.length ? 1 : 0),
@@ -2267,7 +2272,8 @@ FLEET_JS = r"""
         const x = [], y = [];
         const rows = ids.map(id => {
           const v = S.boats[id], q = v.series, k = idx(q, t);
-          const h = boatXY(q.x[k], q.y[k], q.cog[k] == null ? 0 : q.cog[k] - r.axis, plot, START_HULL_PX);
+          const p = F.rot(q.x[k], q.y[k]);
+          const h = boatXY(p[0], p[1], q.cog[k] == null ? 0 : q.cog[k] - r.axis + F.dDeg, plot, START_HULL_PX);
           x.push(...h[0]); y.push(...h[1]);
           return { id, v, q, k };
         });
@@ -2298,6 +2304,7 @@ FLEET_JS = r"""
       }
       slider.addEventListener('input', () => at(+slider.value));
       plot.on('plotly_relayout', () => at(+slider.value));  // keep the hulls readable when zooming
+      LADDER.keepPointers(plot, F, ladColors());
       let timer = null;
       const stop = () => { clearInterval(timer); timer = null; btn.textContent = '▶ Play'; };
       btn.addEventListener('click', () => {

@@ -182,7 +182,8 @@ function reportData() {
               ticktext: ['5:00', '4:00', '3:00', '2:00', '1:00', 'gun'], thickness: 10, len: 0.8, outlinewidth: 0 } } },
         { x: post.map(i => s.x[i]), y: post.map(i => s.y[i]), mode: 'markers', marker: { size: 4, color: c.ink2 },
           text: post.map(hov), hovertemplate: '%{text}<extra></extra>' },
-        ...courseTraces(d, c),
+        // the start line only: a gate or finish near it reads as part of the line
+        ...courseTraces({ course: d.course.filter(e => e.type === 'StartLine') }, c),
         { x: marks.map(i => s.x[i]), y: marks.map(i => s.y[i]), mode: 'markers+text', text: marks.map(i => clock(s.t[i]).replace(' to gun', '')),
           textposition: 'top right', textfont: { size: 10, color: c.ink2 }, marker: { size: 6, color: c.ink2 }, hoverinfo: 'skip' },
         { x: [s.x[gun]], y: [s.y[gun]], mode: 'markers+text', text: ['gun'], textposition: 'bottom right',
@@ -190,23 +191,33 @@ function reportData() {
           hovertemplate: '%{hovertext}<extra></extra>' },
         ...startLadder(d, c),
       ];
+      // drawn with the line straight across and upwind up (Kevin): the top mark and the wind are
+      // pointers on the top edge, so a skewed line shows
       const line = d.course.find(e => e.type === 'StartLine');
-      const xs = idx.map(i => s.x[i]).concat(line ? line.pts.map(p => p[0]) : []).filter(v => v !== null);
-      const ys = idx.map(i => s.y[i]).concat(line ? line.pts.map(p => p[1]) : []).filter(v => v !== null);
+      const ends = line ? (line.pts[0][0] < line.pts[1][0] ? line.pts : [line.pts[1], line.pts[0]]) : null;
+      const F = ends && window.LADDER ? LADDER.lineFrame(ends[0], ends[1], d.ladders && d.ladders[0]) : null;
+      const rot = F ? F.rot : (x, y) => [x, y];
+      if (F) traces.forEach((t, i) => { traces[i] = F.rotTrace(t); });
+      const pts = idx.map(i => rot(s.x[i], s.y[i])).concat(ends ? ends.map(p => rot(p[0], p[1])) : []);
+      const xs = pts.map(p => p[0]).filter(v => v !== null), ys = pts.map(p => p[1]).filter(v => v !== null);
       const pad = (lo, hi) => [lo - 0.08 * (hi - lo) - 10, hi + 0.08 * (hi - lo) + 10];
       const xr = pad(Math.min(...xs), Math.max(...xs)), yr = pad(Math.min(...ys), Math.max(...ys));
       const lay = layout(c, {
         title: title(c, 'Approach from 5:00 (hover for time to gun, speed, VMG, heading)', 'Approach from 5:00'),
         // no background grid: the start grid is the only one
-        xaxis: axis(c, { title: 'metres (upwind is up)', zeroline: false, range: xr, showgrid: false }),
-        yaxis: axis(c, { scaleanchor: 'x', zeroline: false, range: yr, showgrid: false }), annotations: lineEnds(d).map(a => Object.assign(a, { font: { color: c.ink } })),
+        xaxis: axis(c, { title: F ? 'metres along the line (upwind is up)' : 'metres (upwind is up)', zeroline: false, range: xr, showgrid: false }),
+        yaxis: axis(c, { scaleanchor: 'x', zeroline: false, range: yr, showgrid: false }),
         hovermode: 'closest', height: mapHeight(el, xr, yr, 300, 520),
       });
+      const endsNote = lineEnds(d).map(a => { const q = rot(a.x, a.y); return Object.assign(a, { x: q[0], y: q[1], font: { color: c.ink } }); });
+      lay.annotations = endsNote.concat(F ? LADDER.pointers(F, xr, yr[1], c) : []);
+      if (F) lay.margin = Object.assign({}, lay.margin, { t: Math.max((lay.margin || {}).t || 0, 64) });
       lay.updatemenus = window.LADDER ? [
         ...LADDER.button(traces, c, 'Start grid (' + START_RUNG_M + ' m)', 'start', true),
         ...LADDER.button(traces, c, 'First beat’s ladder', 'ladder', false, traces.some(t => t.meta === 'start') ? 1 : 0),
       ] : [];
       Plotly.newPlot(el, traces, lay, CONFIG);
+      if (F) LADDER.keepPointers(el, F, c, endsNote);
     },
 
     // Speed and distance behind the line: last 2 minutes shown, zoom out to 5
