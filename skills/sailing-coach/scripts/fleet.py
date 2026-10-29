@@ -4,7 +4,7 @@ starts, upwind and downwind speed, sides of the course, and roundings.
 
 Usage:
   python fleet.py --data <dir> --reports <dir> --out <dir> [--html] [--debrief fleet.md]
-                  [--title "PCC 2026"] [--cdn]
+                  [--title "PCC 2026"] [--cdn] [--data-only] [--notes about.md]
 
 --data holds one folder per boat with Njord exports (raceN.csv plus raceN-race.json with the
 course); --reports holds the matching analyze.py output per boat (same folder names). Races are
@@ -1983,6 +1983,8 @@ FLEET_JS = r"""
   function signed(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v) + ' s'; }
   // metres with boat lengths (Etchells, 9.3 m): '45 m (4.8 lengths)'
   const BOAT_LENGTH_M = %BL%;
+  const START_RUNG_M = 25;  // the start grid: rungs parallel to the line this far apart
+  const START_HULL_PX = 8;  // start hulls at true length (9.3 m) unless zoomed out below 8 px
   function lens(v) { const x = Math.abs(v) / BOAT_LENGTH_M; return Math.round(x * 10) / 10 < 10 ? x.toFixed(1) : x.toFixed(0); }
   function mbl(v) { return v == null ? '–' : Math.round(Math.abs(v)) + ' m (' + lens(v) + ' lengths)'; }
   // Boats on the maps: an Etchells hull (pointed bow, square transom; beam 0.23 of the length), across
@@ -2222,9 +2224,12 @@ FLEET_JS = r"""
       ctl.innerHTML = '<button type="button">▶ Play</button><select><option value="250">4×</option><option value="100" selected>10×</option><option value="1000">1×</option></select>' +
         '<input type="range" style="flex:1" min="-180" max="120" step="1" value="-60"><span class="mk-t"></span>';
       el.appendChild(ctl);
+      // drawn with the line straight across and upwind up (Kevin): the top mark and the wind are
+      // pointers on the top edge, so a skewed line shows
+      const F = LADDER.lineFrame(S.line.pin, S.line.boat, r.ladders && r.ladders[0]);
       // zoom: the line, and every boat from −60 s to +40 s
-      const xs = [S.line.pin[0], S.line.boat[0]], ys = [S.line.pin[1], S.line.boat[1]];
-      ids.forEach(id => { const q = S.boats[id].series; q.s.forEach((t, i) => { if (t >= -60 && t <= 40) { xs.push(q.x[i]); ys.push(q.y[i]); } }); });
+      const xs = [-F.len / 2, F.len / 2], ys = [0, 0];
+      ids.forEach(id => { const q = S.boats[id].series; q.s.forEach((t, i) => { if (t >= -60 && t <= 40) { const p = F.rot(q.x[i], q.y[i]); xs.push(p[0]); ys.push(p[1]); } }); });
       const pad = 20, cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
       const half = Math.max(Math.max(...xs) - Math.min(...xs), (Math.max(...ys) - Math.min(...ys)) * 1.2) / 2 + pad;
       const tr = [{ x: [S.line.pin[0], S.line.boat[0]], y: [S.line.pin[1], S.line.boat[1]], mode: 'lines+markers+text', showlegend: false,
@@ -2238,14 +2243,24 @@ FLEET_JS = r"""
       });
       const moving = tr.length;  // per boat: hull, name
       ids.forEach(id => tr.push(...boatTraces(S.boats[id].name, col(FLEET.day[id]))));
-      const lad = ladderTraces(r, 0, false, 'Rungs, ');
-      tr.push(...lad);
+      // as on Vakaros's start view: rungs parallel to the line and the laylines to each end (on),
+      // then the first beat's ladder, labelled by the line (off)
+      const mid = [(S.line.pin[0] + S.line.boat[0]) / 2, (S.line.pin[1] + S.line.boat[1]) / 2];
+      const grid = LADDER.startGrid(S.line.pin, S.line.boat, r.ladders && r.ladders[0], ladColors(), START_RUNG_M, true);
+      const lad = ladderTraces(r, 0, false, 'Rungs, ', { step: 100, focus: mid });
+      tr.push(...grid, ...lad);
+      tr.forEach((t, i) => { tr[i] = F.rotTrace(t); });
       const lay = base('', 500, plot);
       delete lay.title;
-      lay.margin.t = 10;
-      lay.xaxis = Object.assign(lay.xaxis, { range: [cx - half, cx + half], title: 'metres (upwind is up)', zeroline: false });
-      lay.yaxis = Object.assign(lay.yaxis, { range: [cy - half, cy + half], scaleanchor: 'x', zeroline: false });
-      if (lad.length) lay.updatemenus = LADDER.button(tr, ladColors(), 'First beat’s rungs');
+      lay.margin.t = 28;  // room for the top mark's pointer
+      // no background grid: the start grid is the only one (Kevin)
+      lay.xaxis = Object.assign(lay.xaxis, { range: [cx - half, cx + half], title: 'metres along the line (upwind is up)', zeroline: false, showgrid: false });
+      lay.yaxis = Object.assign(lay.yaxis, { range: [cy - half, cy + half], scaleanchor: 'x', zeroline: false, showgrid: false });
+      lay.annotations = LADDER.pointers(F, lay.xaxis.range, lay.yaxis.range[1], ladColors());
+      lay.updatemenus = [
+        ...LADDER.button(tr, ladColors(), 'Start grid (' + START_RUNG_M + ' m)', 'start', true),
+        ...LADDER.button(tr, ladColors(), 'First beat’s ladder', 'ladder', false, grid.length ? 1 : 0),
+      ];
       Plotly.newPlot(plot, tr, lay, CONFIG);
       const slider = ctl.querySelector('input'), label = ctl.querySelector('.mk-t'), btn = ctl.querySelector('button'), spd = ctl.querySelector('select');
       function idx(q, t) {
@@ -2257,7 +2272,8 @@ FLEET_JS = r"""
         const x = [], y = [];
         const rows = ids.map(id => {
           const v = S.boats[id], q = v.series, k = idx(q, t);
-          const h = boatXY(q.x[k], q.y[k], q.cog[k] == null ? 0 : q.cog[k] - r.axis, plot);
+          const p = F.rot(q.x[k], q.y[k]);
+          const h = boatXY(p[0], p[1], q.cog[k] == null ? 0 : q.cog[k] - r.axis + F.dDeg, plot, START_HULL_PX);
           x.push(...h[0]); y.push(...h[1]);
           return { id, v, q, k };
         });
@@ -2288,6 +2304,7 @@ FLEET_JS = r"""
       }
       slider.addEventListener('input', () => at(+slider.value));
       plot.on('plotly_relayout', () => at(+slider.value));  // keep the hulls readable when zooming
+      LADDER.keepPointers(plot, F, ladColors());
       let timer = null;
       const stop = () => { clearInterval(timer); timer = null; btn.textContent = '▶ Play'; };
       btn.addEventListener('click', () => {
@@ -2751,9 +2768,9 @@ FLEET_JS = r"""
   }
   // ---------------------------------------------------------------- laylines and rungs
   function ladColors() { return { ink: css('--ink'), ink2: css('--ink2'), line: css('--line'), card: css('--card') }; }
-  function ladderTraces(r, j, on, prefix) {
+  function ladderTraces(r, j, on, prefix, opt) {
     const lad = r && r.ladders && r.ladders[j];
-    return lad ? LADDER.traces(lad, ladColors(), (prefix || '') + r.leg_names[j], on) : [];
+    return lad ? LADDER.traces(lad, ladColors(), (prefix || '') + r.leg_names[j], on, opt) : [];
   }
   function replay(el) {
     const races = el.dataset.race ? FLEET.races.filter(x => x.stem === el.dataset.race) : FLEET.races;
@@ -3645,7 +3662,11 @@ def write_html(
     reports_dir: Path,
     boats: list[dict],
     cdn: bool,
+    data_only: bool = False,
+    notes: str | None = None,
 ) -> Path:
+    if data_only:  # no coaching: a coach debriefs from the data
+        debrief = None
     sections = md.split("\n## ")
     rest = ["## " + s for s in sections[1:]]
     results = [
@@ -3667,6 +3688,10 @@ def write_html(
             summary,
         )
     ]
+    if notes:
+        pages.append(
+            H.page("about", "About the data", "How the numbers were measured, and what they can't see.", H.card(H.md_to_html(notes)))
+        )
     if debrief:
         pages.append(
             H.page(
@@ -3781,6 +3806,7 @@ def write_html(
         )
     names = {
         "summary": "Summary",
+        "about": "About the data",
         "debrief": "Fleet debrief",
         "races": "Race by race",
         "starts": "Starts",
@@ -3794,7 +3820,7 @@ def write_html(
         )
         + "</nav>"
     )
-    data = json.dumps(fa).replace("</", "<\\/")
+    data = json.dumps(H.no_tips(fa) if data_only else fa).replace("</", "<\\/")
     source = next(
         (r["summary"]["source"] for b in boats for r in b["races"].values() if r["summary"].get("source")),
         "Njord",
@@ -3809,7 +3835,7 @@ def write_html(
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
         f"<title>{html.escape(title)}</title><style>{H.CSS}{REPLAY_CSS}{RX.CSS}</style><script>{H.PAGE_JS}</script></head>"
         f'<body><main><header class="top"><h1>{html.escape(title)}</h1>'
-        f"<p>Fleet comparison from {html.escape(source)} data</p></header>"
+        f"<p>Fleet comparison from {html.escape(source)} data{' · the data only, no coaching' if data_only else ''}</p></header>"
         + nav
         + "".join(pages)
         + "<footer>Numbers from analyze.py and fleet.py. Speeds are over ground. "
@@ -3839,6 +3865,8 @@ def main():
     ap.add_argument("--html", action="store_true")
     ap.add_argument("--debrief", type=Path, help="fleet debrief (Markdown) for the HTML")
     ap.add_argument("--cdn", action="store_true", help="load Plotly online instead of inlining it")
+    ap.add_argument("--data-only", action="store_true", help="leave the coaching (fleet debrief) out, for a coach to debrief from")
+    ap.add_argument("--notes", type=Path, help="About the data page (Markdown)")
     ap.add_argument("--official", type=Path, help="official results from yachtscoring.py")
     ap.add_argument(
         "--sail",
@@ -3858,7 +3886,8 @@ def main():
     print(md)
     if a.html or a.debrief:
         debrief = a.debrief.read_text() if a.debrief else None
-        print(write_html(fa, md, a.out, a.title, debrief, a.reports, boats, a.cdn))
+        notes = a.notes.read_text() if a.notes else None
+        print(write_html(fa, md, a.out, a.title, debrief, a.reports, boats, a.cdn, a.data_only, notes))
 
 
 if __name__ == "__main__":
