@@ -1983,7 +1983,8 @@ FLEET_JS = r"""
   function signed(v) { return (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v) + ' s'; }
   // metres with boat lengths (Etchells, 9.3 m): '45 m (4.8 lengths)'
   const BOAT_LENGTH_M = %BL%;
-  const START_RUNG_M = 25;  // rung spacing on the start charts
+  const START_RUNG_M = 25;  // the start grid: rungs parallel to the line this far apart
+  const START_HULL_PX = 8;  // start hulls at true length (9.3 m) unless zoomed out below 8 px
   function lens(v) { const x = Math.abs(v) / BOAT_LENGTH_M; return Math.round(x * 10) / 10 < 10 ? x.toFixed(1) : x.toFixed(0); }
   function mbl(v) { return v == null ? '–' : Math.round(Math.abs(v)) + ' m (' + lens(v) + ' lengths)'; }
   // Boats on the maps: an Etchells hull (pointed bow, square transom; beam 0.23 of the length), across
@@ -2239,16 +2240,21 @@ FLEET_JS = r"""
       });
       const moving = tr.length;  // per boat: hull, name
       ids.forEach(id => tr.push(...boatTraces(S.boats[id].name, col(FLEET.day[id]))));
-      // the first beat's rungs every 25 m (100 m elsewhere): a start is won by a boat length or two
+      // as on Vakaros's start view: rungs parallel to the line and the laylines to each end (on),
+      // then the first beat's ladder, labelled by the line (off)
       const mid = [(S.line.pin[0] + S.line.boat[0]) / 2, (S.line.pin[1] + S.line.boat[1]) / 2];
-      const lad = ladderTraces(r, 0, false, 'Rungs, ', { step: START_RUNG_M, focus: mid });
-      tr.push(...lad);
+      const grid = LADDER.startGrid(S.line.pin, S.line.boat, r.ladders && r.ladders[0], ladColors(), START_RUNG_M, true);
+      const lad = ladderTraces(r, 0, false, 'Rungs, ', { step: 100, focus: mid });
+      tr.push(...grid, ...lad);
       const lay = base('', 500, plot);
       delete lay.title;
       lay.margin.t = 10;
       lay.xaxis = Object.assign(lay.xaxis, { range: [cx - half, cx + half], title: 'metres (upwind is up)', zeroline: false });
       lay.yaxis = Object.assign(lay.yaxis, { range: [cy - half, cy + half], scaleanchor: 'x', zeroline: false });
-      if (lad.length) lay.updatemenus = LADDER.button(tr, ladColors(), 'First beat’s rungs (' + START_RUNG_M + ' m)');
+      lay.updatemenus = [
+        ...LADDER.button(tr, ladColors(), 'Start grid (' + START_RUNG_M + ' m)', 'start', true),
+        ...LADDER.button(tr, ladColors(), 'First beat’s ladder', 'ladder', false, grid.length ? 1 : 0),
+      ];
       Plotly.newPlot(plot, tr, lay, CONFIG);
       const slider = ctl.querySelector('input'), label = ctl.querySelector('.mk-t'), btn = ctl.querySelector('button'), spd = ctl.querySelector('select');
       function idx(q, t) {
@@ -2260,7 +2266,7 @@ FLEET_JS = r"""
         const x = [], y = [];
         const rows = ids.map(id => {
           const v = S.boats[id], q = v.series, k = idx(q, t);
-          const h = boatXY(q.x[k], q.y[k], q.cog[k] == null ? 0 : q.cog[k] - r.axis, plot);
+          const h = boatXY(q.x[k], q.y[k], q.cog[k] == null ? 0 : q.cog[k] - r.axis, plot, START_HULL_PX);
           x.push(...h[0]); y.push(...h[1]);
           return { id, v, q, k };
         });

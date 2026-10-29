@@ -136,15 +136,20 @@ function reportData() {
     }
     return out;
   }
-  // The first beat's rungs on the start map, every START_RUNG_M (100 m elsewhere): a start is
-  // won by a boat length or two. Labels sit on the rungs nearest the middle of the line.
+  // The start map's grid, as on Vakaros's start view: rungs parallel to the line every
+  // START_RUNG_M and the close-hauled laylines to each end (shown); then the first beat's ladder,
+  // labelled by the line (hidden). The pin is the left end, as in lineEnds.
   const START_RUNG_M = 25;
   function startLadder(d, c) {
     const lad = window.LADDER && d.ladders && d.ladders[0];
     const line = d.course.find(e => e.type === 'StartLine');
-    if (!lad || !lad.targets || !lad.targets.length || !line) return [];
-    const mid = [(line.pts[0][0] + line.pts[1][0]) / 2, (line.pts[0][1] + line.pts[1][1]) / 2];
-    return LADDER.traces(lad, c, 'Leg 1 ' + (d.legType[1] || ''), false, { step: START_RUNG_M, focus: mid });
+    if (!window.LADDER || !line) return [];
+    const [pin, boat] = line.pts[0][0] < line.pts[1][0] ? line.pts : [line.pts[1], line.pts[0]];
+    const mid = [(pin[0] + boat[0]) / 2, (pin[1] + boat[1]) / 2];
+    return [
+      ...LADDER.startGrid(pin, boat, lad, c, START_RUNG_M, true),
+      ...(lad && lad.targets && lad.targets.length ? LADDER.traces(lad, c, 'Leg 1 ' + (d.legType[1] || ''), false, { step: 100, focus: mid }) : []),
+    ];
   }
   function withLadder(traces, lay, c) {
     lay.updatemenus = window.LADDER ? LADDER.button(traces, c) : [];
@@ -196,7 +201,10 @@ function reportData() {
         yaxis: axis(c, { scaleanchor: 'x', zeroline: false, range: yr }), annotations: lineEnds(d).map(a => Object.assign(a, { font: { color: c.ink } })),
         hovermode: 'closest', height: mapHeight(el, xr, yr, 300, 520),
       });
-      lay.updatemenus = window.LADDER ? LADDER.button(traces, c, 'Rungs every ' + START_RUNG_M + ' m') : [];
+      lay.updatemenus = window.LADDER ? [
+        ...LADDER.button(traces, c, 'Start grid (' + START_RUNG_M + ' m)', 'start', true),
+        ...LADDER.button(traces, c, 'First beat’s ladder', 'ladder', false, traces.some(t => t.meta === 'start') ? 1 : 0),
+      ] : [];
       Plotly.newPlot(el, traces, lay, CONFIG);
     },
 

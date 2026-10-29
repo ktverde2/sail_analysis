@@ -65,20 +65,62 @@ window.LADDER = (function () {
     ];
   }
 
-  // One toggle button, top left inside the plot, for every trace tagged 'ladder'
-  function button(all, c, label) {
-    const idx = all.map((t, i) => (t.meta === 'ladder' ? i : -1)).filter(i => i >= 0);
+  // The start grid, as on Vakaros's start view: rungs parallel to the line every `step` metres
+  // behind it (and two ahead), and the close-hauled laylines to each end (starboard to the
+  // pin, port to the boat) from the first beat's wind axis and tacking angle. Tagged 'start'.
+  function startGrid(pin, boat, lad, c, step, visible) {
+    const len = Math.hypot(boat[0] - pin[0], boat[1] - pin[1]);
+    if (!len) return [];
+    const vx = (boat[0] - pin[0]) / len, vy = (boat[1] - pin[1]) / len;  // along the line, pin to boat
+    const u = rad(lad && lad.up_deg != null ? lad.up_deg : 0);
+    let nx = vy, ny = -vx;  // across it, pointing behind the line (away from the wind)
+    if (nx * Math.sin(u) + ny * Math.cos(u) > 0) { nx = -nx; ny = -ny; }
+    const span = 300, back = 300, ahead = 2 * step, r1 = v => Math.round(v * 10) / 10;
+    const gx = [], gy = [], lx = [], ly = [], lt = [];
+    for (let d = -ahead; d <= back; d += step) {
+      if (!d) continue;  // the line itself is drawn already
+      const ox = nx * d, oy = ny * d;
+      gx.push(r1(pin[0] - vx * span + ox), r1(boat[0] + vx * span + ox), null);
+      gy.push(r1(pin[1] - vy * span + oy), r1(boat[1] + vy * span + oy), null);
+      // labelled just outside the pin end, clear of the pin's layline
+      lx.push(r1(pin[0] - vx * 15 + ox)); ly.push(r1(pin[1] - vy * 15 + oy)); lt.push((d > 0 ? '' : '+') + Math.abs(d) + ' m');
+    }
+    const out = [
+      { x: gx, y: gy, mode: 'lines', line: { color: c.ink2, width: 0.8 }, opacity: 0.35, hoverinfo: 'skip',
+        showlegend: false, visible: !!visible, meta: 'start' },
+      { x: lx, y: ly, mode: 'text', text: lt, textposition: 'middle left', textfont: { size: 9, color: c.ink2 },
+        hovertemplate: lt.map(t => (t[0] === '+' ? t.slice(1) + ' over the line' : t + ' behind the line') + '<extra></extra>'),
+        showlegend: false, visible: !!visible, meta: 'start' },
+    ];
+    if (lad && lad.half_deg) {
+      const h = rad(lad.half_deg), reach = back / Math.max(0.2, Math.cos(h));
+      // a boat sails up the layline, so it runs back down from each end, away from the wind
+      for (const [end, a, name] of [[pin, u - h, 'Starboard layline to the pin'], [boat, u + h, 'Port layline to the boat']]) {
+        out.push({ x: [end[0], r1(end[0] - Math.sin(a) * reach)], y: [end[1], r1(end[1] - Math.cos(a) * reach)], mode: 'lines',
+          line: { color: c.ink2, width: 1.5, dash: 'dash' }, showlegend: false, visible: !!visible, meta: 'start',
+          hovertemplate: name + ' (' + (2 * lad.half_deg).toFixed(0) + '° tacking angle over the ground)<extra></extra>' });
+      }
+    }
+    return out;
+  }
+
+  // One toggle button, top left inside the plot, for every trace tagged `meta` ('ladder' unless
+  // given). on: the traces start visible, so the first click hides them. row: stacks a second
+  // button under the first.
+  function button(all, c, label, meta, on, row) {
+    const idx = all.map((t, i) => (t.meta === (meta || 'ladder') ? i : -1)).filter(i => i >= 0);
     if (!idx.length) return [];
+    const show = [{ visible: true }, idx], hide = [{ visible: false }, idx];
     return [{
-      // active -1: the button starts off, so the first click shows the laylines and rungs
+      // active -1: no button looks pressed; args runs on the first click, args2 on the second
       type: 'buttons', direction: 'right', showactive: false, active: -1,
       // inside the plot's top-left corner: clear of the title and of Plotly's toolbar (top right)
-      x: 0, xanchor: 'left', y: 1.0, yanchor: 'top',
+      x: 0, xanchor: 'left', y: 1.0 - 0.08 * (row || 0), yanchor: 'top',
       pad: { t: 2, b: 2, l: 0, r: 0 }, bgcolor: c.card || 'rgba(0,0,0,0)', bordercolor: c.line, borderwidth: 1,
       font: { size: 11, color: c.ink },
-      buttons: [{ label: label || 'Laylines & rungs', method: 'restyle', args: [{ visible: true }, idx], args2: [{ visible: false }, idx] }],
+      buttons: [{ label: label || 'Laylines & rungs', method: 'restyle', args: on ? hide : show, args2: on ? show : hide }],
     }];
   }
 
-  return { toGo, traces, button, rungsAt };
+  return { toGo, traces, button, rungsAt, startGrid };
 })();
