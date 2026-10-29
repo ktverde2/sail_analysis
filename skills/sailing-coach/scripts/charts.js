@@ -151,6 +151,10 @@ function reportData() {
       ...(lad && lad.targets && lad.targets.length ? LADDER.traces(lad, c, 'Leg 1 ' + (d.legType[1] || ''), false, { step: 100, focus: mid }) : []),
     ];
   }
+  // the other start chart of the same race (the map and the speed and distance chart sit together)
+  function startSibling(el, kind) {
+    return el.parentElement && el.parentElement.querySelector('.chart[data-chart="' + kind + '"][data-race="' + el.dataset.race + '"]');
+  }
   function withLadder(traces, lay, c) {
     lay.updatemenus = window.LADDER ? LADDER.button(traces, c) : [];
     return lay;
@@ -177,11 +181,12 @@ function reportData() {
       const traces = [
         { x: g(s.x), y: g(s.y), mode: 'lines', line: { color: c.line, width: 1 }, hoverinfo: 'skip' },
         { x: pre.map(i => s.x[i]), y: pre.map(i => s.y[i]), mode: 'markers', text: pre.map(hov), hovertemplate: '%{text}<extra></extra>',
+          customdata: pre.map(i => s.t[i]),
           marker: { size: 5, color: pre.map(i => s.t[i]), colorscale: c.seq, cmin: -300, cmax: 0, showscale: !narrow(),
             colorbar: { title: { text: 'to gun', side: 'right' }, tickvals: [-300, -240, -180, -120, -60, 0],
               ticktext: ['5:00', '4:00', '3:00', '2:00', '1:00', 'gun'], thickness: 10, len: 0.8, outlinewidth: 0 } } },
         { x: post.map(i => s.x[i]), y: post.map(i => s.y[i]), mode: 'markers', marker: { size: 4, color: c.ink2 },
-          text: post.map(hov), hovertemplate: '%{text}<extra></extra>' },
+          text: post.map(hov), hovertemplate: '%{text}<extra></extra>', customdata: post.map(i => s.t[i]) },
         // the start line only: a gate or finish near it reads as part of the line
         ...courseTraces({ course: d.course.filter(e => e.type === 'StartLine') }, c),
         { x: marks.map(i => s.x[i]), y: marks.map(i => s.y[i]), mode: 'markers+text', text: marks.map(i => clock(s.t[i]).replace(' to gun', '')),
@@ -216,27 +221,70 @@ function reportData() {
         ...LADDER.button(traces, c, 'Start grid (' + START_RUNG_M + ' m)', 'start', true),
         ...LADDER.button(traces, c, 'First beat’s ladder', 'ladder', false, traces.some(t => t.meta === 'start') ? 1 : 0),
       ] : [];
+      // the boat at the moment shown on the speed and distance chart below (and the reverse)
+      traces.push({ x: [], y: [], mode: 'markers', marker: { size: 14, color: 'rgba(0,0,0,0)', line: { color: c.orange, width: 3 } },
+        hoverinfo: 'skip', showlegend: false });
+      const cursor = traces.length - 1;
       Plotly.newPlot(el, traces, lay, CONFIG);
       if (F) LADDER.keepPointers(el, F, c, endsNote);
+      el._cursorAt = t => { const i = d.idxAt(t), q = rot(s.x[i], s.y[i]); Plotly.restyle(el, { x: [[q[0]]], y: [[q[1]]] }, [cursor]); };
+      el.on('plotly_hover', ev => {
+        const t = ev.points && ev.points[0] && ev.points[0].customdata;
+        if (t == null) return;
+        el._cursorAt(t);
+        const below = startSibling(el, 'startTime');
+        if (below && below._cursorAt) below._cursorAt(t);
+      });
     },
 
     // Speed and distance behind the line: last 2 minutes shown, zoom out to 5
     startTime(el, d, c) {
       const s = d.series, { idx, g } = pick(d, (i, t) => t >= -300 && t <= 60);
       const below = i => (s.below ? s.below[i] : null);
+      // the last 2 minutes' distances, bottom to top (flipped: the line near the top), to the 10 m
+      function belowRange() {
+        const v = idx.filter(i => s.t[i] >= -120 && s.t[i] <= 30).map(below).filter(b => b != null);
+        if (!v.length) return undefined;
+        const lo = Math.max(-60, Math.min(0, ...v)), hi = Math.max(10, ...v);
+        return [Math.ceil(hi / 10) * 10 + 5, Math.floor(lo / 10) * 10 - 5];
+      }
+      // the cursor: the moment hovered here or on the map above, with its speed and distance
+      const cur = [
+        { x: [], y: [], mode: 'markers+text', marker: { size: 10, color: c.orange }, textposition: 'top right',
+          textfont: { color: c.ink, size: 12 }, hoverinfo: 'skip', showlegend: false },
+        { x: [], y: [], yaxis: 'y2', mode: 'markers+text', marker: { size: 10, color: c.orange }, textposition: 'bottom right',
+          textfont: { color: c.ink, size: 12 }, hoverinfo: 'skip', showlegend: false },
+      ];
       Plotly.newPlot(el, [
         { x: g(s.t), y: g(s.sog), mode: 'lines', line: { color: c.blue, width: 2 },
           text: idx.map(i => s.hover[i] + '<br>Behind line ' + mL(below(i), 1)),
           hovertemplate: '%{text}<extra></extra>' },
         { x: g(s.t), y: idx.map(below), yaxis: 'y2', mode: 'lines', line: { color: c.blue, width: 2 },
           text: idx.map(i => clock(s.t[i])), hovertemplate: '%{text}: %{y:.1f} m behind the line<extra></extra>' },
+        ...cur,
       ], layout(c, {
         title: title(c, 'Speed and distance behind the line (zoom out for the full 5 minutes)', 'Last 2 minutes'),
         xaxis: axis(c, { title: 'seconds from gun', range: [-120, 30], anchor: 'y2', ...SPIKE }),
-        yaxis: axis(c, { title: 'SOG (kt)', domain: [0.55, 1] }),
-        yaxis2: axis(c, { title: 'm behind line', domain: [0, 0.45], zeroline: true, zerolinecolor: c.ink2 }),
-        shapes: [vline(0, c, 'dash')], hovermode: 'x', height: 440,
+        yaxis: axis(c, { title: 'SOG (kt)', domain: [0.62, 1] }),
+        // flipped, so the trace climbs to the line (0, at the top) as the gun nears; a line every 10 m
+        yaxis2: axis(c, { title: 'm behind line', domain: [0, 0.54], zeroline: true, zerolinecolor: c.ink2,
+          range: belowRange(), dtick: 10, tickfont: { size: 10 } }),
+        shapes: [vline(0, c, 'dash')], hovermode: 'x', height: 560,
       }), CONFIG);
+      el._cursorAt = t => {
+        const i = d.idxAt(t), v = s.sog[i], b = below(i);
+        Plotly.restyle(el, {
+          x: [[s.t[i]], [s.t[i]]], y: [[v], [b]],
+          text: [[v == null ? '' : v.toFixed(1) + ' kt'], [b == null ? '' : b < 0 ? Math.abs(b).toFixed(0) + ' m over' : b.toFixed(0) + ' m']],
+        }, [2, 3]);
+      };
+      el.on('plotly_hover', ev => {
+        const t = ev.points && ev.points[0] && ev.points[0].x;
+        if (t == null) return;
+        el._cursorAt(t);
+        const map = startSibling(el, 'startMap');
+        if (map && map._cursorAt) map._cursorAt(t);
+      });
     },
 
     // Whole race track coloured by speed, tacks and gybes marked
