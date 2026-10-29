@@ -197,8 +197,9 @@ function reportData() {
       const xr = pad(Math.min(...xs), Math.max(...xs)), yr = pad(Math.min(...ys), Math.max(...ys));
       const lay = layout(c, {
         title: title(c, 'Approach from 5:00 (hover for time to gun, speed, VMG, heading)', 'Approach from 5:00'),
-        xaxis: axis(c, { title: 'metres (upwind is up)', zeroline: false, range: xr }),
-        yaxis: axis(c, { scaleanchor: 'x', zeroline: false, range: yr }), annotations: lineEnds(d).map(a => Object.assign(a, { font: { color: c.ink } })),
+        // no background grid: the start grid is the only one
+        xaxis: axis(c, { title: 'metres (upwind is up)', zeroline: false, range: xr, showgrid: false }),
+        yaxis: axis(c, { scaleanchor: 'x', zeroline: false, range: yr, showgrid: false }), annotations: lineEnds(d).map(a => Object.assign(a, { font: { color: c.ink } })),
         hovermode: 'closest', height: mapHeight(el, xr, yr, 300, 520),
       });
       lay.updatemenus = window.LADDER ? [

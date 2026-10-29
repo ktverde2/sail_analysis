@@ -2249,8 +2249,9 @@ FLEET_JS = r"""
       const lay = base('', 500, plot);
       delete lay.title;
       lay.margin.t = 10;
-      lay.xaxis = Object.assign(lay.xaxis, { range: [cx - half, cx + half], title: 'metres (upwind is up)', zeroline: false });
-      lay.yaxis = Object.assign(lay.yaxis, { range: [cy - half, cy + half], scaleanchor: 'x', zeroline: false });
+      // no background grid: the start grid is the only one (Kevin)
+      lay.xaxis = Object.assign(lay.xaxis, { range: [cx - half, cx + half], title: 'metres (upwind is up)', zeroline: false, showgrid: false });
+      lay.yaxis = Object.assign(lay.yaxis, { range: [cy - half, cy + half], scaleanchor: 'x', zeroline: false, showgrid: false });
       lay.updatemenus = [
         ...LADDER.button(tr, ladColors(), 'Start grid (' + START_RUNG_M + ' m)', 'start', true),
         ...LADDER.button(tr, ladColors(), 'First beat’s ladder', 'ladder', false, grid.length ? 1 : 0),
