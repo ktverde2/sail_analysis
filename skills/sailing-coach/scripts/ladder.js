@@ -66,8 +66,8 @@ window.LADDER = (function () {
   }
 
   // The start grid, as on Vakaros's start view: rungs parallel to the line every `step` metres
-  // behind it (and two ahead), and the close-hauled laylines to each end (starboard to the
-  // pin, port to the boat) from the first beat's wind axis and tacking angle. Tagged 'start'.
+  // behind it (and two ahead), and the close-hauled laylines on both tacks to each end from the
+  // first beat's wind axis and tacking angle. Tagged 'start'.
   function startGrid(pin, boat, lad, c, step, visible) {
     const len = Math.hypot(boat[0] - pin[0], boat[1] - pin[1]);
     if (!len) return [];
@@ -94,10 +94,15 @@ window.LADDER = (function () {
     ];
     if (lad && lad.half_deg) {
       const h = rad(lad.half_deg), reach = back / Math.max(0.2, Math.cos(h));
-      // a boat sails up the layline, so it runs back down from each end, away from the wind
-      for (const [end, a, name] of [[pin, u - h, 'Starboard layline to the pin'], [boat, u + h, 'Port layline to the boat']]) {
+      // a boat sails up the layline, so it runs back down from each end, away from the wind.
+      // Port to the pin and starboard to the boat are marked; the other two are faint (Kevin).
+      for (const [end, a, name, strong] of [
+        [pin, u + h, 'Port layline to the pin', true], [boat, u - h, 'Starboard layline to the boat', true],
+        [pin, u - h, 'Starboard layline to the pin', false], [boat, u + h, 'Port layline to the boat', false],
+      ]) {
         out.push({ x: [end[0], r1(end[0] - Math.sin(a) * reach)], y: [end[1], r1(end[1] - Math.cos(a) * reach)], mode: 'lines',
-          line: { color: c.ink2, width: 1.5, dash: 'dash' }, showlegend: false, visible: !!visible, meta: 'start',
+          line: { color: c.ink2, width: strong ? 1.5 : 1, dash: 'dash' }, opacity: strong ? 1 : 0.3,
+          showlegend: false, visible: !!visible, meta: 'start',
           hovertemplate: name + ' (' + (2 * lad.half_deg).toFixed(0) + '° tacking angle over the ground)<extra></extra>' });
       }
     }
