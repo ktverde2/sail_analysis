@@ -20,6 +20,7 @@ from __future__ import annotations
 import argparse
 import base64
 import csv
+import html
 import json
 import math
 from datetime import datetime
@@ -121,17 +122,14 @@ def race_stems(data: Path, boats: list[str]) -> list[str]:
     return sorted(stems, key=lambda s: int("".join(ch for ch in s if ch.isdigit()) or 0))
 
 
-def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--data", required=True, type=Path)
-    ap.add_argument("--report", required=True, type=Path)
-    ap.add_argument("--out", required=True, type=Path)
-    ap.add_argument("--title", help="page title (default: the event name)")
-    ap.add_argument("--terrain", type=Path, help="land/depth grid .npz (default: any in terrain/ that covers the course)")
-    a = ap.parse_args()
+def build_data(data_dir: Path, report_dir: Path, title: str | None = None, terrain_path: Path | None = None,
+               fleet: dict | None = None) -> dict:
+    """Everything the replay draws, as one JSON-ready dict. `fleet` is fleet.json's content (read from
+    report_dir when not given)."""
 
-    boats = sorted(p.name for p in a.data.iterdir() if p.is_dir() and any(p.glob("race*.csv")))
-    fleet = json.loads((a.report / "fleet.json").read_text()) if (a.report / "fleet.json").exists() else None
+    boats = sorted(p.name for p in data_dir.iterdir() if p.is_dir() and any(p.glob("race*.csv")))
+    if fleet is None and (report_dir / "fleet.json").exists():
+        fleet = json.loads((report_dir / "fleet.json").read_text())
     fleet_races = {r["stem"]: r for r in fleet["races"]} if fleet else {}
     colors = {}
     if fleet:
@@ -145,16 +143,16 @@ def main() -> None:
     for i, b in enumerate(boats):
         colors.setdefault(b, PALETTE[i % len(PALETTE)])
 
-    stems = race_stems(a.data, boats)
+    stems = race_stems(data_dir, boats)
     raw = {}
     meta = {}
     for s in stems:
         for b in boats:
-            f = a.data / b / f"{s}.csv"
+            f = data_dir / b / f"{s}.csv"
             if f.exists():
                 raw[(s, b)] = read_csv(f)
                 if s not in meta:
-                    meta[s] = json.loads((a.data / b / f"{s}-race.json").read_text())
+                    meta[s] = json.loads((data_dir / b / f"{s}-race.json").read_text())
 
     lats = np.concatenate([d["Lat"][np.isfinite(d["Lat"])] for d in raw.values()])
     lons = np.concatenate([d["Lon"][np.isfinite(d["Lon"])] for d in raw.values()])
@@ -187,7 +185,7 @@ def main() -> None:
             d = raw.get((s, b))
             if d is None:
                 continue
-            summ = a.report / b / s / "summary.json"
+            summ = report_dir / b / s / "summary.json"
             sm = json.loads(summ.read_text()) if summ.exists() else {}
             gun_local = gun_local or sm.get("gun_local")
             legs = [[l["start_s"], l["start_s"] + l["duration_s"], l["type"]] for l in sm.get("legs", [])]
@@ -233,7 +231,7 @@ def main() -> None:
                 break
             if not wind:
                 for b in boats:
-                    summ = a.report / b / s / "summary.json"
+                    summ = report_dir / b / s / "summary.json"
                     if summ.exists():
                         sm = json.loads(summ.read_text())
                         twd = (sm.get("wind") or {}).get("twd_estimated") or sm.get("upwind_axis")
@@ -249,7 +247,7 @@ def main() -> None:
         mag_var = (fr or {}).get("mag_var")
         if mag_var is None:
             for b in boats:
-                summ = a.report / b / s / "summary.json"
+                summ = report_dir / b / s / "summary.json"
                 if summ.exists():
                     mag_var = json.loads(summ.read_text()).get("mag_var")
                     break
@@ -269,10 +267,10 @@ def main() -> None:
     box_local = (min(ex), min(ny_), max(ex), max(ny_))
     box = (box_local[0] + E0 - TERRAIN_MARGIN_M, box_local[1] + N0 - TERRAIN_MARGIN_M,
            box_local[2] + E0 + TERRAIN_MARGIN_M, box_local[3] + N0 + TERRAIN_MARGIN_M)
-    terrain = load_terrain(box, zone, (E0, N0), a.terrain)
+    terrain = load_terrain(box, zone, (E0, N0), terrain_path)
 
-    title = a.title or f"{event or 'Race'} · 3D replay"
-    data = {
+    title = title or f"{event or 'Race'} · 3D replay"
+    return {
         "title": title,
         "event": event,
         "timezone": tz,
@@ -281,21 +279,47 @@ def main() -> None:
         "races": races,
         "terrain": terrain,
     }
-    page = (HERE / "replay3d.html").read_text()
-    js = (HERE / "replay3d.js").read_text()
-    three = (HERE / "vendor" / "three.min.js").read_text()
+
+
+def assets() -> str:
+    """The replay's template, three.js and its code, for a page that holds the data elsewhere and calls
+    Replay3D.mount(element, data) (fleet.py's report does)."""
+    tpl = (HERE / "replay3d.html").read_text()
+    return (f'<template id="r3-template">{tpl}</template>'
+            f"<script>{script_safe((HERE / 'vendor' / 'three.min.js').read_text())}</script>"
+            f"<script>{script_safe((HERE / 'replay3d.js').read_text())}</script>")
+
+
+def page(data: dict) -> str:
+    """The standalone replay: one file, the replay filling the window."""
     blob = json.dumps(data, separators=(",", ":")).replace("</", "<\\/")
-    html = (page.replace("{{TITLE}}", title)
-                .replace("{{THREE}}", lambda_safe(three))
-                .replace("{{DATA}}", blob)
-                .replace("{{JS}}", js))
-    a.out.write_text(html)
-    print(f"wrote {a.out} ({a.out.stat().st_size / 1e6:.1f} MB): {len(boats)} boats, {len(races)} races, "
-          f"terrain {'yes' if terrain else 'no'}")
+    return ('<!doctype html><html lang="en"><head><meta charset="utf-8">'
+            '<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">'
+            f"<title>{html.escape(data['title'])}</title>"
+            "<style>html, body { margin: 0; height: 100%; overflow: hidden; background: #9fc3e0; }"
+            " #r3 { position: fixed; inset: 0; }</style></head>"
+            '<body><div id="r3"></div>'
+            f'<script type="application/json" id="replay-data">{blob}</script>{assets()}'
+            "<script>Replay3D.mount(document.getElementById('r3'), "
+            "JSON.parse(document.getElementById('replay-data').textContent));</script></body></html>")
 
 
-def lambda_safe(s: str) -> str:
+def script_safe(s: str) -> str:
     return s.replace("</script", "<\\/script")
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--data", required=True, type=Path)
+    ap.add_argument("--report", required=True, type=Path)
+    ap.add_argument("--out", required=True, type=Path)
+    ap.add_argument("--title", help="page title (default: the event name)")
+    ap.add_argument("--terrain", type=Path, help="land/depth grid .npz (default: any in terrain/ that covers the course)")
+    a = ap.parse_args()
+    data = build_data(a.data, a.report, a.title, a.terrain)
+    a.out.write_text(page(data))
+    print(f"wrote {a.out} ({a.out.stat().st_size / 1e6:.1f} MB): {len(data['boats'])} boats, "
+          f"{len(data['races'])} races, terrain {'yes' if data['terrain'] else 'no'}")
 
 
 if __name__ == "__main__":

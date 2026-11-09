@@ -35,6 +35,7 @@ import report_extras as RX
 import ladder as LD
 import current as CU
 import html_report as H
+import replay3d as R3
 import numpy as np
 import pandas as pd
 
@@ -3653,6 +3654,32 @@ def stretch_html(fa: dict, r: dict, p: dict) -> str:
     )
 
 
+# The 3D replay page: the replay fills a box as wide as the screen allows, and is only drawn while
+# its page is open (it starts on first open and pauses when another page is shown).
+R3_CSS = """
+.r3-host { height: min(calc(100vh - 24px), 900px); min-height: 440px; border-radius: 12px; overflow: hidden;
+  width: min(1600px, calc(100vw - 32px)); margin-left: calc((100% - min(1600px, calc(100vw - 32px))) / 2); }
+@media (max-width: 760px) { .r3-host { height: calc(100svh - 140px); } }
+@media print { .r3-host { display: none; } }
+"""
+R3_BOOT = """
+(function () {
+  let ctl = null;
+  function sync() {
+    const pg = document.getElementById('replay3d'), host = document.getElementById('r3-host');
+    if (!pg || !host || !window.Replay3D) return;
+    const on = pg.classList.contains('active');
+    if (on && !ctl) ctl = Replay3D.mount(host, JSON.parse(document.getElementById('fleet-data').textContent).replay3d) || { setActive() {} };
+    else if (ctl) ctl.setActive(on);
+    // bring the whole replay into view (the page's title stays just above it)
+    if (on && location.hash === '#replay3d' && host.getBoundingClientRect().bottom > innerHeight) host.scrollIntoView({ block: 'end' });
+  }
+  window.addEventListener('hashchange', () => setTimeout(sync));
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => setTimeout(sync)); else setTimeout(sync);
+})();
+"""
+
+
 def write_html(
     fa: dict,
     md: str,
@@ -3664,6 +3691,7 @@ def write_html(
     cdn: bool,
     data_only: bool = False,
     notes: str | None = None,
+    replay: dict | None = None,
 ) -> Path:
     if data_only:  # no coaching: a coach debriefs from the data
         debrief = None
@@ -3703,6 +3731,16 @@ def write_html(
                     "zoom, double-click to reset.</p>" + debrief_html(debrief),
                     "debrief",
                 ),
+            )
+        )
+    if replay:
+        pages.append(
+            H.page(
+                "replay3d",
+                "3D replay",
+                "Every tracked boat on the water. Follow one from behind, orbit and zoom around it, pan to the "
+                "others, or pull back to the whole course. Press play, or drag the timeline.",
+                '<div class="r3-host" id="r3-host"></div>',
             )
         )
     race_cur = CU.race_summaries([reports_dir / b["id"] for b in boats])
@@ -3808,6 +3846,7 @@ def write_html(
         "summary": "Summary",
         "about": "About the data",
         "debrief": "Fleet debrief",
+        "replay3d": "3D replay",
         "races": "Race by race",
         "starts": "Starts",
         "pairs": "Side by side",
@@ -3820,7 +3859,7 @@ def write_html(
         )
         + "</nav>"
     )
-    data = json.dumps(H.no_tips(fa) if data_only else fa).replace("</", "<\\/")
+    data = json.dumps({**(H.no_tips(fa) if data_only else fa), **({"replay3d": replay} if replay else {})}).replace("</", "<\\/")
     source = next(
         (r["summary"]["source"] for b in boats for r in b["races"].values() if r["summary"].get("source")),
         "Njord",
@@ -3833,7 +3872,7 @@ def write_html(
     doc = (
         '<!doctype html><html lang="en"><head><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1">'
-        f"<title>{html.escape(title)}</title><style>{H.CSS}{REPLAY_CSS}{RX.CSS}</style><script>{H.PAGE_JS}</script></head>"
+        f"<title>{html.escape(title)}</title><style>{H.CSS}{REPLAY_CSS}{RX.CSS}{R3_CSS if replay else ''}</style><script>{H.PAGE_JS}</script></head>"
         f'<body><main><header class="top"><h1>{html.escape(title)}</h1>'
         f"<p>Fleet comparison from {html.escape(source)} data{' · the data only, no coaching' if data_only else ''}</p></header>"
         + nav
@@ -3843,7 +3882,9 @@ def write_html(
         f'<script type="application/json" id="fleet-data">{data}</script>{lib}'
         f"<script>{(Path(__file__).parent / 'ladder.js').read_text()}</script>"
         f"<script>{FLEET_JS.replace('%BL%', str(A.BOAT_LENGTH_M))}</script>{cur[1] if cur else ''}"
-        f"<script>{RX.fleet_assets(fa)}</script></body></html>"
+        f"<script>{RX.fleet_assets(fa)}</script>"
+        + (R3.assets() + f"<script>{R3_BOOT}</script>" if replay else "")
+        + "</body></html>"
     )
     path = out / "fleet.html"
     path.write_text(doc)
@@ -3868,6 +3909,7 @@ def main():
     ap.add_argument("--data-only", action="store_true", help="leave the coaching (fleet debrief) out, for a coach to debrief from")
     ap.add_argument("--notes", type=Path, help="About the data page (Markdown)")
     ap.add_argument("--official", type=Path, help="official results from yachtscoring.py")
+    ap.add_argument("--no-replay", action="store_true", help="leave out the 3D replay page")
     ap.add_argument(
         "--sail",
         action="append",
@@ -3887,7 +3929,13 @@ def main():
     if a.html or a.debrief:
         debrief = a.debrief.read_text() if a.debrief else None
         notes = a.notes.read_text() if a.notes else None
-        print(write_html(fa, md, a.out, a.title, debrief, a.reports, boats, a.cdn, a.data_only, notes))
+        replay = None
+        if not a.no_replay:
+            try:
+                replay = R3.build_data(a.data, a.reports, title=a.title, fleet=fa)
+            except Exception as e:  # the report is still useful without it
+                print(f"3D replay left out: {e}")
+        print(write_html(fa, md, a.out, a.title, debrief, a.reports, boats, a.cdn, a.data_only, notes, replay))
 
 
 if __name__ == "__main__":

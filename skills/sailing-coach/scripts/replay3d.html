@@ -1,18 +1,16 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>{{TITLE}}</title>
+<!-- The replay's look and controls. replay3d.js mounts this into a shadow root, so its styles and ids
+     stay apart from any page it sits in (the standalone replay, or the fleet report's 3D replay page). -->
 <style>
-:root {
+:host {
+  display: block; position: relative; overflow: hidden; container-type: inline-size;
+  background: #9fc3e0; color: var(--text); font: 14px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased; text-align: left;
   --panel: rgba(16, 24, 34, 0.72); --panel-solid: #121a24; --line: rgba(255, 255, 255, 0.14);
   --text: #f3f6f9; --muted: #a9b6c4; --accent: #ffb547; --on: rgba(255, 255, 255, 0.18);
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; overflow: hidden; background: #9fc3e0; color: var(--text);
-  font: 14px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; }
-#app { position: fixed; inset: 0; }
+:host(:fullscreen) { width: 100vw; height: 100vh; }
+#app { position: absolute; inset: 0; }
 #view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
 #view.dragging { cursor: grabbing; }
 .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
@@ -82,7 +80,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 #note { position: absolute; left: 12px; bottom: 112px; font-size: 11px; color: rgba(255, 255, 255, 0.8); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); max-width: 46%; }
 #err { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; background: var(--panel-solid); padding: 24px; text-align: center; }
 
-@media (max-width: 760px) {
+@container (max-width: 760px) {
   #top { flex-wrap: wrap; gap: 6px; left: 8px; right: 8px; top: 8px; }
   .title { padding: 6px; } .title .ev { font-size: 13px; }
   .clock { min-width: 0; padding: 6px 10px; } .clock .big { font-size: 20px; }
@@ -95,13 +93,11 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   #note { display: none; }
 }
 </style>
-</head>
-<body>
 <div id="app">
   <canvas id="view" aria-label="3D replay of the race"></canvas>
   <div id="labels"></div>
   <header id="top">
-    <div class="panel title"><div class="ev">{{TITLE}}</div><div id="races" class="seg" role="group" aria-label="Race"></div></div>
+    <div class="panel title"><div class="ev" id="title"></div><div class="seg"><div id="races" class="seg" role="group" aria-label="Race"></div><button id="full" title="Full screen" aria-label="Full screen">⛶</button></div></div>
     <div class="panel clock"><div id="clock" class="big">0:00</div><div id="clock2" class="small"></div></div>
     <div class="panel wind" title="Wind direction, from the boats' tacking angles over the ground. The arrow turns with your view.">
       <svg viewBox="-30 -30 60 60" aria-hidden="true">
@@ -136,8 +132,3 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   <div id="note"></div>
   <div id="err"></div>
 </div>
-<script>{{THREE}}</script>
-<script type="application/json" id="replay-data">{{DATA}}</script>
-<script>{{JS}}</script>
-</body>
-</html>

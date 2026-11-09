@@ -1,9 +1,14 @@
-// 3D race replay (replay3d.py fills the data block). World frame: x east, y up, z south,
+// 3D race replay (replay3d.py builds the data). World frame: x east, y up, z south,
 // in metres from the venue's origin; the data's (x, y) are east and north.
-(function () {
+// Replay3D.mount(host, data) draws it inside `host`, from the page's <template id="r3-template">,
+// in a shadow root so its styles and ids don't mix with the page around it.
+window.Replay3D = { mount: function (host, D) {
   'use strict';
-  const D = JSON.parse(document.getElementById('replay-data').textContent);
-  const $ = (s) => document.querySelector(s);
+  const root = host.attachShadow({ mode: 'open' });
+  root.appendChild(document.getElementById('r3-template').content.cloneNode(true));
+  const $ = (s) => root.querySelector(s);
+  $('#title').textContent = D.title;
+  let active = true, running = false;
   const RAD = Math.PI / 180;
   const wrap = (a) => ((((a + 180) % 360) + 360) % 360) - 180;
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -441,7 +446,7 @@
     const tl = $('#time'); tl.min = t0; tl.max = t1;
     S.t = clamp(-180, t0, t1);
     drawTicks();
-    document.querySelectorAll('#races button').forEach((b, k) => b.classList.toggle('on', k === i));
+    root.querySelectorAll('#races button').forEach((b, k) => b.classList.toggle('on', k === i));
     cam.yawS = null;
   }
 
@@ -703,14 +708,14 @@
   seg($('#tails'), TAILS.map(([v, t]) => [v, t]), (v) => { S.tail = +v; syncButtons(); });
   seg($('#shows'), [['labels', 'Labels'], ['ladder', 'Ladder', 'Rungs every 100 m and the laylines for the followed boat\'s leg'],
     ['streaks', 'Wind'], ['trueSize', 'True size', 'Off: boats grow when you zoom out so they stay visible']], (k) => { S[k] = !S[k]; syncButtons(); });
-  if (window.innerWidth < 760) { $('#viewbar').classList.add('closed'); $('#vbtoggle').textContent = '▸'; }
+  if (host.clientWidth < 760) { $('#viewbar').classList.add('closed'); $('#vbtoggle').textContent = '▸'; }
   $('#vbtoggle').addEventListener('click', () => { $('#viewbar').classList.toggle('closed'); $('#vbtoggle').textContent = $('#viewbar').classList.contains('closed') ? '▸' : '▾'; });
   function syncButtons() {
-    document.querySelectorAll('#rates button').forEach((b) => b.classList.toggle('on', +b.dataset.v === S.rate));
-    document.querySelectorAll('#tails button').forEach((b) => b.classList.toggle('on', +b.dataset.v === S.tail));
-    document.querySelectorAll('#shows button').forEach((b) => b.classList.toggle('on', !!S[b.dataset.v]));
-    document.querySelectorAll('#cams button').forEach((b) => b.classList.toggle('on', b.dataset.v === S.cam));
-    document.querySelectorAll('#races button').forEach((b) => b.classList.toggle('on', +b.dataset.v === S.race));
+    root.querySelectorAll('#rates button').forEach((b) => b.classList.toggle('on', +b.dataset.v === S.rate));
+    root.querySelectorAll('#tails button').forEach((b) => b.classList.toggle('on', +b.dataset.v === S.tail));
+    root.querySelectorAll('#shows button').forEach((b) => b.classList.toggle('on', !!S[b.dataset.v]));
+    root.querySelectorAll('#cams button').forEach((b) => b.classList.toggle('on', b.dataset.v === S.cam));
+    root.querySelectorAll('#races button').forEach((b) => b.classList.toggle('on', +b.dataset.v === S.race));
     $('#play').textContent = S.playing ? '❚❚' : '▶';
     $('#play').setAttribute('aria-label', S.playing ? 'Pause' : 'Play');
   }
@@ -720,7 +725,9 @@
   $('#fwd').addEventListener('click', () => { S.t = clamp(S.t + 10, R.t0, R.t1); });
   $('#time').addEventListener('input', (e) => { S.t = +e.target.value; });
   window.addEventListener('keydown', (e) => {
-    if (e.target.tagName === 'INPUT' && e.key !== ' ') return;
+    if (!active || e.ctrlKey || e.metaKey || e.altKey) return;
+    const tag = (e.composedPath()[0] || e.target).tagName;
+    if ((tag === 'INPUT' && e.key !== ' ') || tag === 'TEXTAREA' || tag === 'SELECT') return;
     if (e.key === ' ') { e.preventDefault(); setPlay(!S.playing); }
     else if (e.key === 'ArrowLeft') S.t = clamp(S.t - (e.shiftKey ? 60 : 10), R.t0, R.t1);
     else if (e.key === 'ArrowRight') S.t = clamp(S.t + (e.shiftKey ? 60 : 10), R.t0, R.t1);
@@ -794,15 +801,24 @@
 
   // ---------- main loop ----------
   function resize() {
-    const w = window.innerWidth, h = window.innerHeight;
+    const w = host.clientWidth, h = host.clientHeight;
+    if (!w || !h) return;
     renderer.setSize(w, h, false); camera.aspect = w / h;
     // keep about the same width of view on a tall phone screen
     camera.fov = w < h ? Math.min(72, 2 * Math.atan(Math.tan(25 * RAD) * 1.3 * h / w / 1.6) / RAD) : 50;
     camera.updateProjectionMatrix();
     res.set(w / 2, h / 2);
   }
-  window.addEventListener('resize', resize);
+  if (window.ResizeObserver) new ResizeObserver(resize).observe(host); else window.addEventListener('resize', resize);
   resize();
+  // full screen (where the browser allows it for a page element)
+  const fsOk = !!(host.requestFullscreen || host.webkitRequestFullscreen);
+  $('#full').hidden = !fsOk;
+  $('#full').addEventListener('click', () => {
+    const doc = document;
+    if (doc.fullscreenElement || doc.webkitFullscreenElement) (doc.exitFullscreen || doc.webkitExitFullscreen).call(doc);
+    else (host.requestFullscreen || host.webkitRequestFullscreen).call(host);
+  });
 
   const _proj = new V3();
   function placeLabel(el, p, show) {
@@ -814,6 +830,7 @@
 
   let last = performance.now(), wallT = 0;
   function frame(now) {
+    if (!active) { running = false; return; }
     const dt = Math.min(0.1, (now - last) / 1000); last = now; wallT += dt;
     if (S.playing) { S.t += dt * S.rate; if (S.t >= R.t1) { S.t = R.t1; S.playing = false; syncButtons(); } }
     const t = S.t, twd = windAt(t);
@@ -854,6 +871,16 @@
   buildRace(0);
   syncButtons();
   cam.yawS = null;
-  requestAnimationFrame(frame);
-  window.__replay = { S, cam, setCam, setFollow, buildRace, D, get trails() { return trails; }, renderer, scene, camera };
-})();
+  const ctl = {
+    S, cam, setCam, setFollow, buildRace, D, renderer, scene, camera, get trails() { return trails; },
+    // stop drawing while the replay is hidden (another report page is open)
+    setActive(on) {
+      active = on;
+      if (on && !running) { running = true; last = performance.now(); resize(); requestAnimationFrame(frame); }
+      if (!on && S.playing) { S.playing = false; syncButtons(); }
+    },
+  };
+  ctl.setActive(true);
+  window.__replay = ctl;
+  return ctl;
+} };
