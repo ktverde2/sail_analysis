@@ -1,0 +1,134 @@
+<!-- The replay's look and controls. replay3d.js mounts this into a shadow root, so its styles and ids
+     stay apart from any page it sits in (the standalone replay, or the fleet report's 3D replay page). -->
+<style>
+:host {
+  display: block; position: relative; overflow: hidden; container-type: inline-size;
+  background: #9fc3e0; color: var(--text); font: 14px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased; text-align: left;
+  --panel: rgba(16, 24, 34, 0.72); --panel-solid: #121a24; --line: rgba(255, 255, 255, 0.14);
+  --text: #f3f6f9; --muted: #a9b6c4; --accent: #ffb547; --on: rgba(255, 255, 255, 0.18);
+}
+* { box-sizing: border-box; }
+:host(:fullscreen) { width: 100vw; height: 100vh; }
+#app { position: absolute; inset: 0; }
+#view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; }
+#view.dragging { cursor: grabbing; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px;
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); box-shadow: 0 4px 18px rgba(0, 0, 0, 0.18); }
+button { font: inherit; color: var(--text); background: transparent; border: 0; border-radius: 8px;
+  padding: 6px 10px; cursor: pointer; white-space: nowrap; }
+button:hover { background: rgba(255, 255, 255, 0.1); }
+button.on { background: var(--on); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25); }
+button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.seg { display: flex; gap: 2px; flex-wrap: wrap; }
+
+#top { position: absolute; left: 12px; right: 12px; top: 12px; display: flex; gap: 10px; align-items: flex-start; pointer-events: none; }
+#top > * { pointer-events: auto; }
+.title { padding: 8px 10px 6px; }
+.title .ev { font-weight: 600; font-size: 15px; padding: 0 4px 4px; }
+.clock { padding: 8px 14px; min-width: 150px; text-align: center; }
+.clock .big { font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; letter-spacing: 0.5px; }
+.clock .small { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.wind { margin-left: auto; padding: 8px 12px; display: flex; gap: 10px; align-items: center; }
+.wind svg { width: 54px; height: 54px; display: block; }
+.wind .txt { font-size: 13px; }
+.wind .txt b { font-size: 17px; font-variant-numeric: tabular-nums; }
+.wind .txt span { color: var(--muted); font-size: 11px; display: block; }
+
+#boats { position: absolute; right: 12px; top: 92px; width: 250px; padding: 6px; display: flex; flex-direction: column; gap: 4px;
+  max-height: calc(100% - 210px); overflow: auto; }
+.card { border-radius: 9px; padding: 7px 9px; cursor: pointer; border: 1px solid transparent; }
+.card:hover { background: rgba(255, 255, 255, 0.07); }
+.card.on { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.25); }
+.card .row1 { display: flex; align-items: center; gap: 7px; font-weight: 600; }
+.card .dot { width: 11px; height: 11px; border-radius: 50%; flex: none; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5); }
+.card .pos { margin-left: auto; color: var(--muted); font-weight: 500; font-size: 12px; }
+.card .row2 { display: flex; gap: 10px; margin-top: 3px; font-variant-numeric: tabular-nums; }
+.card .row2 b { font-size: 17px; }
+.card .row2 span { color: var(--muted); font-size: 12px; align-self: flex-end; }
+.card .row3 { color: var(--muted); font-size: 12px; margin-top: 2px; font-variant-numeric: tabular-nums; }
+.card .row3 .gap { color: var(--text); float: right; }
+
+#viewbar { position: absolute; left: 12px; top: 96px; padding: 6px; display: flex; flex-direction: column; gap: 6px; max-width: 220px; }
+#viewbar .lab { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; padding: 2px 6px 0; }
+#viewbar .seg button { padding: 5px 8px; font-size: 13px; }
+#viewbar.closed .body { display: none; }
+#viewbar .head { display: flex; align-items: center; justify-content: space-between; }
+
+#bar { position: absolute; left: 12px; right: 12px; bottom: 12px; padding: 8px 12px 10px; display: flex; flex-direction: column; gap: 6px; }
+#bar .ctl { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+#bar .ctl .play { font-size: 18px; width: 44px; height: 36px; background: rgba(255, 255, 255, 0.16); }
+#bar .ctl .spacer { flex: 1; }
+#bar .ctl .hint { color: var(--muted); font-size: 12px; }
+.tl { position: relative; height: 26px; }
+.tl input { position: absolute; inset: 0; width: 100%; margin: 0; background: transparent; -webkit-appearance: none; appearance: none; height: 26px; }
+.tl input::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.22); }
+.tl input::-moz-range-track { height: 6px; border-radius: 3px; background: rgba(255, 255, 255, 0.22); }
+.tl input::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; margin-top: -5px; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.25); }
+.tl input::-moz-range-thumb { width: 16px; height: 16px; border-radius: 50%; background: #fff; border: 0; }
+.tl .tick { position: absolute; top: 2px; width: 2px; height: 22px; margin-left: -1px; background: rgba(255, 255, 255, 0.55); pointer-events: none; border-radius: 1px; }
+.tl .tick.gun { background: var(--accent); }
+.tl .tick i { position: absolute; top: -15px; left: 50%; transform: translateX(-50%); font-style: normal; font-size: 10px; color: var(--muted); white-space: nowrap; }
+
+#labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.lbl { position: absolute; left: 0; top: 0; transform: translate(-50%, -100%); white-space: nowrap; font-size: 12px; font-weight: 600;
+  padding: 2px 7px; border-radius: 10px; background: rgba(16, 24, 34, 0.7); color: #fff; pointer-events: auto; cursor: pointer;
+  border-left: 4px solid currentColor; will-change: transform; }
+.lbl small { font-weight: 500; color: var(--muted); margin-left: 4px; font-variant-numeric: tabular-nums; }
+.lbl.mark { background: rgba(16, 24, 34, 0.55); font-weight: 500; font-size: 11px; border-left: 0; pointer-events: none; color: #ffd2a8; }
+
+#note { position: absolute; left: 12px; bottom: 112px; font-size: 11px; color: rgba(255, 255, 255, 0.8); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5); max-width: 46%; }
+#err { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; background: var(--panel-solid); padding: 24px; text-align: center; }
+
+@container (max-width: 760px) {
+  #top { flex-wrap: wrap; gap: 6px; left: 8px; right: 8px; top: 8px; }
+  .title { padding: 6px; } .title .ev { font-size: 13px; }
+  .clock { min-width: 0; padding: 6px 10px; } .clock .big { font-size: 20px; }
+  .wind { padding: 6px 8px; } .wind svg { width: 40px; height: 40px; } .wind .txt span { display: none; }
+  #boats { top: auto; bottom: 118px; right: 8px; left: 8px; width: auto; flex-direction: row; overflow-x: auto; max-height: none; padding: 4px; }
+  .card { min-width: 168px; padding: 5px 7px; } .card .row2 b { font-size: 15px; }
+  #viewbar { top: auto; bottom: 222px; left: 8px; }
+  #bar { left: 8px; right: 8px; bottom: 8px; padding: 6px 8px 8px; }
+  #bar .ctl .hint { display: none; }
+  #note { display: none; }
+}
+</style>
+<div id="app">
+  <canvas id="view" aria-label="3D replay of the race"></canvas>
+  <div id="labels"></div>
+  <header id="top">
+    <div class="panel title"><div class="ev" id="title"></div><div class="seg"><div id="races" class="seg" role="group" aria-label="Race"></div><button id="full" title="Full screen" aria-label="Full screen">⛶</button></div></div>
+    <div class="panel clock"><div id="clock" class="big">0:00</div><div id="clock2" class="small"></div></div>
+    <div class="panel wind" title="Wind direction, from the boats' tacking angles over the ground. The arrow turns with your view.">
+      <svg viewBox="-30 -30 60 60" aria-hidden="true">
+        <circle r="27" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.35)" stroke-width="1.2"/>
+        <g id="dial"><text y="-17" text-anchor="middle" font-size="9" fill="#cfd8e3" font-weight="700">N</text>
+          <line x1="0" y1="-27" x2="0" y2="-22" stroke="#cfd8e3" stroke-width="2"/></g>
+        <g id="windarrow"><path d="M0,-24 L6,-12 L1.8,-13 L1.8,18 L-1.8,18 L-1.8,-13 L-6,-12 Z" fill="#ffb547" transform="rotate(180)"/></g>
+      </svg>
+      <div class="txt">Wind <b id="twd">—</b><span>from the tracks</span></div>
+    </div>
+  </header>
+  <aside id="boats" class="panel" aria-label="Boats"></aside>
+  <nav id="viewbar" class="panel">
+    <div class="head"><div class="lab">View</div><button id="vbtoggle" aria-label="Show or hide view options">▾</button></div>
+    <div class="body">
+      <div class="seg" id="cams" role="group" aria-label="Camera"></div>
+      <div class="lab">Trail</div><div class="seg" id="tails" role="group" aria-label="Trail length"></div>
+      <div class="lab">Show</div><div class="seg" id="shows" role="group" aria-label="Show"></div>
+    </div>
+  </nav>
+  <footer id="bar" class="panel">
+    <div class="ctl">
+      <button id="back" title="Back 10 s (←)">−10s</button>
+      <button id="play" class="play" title="Play or pause (space)" aria-label="Play">▶</button>
+      <button id="fwd" title="Forward 10 s (→)">+10s</button>
+      <div class="seg" id="rates" role="group" aria-label="Playback speed"></div>
+      <span class="spacer"></span>
+      <span class="hint">Drag to orbit · right-drag or two fingers to pan · scroll or pinch to zoom · click a boat to follow it</span>
+    </div>
+    <div class="tl"><input id="time" type="range" min="0" max="1" step="0.1" value="0" aria-label="Race time"><div id="ticks"></div></div>
+  </footer>
+  <div id="note"></div>
+  <div id="err"></div>
+</div>
