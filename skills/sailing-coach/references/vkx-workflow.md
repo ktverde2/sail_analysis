@@ -18,7 +18,7 @@ When Kevin sends Vakaros Atlas logs instead of a Njord event, `scripts/vkx/` rea
    python scripts/course.py page --data <dir>/raw --regatta <dir>/regatta-proposed.json --out <dir>/course-check.html \
      --title "<Event> course check · <boats>" --doc courses/<event-slug>
    ```
-   One self-contained page: every boat's track course up (or north up), zoom and pan, a time slider, and the course on top. Kevin drags marks and line ends, switches a mark to a gate, adds, removes or reorders marks, or puts the finish on the start line. Under each mark it lists how close every boat passed it (and which gate end), and under the finish when each boat crossed, so a wrong mark shows at once. The start line is the boats' own pings and can't be moved.
+   One self-contained page: every boat's track course up (or north up), zoom and pan, a time slider, and the course on top. Kevin drags marks and line ends, switches a mark to a gate, adds, removes or reorders marks, or puts the finish on the start line. Under each mark it lists how close every boat passed it (and which gate end), and under the finish when each boat crossed, so a wrong mark shows at once. The start line is the boats' own pings: fixed for Vakaros (live broadcasts), draggable for Velocitek, whose one-off pings can be a few boat lengths off (the original pings stay dashed).
    - **Where the Artifact tool exists** (a claude.ai project, Claude Code): publish the page as an artifact with the `db` capability and send Kevin the link. Save writes the course to the doc named by `--doc`. Read it back with ArtifactData `get` (collection `courses`, doc id `<event-slug>`). It's a complete regatta file (`event`, `timezone`, `races`), so write it to `<dir>/regatta.json`. To re-check after a change, or when another boat is added, republish to the same URL with the same `--doc`: his saved course loads over the estimate.
    - **Anywhere else**, send the HTML file. Save then downloads `regatta-<event>.json`, which Kevin sends back.
    - Go round until Kevin says it's right. Nothing is analysed on an unconfirmed course.
@@ -32,3 +32,11 @@ When Kevin sends Vakaros Atlas logs instead of a Njord event, `scripts/vkx/` rea
 7. **Analyse as usual** from SKILL.md Workflow step 4's `analyze.py` on `<dir>/data/<boat>/race*.csv` (and `fleet.py` over `<dir>/data` for two or more boats). The reports' subtitles say "from Vakaros data" on their own, from the `"source"` the parser writes into `raceN-race.json`. In the debrief's Data notes, say the source was the `.vkx` file and that the marks were estimated from the tracks and checked by Kevin.
 
 `scripts/vkx/` is a copy of github.com/ktverde2/vkx-parser (Apache-2.0, `scripts/vkx/LICENSE`; the file format is in `vkx_format_spec.md`), changed to end races at each boat's finish and to tag the source.
+
+## Velocitek .vtk logs
+
+`scripts/vkx/vtk_parser.py` reads Velocitek `.vtk` logs (ProStart / Shift family) into the same objects as a `.vkx`, so `vkx_report.py` takes `.vtk` files directly and the steps above are unchanged. The format is in the parser's docstring: position, SOG, COG and a heading/heel/trim quaternion at ~5 Hz, the race timer, and line pings. Differences from Vakaros:
+
+- **Guns:** the timer logs a stop whenever it reaches zero or the crew stops it by hand; a stop where the running countdown reaches zero is the gun. A crew that runs the timer for other fleets' sequences shows extra guns, so give the regatta file the real guns (every boat's timer should agree) and the others are skipped.
+- **Start line:** pinged once per end, not broadcast, and only on the boat that pinged it. `--line-from <other boat>.vtk` borrows another boat's pings. Pings can be well off the real ends (Nov 14 2026: both J24s were 23–26 m over the pinged line at the gun in both races), so the course page lets Kevin drag the start line.
+- **No race-end reset:** set `endTime` in the raw regatta file (before the next race's sequence) so each race doesn't run to the end of the log.

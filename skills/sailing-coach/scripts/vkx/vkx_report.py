@@ -64,6 +64,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from vkx_parser import parse_vkx, ts_to_iso
+from vtk_parser import parse_vtk
 
 MS_TO_KN = 1.94384
 PRESTART_S = 419     # track starts this many seconds before the gun (Njord's window)
@@ -108,15 +109,17 @@ class Race:
 class LineTracker:
     """Latest known position of each start-line end, from 0x05 broadcasts."""
 
-    def __init__(self, line_ends):
+    def __init__(self, line_ends, max_age_ms: int = 15 * 60 * 1000):
+        self.max_age_ms = max_age_ms
         self.by_end: dict[int, tuple[list[int], list[tuple[float, float]]]] = {}
         for le in sorted(line_ends, key=lambda e: e.timestamp_ms):
             ts_list, pos_list = self.by_end.setdefault(le.end_id, ([], []))
             ts_list.append(le.timestamp_ms)
             pos_list.append((le.lat, le.lon))
 
-    def at(self, ms: int, max_age_ms: int = 15 * 60 * 1000):
+    def at(self, ms: int, max_age_ms: int | None = None):
         """(end0, end1) lat/lon at time ms, or None if either end is unknown/stale."""
+        max_age_ms = self.max_age_ms if max_age_ms is None else max_age_ms
         out = []
         for end_id in (0, 1):
             if end_id not in self.by_end:
@@ -143,7 +146,11 @@ class LineTracker:
             hi = bisect.bisect_right(ts_list, end_ms)
             pts = pos_list[lo:hi]
             if not pts:
-                return None
+                # pinged ends (Velocitek) aren't rebroadcast: use the latest ping
+                i = lo - 1
+                if i < 0 or end_ms - ts_list[i] > self.max_age_ms:
+                    return None
+                pts = [pos_list[i]]
             out.append(
                 (sum(p[0] for p in pts) / len(pts), sum(p[1] for p in pts) / len(pts))
             )
@@ -455,7 +462,7 @@ CSV_COLUMNS = ["ISODateTimeUTC", "SecondsSince1970", "Lat", "Lon", "SOG", "COG",
 
 
 def write_race(out_dir: Path, boat, event, tz, race: Race, rows, info_events,
-               variation):
+               variation, source="Vakaros"):
     out_dir.mkdir(parents=True, exist_ok=True)
     stem = f"race{race.number}"
 
@@ -488,7 +495,7 @@ def write_race(out_dir: Path, boat, event, tz, race: Race, rows, info_events,
         # the fleet-shared startTime is the whole second (matches Njord)
         "startTime": iso_ms(round(race.gun_ms / 1000) * 1000),
         "endTime": iso_ms(race.end_ms),
-        "source": "Vakaros",
+        "source": source,
         "course": race.course,
     }
     with open(out_dir / f"{stem}-race.json", "w") as fh:
@@ -507,7 +514,7 @@ def main(argv=None):
     ap = argparse.ArgumentParser(
         description="Generate report input files (raceN.csv, raceN-race.json, "
                     "raceN-raceInfo.json) from Vakaros .vkx logs for one boat.")
-    ap.add_argument("files", nargs="+", help=".vkx files for ONE boat")
+    ap.add_argument("files", nargs="+", help=".vkx (Vakaros) or .vtk (Velocitek) files for ONE boat")
     ap.add_argument("--data-dir", default="data", help="output root (default: data)")
     ap.add_argument("--boat", help="boat name (default: from the file name)")
     ap.add_argument("--event", default="Regatta", help='event name for race.json')
@@ -519,20 +526,34 @@ def main(argv=None):
                     help="with a FinishLine in the course, end each race this many "
                          "seconds after this boat crosses it (default 30; -1 keeps "
                          "the timer reset as the end)")
+    ap.add_argument("--line-from", nargs="*", default=[],
+                    help="other boats' .vtk files to take start-line pings from "
+                         "(a Velocitek boat that didn't ping the line itself)")
     args = ap.parse_args(argv)
 
     boat = args.boat or boat_from_filename(args.files[0])
     event, tz = args.event, args.timezone
 
     fixes, line_ends, timer_events = [], [], []
+    pinged = False
     for path in args.files:
-        v = parse_vkx(path)
+        if path.lower().endswith(".vtk"):
+            v = parse_vtk(path)
+            pinged = True
+        else:
+            v = parse_vkx(path)
         fixes.extend(v.fixes)
         line_ends.extend(v.line_ends)
         timer_events.extend(v.timer_events)
         print(f"parsed {path}: {len(v.fixes)} fixes, {len(v.timer_events)} timer events")
+    for path in args.line_from:
+        extra = parse_vtk(path).line_ends
+        line_ends.extend(extra)
+        pinged = True
+        print(f"start-line pings from {path}: {len(extra)}")
     fixes.sort(key=lambda f: f.timestamp_ms)
-    line = LineTracker(line_ends)
+    # Vakaros rebroadcasts the line ends every second; a Velocitek ping holds until re-pinged
+    line = LineTracker(line_ends, max_age_ms=12 * 3600 * 1000 if pinged else 15 * 60 * 1000)
 
     regatta = None
     if args.regatta:
@@ -610,7 +631,7 @@ def main(argv=None):
 
         out_dir = Path(args.data_dir) / boat
         write_race(out_dir, boat, event, tz, race, rows, info_events,
-                   args.variation)
+                   args.variation, source="Velocitek" if pinged else "Vakaros")
 
         if race.end_is_estimate:
             notes.append("endTime = end of data (no timer reset after the gun; "

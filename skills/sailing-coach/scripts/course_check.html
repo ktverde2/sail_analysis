@@ -117,12 +117,12 @@ let courses=JSON.parse(JSON.stringify(est)), cur=0, db=null, dirty=false, course
 document.getElementById('h1').textContent=DATA.title;
 document.getElementById('legend').innerHTML=DATA.boats.map((b,i)=>`<span><i style="background:${COL[i]}"></i>${esc(b)}</span>`).join('')+
   '<span>Faded: before the gun and after each boat\'s finish</span>'+
-  '<span><span class="swatch" style="background:var(--start)"></span>Start line (from the boats\' pings)</span>'+
+  '<span><span class="swatch" style="background:var(--start)"></span>'+(DATA.movableStart?'Start line (from the line pings; drag an end if they were off. Dashed: the pings)':'Start line (from the boats\' pings)')+'</span>'+
   '<span><span class="swatch" style="background:var(--mark)"></span>Mark or gate</span>'+
   '<span><span class="swatch" style="background:var(--finish)"></span>Finish line</span>';
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 
-function proj(r){const sl=courses[r].course[0];const lat0=(sl.coord1.lat+sl.coord2.lat)/2, lon0=(sl.coord1.lon+sl.coord2.lon)/2;
+function proj(r){const sl=est[r].course[0];const lat0=(sl.coord1.lat+sl.coord2.lat)/2, lon0=(sl.coord1.lon+sl.coord2.lon)/2;
   const kx=111320*Math.cos(lat0*Math.PI/180), ky=110540, axis=courseUp?DATA.races[r].axis:0, th=axis*Math.PI/180, c=Math.cos(th), s=Math.sin(th);
   const en=(p)=>[(p.lon-lon0)*kx,(p.lat-lat0)*ky];
   return {axis, en, to:(p)=>{const [e,n]=en(p);return [e*c-n*s,-(e*s+n*c)];},
@@ -196,11 +196,14 @@ function render(){tabs();const R=DATA.races[cur], P=proj(cur), c=courses[cur].co
     if(a2)el('line',{x1:a1[0],y1:a1[1],x2:a2[0],y2:a2[1],stroke:col,'stroke-width':e.type==='Gate'?2:4,'stroke-dasharray':e.type==='Gate'?'6 5':'none','vector-effect':'non-scaling-stroke'});
     const label=e.type==='StartLine'?'Start':e.type==='FinishLine'?'Finish':String(++n);
     [['coord1',a1,'a'],['coord2',a2,'b']].forEach(([key,v,ab])=>{if(!v)return;
-      const hd=el('g',{class:e.type==='StartLine'?'':'handle',tabindex:e.type==='StartLine'?-1:0,'aria-label':label+(a2?' end '+ab:'')});
+      const fixed=e.type==='StartLine'&&!DATA.movableStart;
+      const hd=el('g',{class:fixed?'':'handle',tabindex:fixed?-1:0,'aria-label':label+(a2?' end '+ab:'')});
       el('circle',{cx:v[0],cy:v[1],r:16*k,fill:'transparent'},hd);
       el('circle',{cx:v[0],cy:v[1],r:(e.type==='Mark'||e.type==='Gate'?7:5)*k,fill:col,stroke:'var(--paper)','stroke-width':1.5,'vector-effect':'non-scaling-stroke',class:'vis'},hd);
       if(e.type==='Gate')el('text',{x:v[0]+9*k,y:v[1]+14*k,class:'lab','font-size':11*k},hd).textContent=ab;
-      if(e.type!=='StartLine')drag(hd,i,key);});
+      if(!fixed)drag(hd,i,key);});
+    if(e.type==='StartLine'&&DATA.movableStart){const o=est[cur].course[0],b1=P.to(o.coord1),b2=P.to(o.coord2);
+      if(Math.hypot(b1[0]-a1[0],b1[1]-a1[1])+Math.hypot(b2[0]-a2[0],b2[1]-a2[1])>1)el('line',{x1:b1[0],y1:b1[1],x2:b2[0],y2:b2[1],stroke:col,'stroke-width':1.5,'stroke-dasharray':'3 4','vector-effect':'non-scaling-stroke'});}
     const lp=a2?[(a1[0]+a2[0])/2,(a1[1]+a2[1])/2]:a1;
     el('text',{x:lp[0]+12*k,y:lp[1]-10*k,class:'mlab','font-size':15*k,'stroke-width':3*k}).textContent=label;});
   view.dots=R.boats.map(B=>el('circle',{r:5.5*k,fill:colOf(B.name),stroke:'var(--paper)','stroke-width':2,'vector-effect':'non-scaling-stroke'}));

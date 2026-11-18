@@ -446,6 +446,9 @@ def page(data_dir: Path, regatta: dict, title: str | None, doc: str | None) -> s
         "file": f"regatta-{slug}.json",
         "regatta": clean,
         "races": races,
+        # Velocitek line ends are one-off pings, often taken a boat length or more off the
+        # real ends; let the start line be dragged (Vakaros ends are live broadcasts)
+        "movableStart": any(b["meta"].get("source") == "Velocitek" for g in groups for b in g["boats"].values()),
     }
     payload = json.dumps(data, separators=(",", ":")).replace("</", "<\\/")
     html = PAGE.read_text()
