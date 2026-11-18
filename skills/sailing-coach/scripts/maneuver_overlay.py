@@ -25,14 +25,17 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+import boatclass
+
 
 HERE = Path(__file__).resolve().parent
 PRE, POST = 15, 40  # seconds shown either side of the middle of the turn
 ENTRY = (-10, -4)  # entry speed window, same as analyze.py
 RECOVERY_PCT = 0.95
 KT = 0.514444
-MIN_ENTRY_KT = 4.0  # below this it's a restart from a stall (start, traffic), not a maneuver to compare
-UPWIND_HEEL = 10.0  # heel (abs) that separates a beat from a run
+MIN_ENTRY_KT = boatclass.CLS.get("stall_kt", 4.0)  # below this it's a restart from a stall (start, traffic), not a maneuver to compare
+# heel (abs) that separates a beat from a run: 10° for an Etchells; a J/24 is sailed flatter
+UPWIND_HEEL = float(boatclass.CLS.get("overlay_heel_deg", 10.0))
 PLOTLY_CDN = "https://cdn.jsdelivr.net/npm/plotly.js-basic-dist-min@2.35.3/plotly-basic.min.js"
 
 # Which maneuvers are comparable. A tack: heeled on both sides and under 110° (more is a tack
@@ -173,7 +176,8 @@ def comparable(r: dict, kind: str) -> str | None:
     if r["entry"] < MIN_ENTRY_KT:
         return "stall"
     heeled = lambda h: h is not None and h >= UPWIND_HEEL
-    if heeled(r["heel_pre"]) != k["heeled"] or heeled(r["heel_post"]) != k["heeled"]:
+    check_heel = kind == "gybe" or boatclass.CLS.get("overlay_tack_heel", True)
+    if check_heel and (heeled(r["heel_pre"]) != k["heeled"] or heeled(r["heel_post"]) != k["heeled"]):
         return "mark"
     lo, hi = k["angle"]
     if not lo <= r["hdg_angle"] <= hi:

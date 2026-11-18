@@ -11,10 +11,13 @@ import os
 CLASSES = {
     "Etchells": {"name": "Etchells", "length_m": 9.3, "length_ft": "30.5", "beam_m": 2.12,
                  # ~15-25 deg upwind, ~2-6 deg downwind
-                 "upwind_heel_deg": 9, "has_targets": True, "start_standard": True},
+                 "upwind_heel_deg": 9, "overlay_heel_deg": 10, "overlay_tack_heel": True, "stall_kt": 4.0, "has_targets": True, "start_standard": True},
     "J24": {"name": "J/24", "length_m": 7.32, "length_ft": "24", "beam_m": 2.71,
             # sailed flatter: ~8-20 deg upwind with the crew hiking, 0-5 deg downwind
-            "upwind_heel_deg": 6, "has_targets": False, "start_standard": False},
+            "upwind_heel_deg": 6, "overlay_heel_deg": 6,
+            # sailed flat in the light near the top mark: tacks are told from roundings by the course
+            # marks and the turn angle, not by heel; and a J/24 tacks at 3-4 kt in light air
+            "overlay_tack_heel": False, "stall_kt": 3.0, "has_targets": False, "start_standard": False},
 }
 
 KEY = os.environ.get("SAIL_CLASS", "Etchells").replace("/", "")
