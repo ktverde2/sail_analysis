@@ -76,19 +76,14 @@ Tacks: 3 on a header, 2 on a lift, 2 layline, 1 double tack.
 Headed before: + means the old tack was headed (a good time to tack). New tack after: + means the new tack was lifted over the next minute.
 
 ## Mark roundings
-Metres lost toward the marks: VMC (speed toward this mark, then the next) from 30 s before to 60 s after the rounding against the steady VMC of the leg before and after, beyond what a clean rounding loses (3 m off the mark, a steady 15° a second turn, and at a leeward mark straight back to upwind speed): 0 m is clean, below 0 beat it. Settled: 10 s VMC back to 90% of the next leg's.
+Settled: 10 s VMC back to 90% of the next leg's.
 
-| # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | m lost (lengths) | Closest to mark m (lengths) | Gate | vs best m (lengths) |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | windward | 12:50 | layline tack 63 s out, overstood 6° | 3.28 | 3.2 | 3.32 | 17 | 31 (4.2) | 3 (0.4) | – | 0 (0.0) |
-| 2 | leeward | 33:25 | last gybe 8 s out | 4.14 | 2.23 | 5.14 | 27 | -16 (-2.2) | 5 (0.7) | – | 5 (0.7) |
-| 3 | windward | 48:50 | layline tack 62 s out | 3.45 | 2.9 | 2.81 | 59 | 59 (8.1) | 2 (0.3) | – | 28 (3.9) |
+| # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | Closest to mark m (lengths) | Gate |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | windward | 12:50 | layline tack 63 s out, overstood 6° | 3.28 | 3.2 | 3.32 | 17 | 3 (0.4) | – |
+| 2 | leeward | 33:25 | last gybe 8 s out | 4.14 | 2.23 | 5.14 | 27 | 5 (0.7) | – |
+| 3 | windward | 48:50 | layline tack 62 s out | 3.45 | 2.9 | 2.81 | 59 | 2 (0.3) | – |
 
-vs best: metres more than the best rounding of the same type in this analysis. The goal is zero lost; the best is the next milestone.
-
-- #1 windward: Your best of this type so far: the benchmark to beat. The goal is still zero. Overstood the layline by ~6°. Tack onto it a little sooner and sail the last 100 m at full upwind speed. Reached off at 146° to the wind for the first 15–40 s after the mark (your best exited at 146°). Bear away all the way to the run angle first, then set. Gybed 2 s after the mark, so its cost is in this number. Fine if it was for clear air or the favoured side; otherwise hold the lane until you're up to speed.
-- #2 leeward: Speed dropped 46% through the turn (4.14 → 2.23 kt; best 37%). A smoother, rounder turn keeps more of it.
-- #3 windward: Took 59 s to settle on the run (best 17 s). Pole and halyard ready on the layline, so the set happens as you bear away. Gave away 23 m (3.2 lengths) in the 30 s before the mark. Keep target speed on the layline; don't pinch up to the mark.
 
 ## Upwind vs. targets
 Not computed: wind speed not trustworthy (no TWS channel); pass --tws, e.g. --tws 8-10.

@@ -29,7 +29,15 @@ LENGTH_M = CLS["length_m"]
 ZONE_M = 3 * LENGTH_M
 
 
+# Metres lost at each mark rounding (analyze.py's VMC-based measure) are still being refined:
+# SAIL_ROUNDING_LOSS=0 leaves them out of every report. The roundings' times, speeds, settle
+# time and distance from the mark stay.
+ROUNDING_LOSS = os.environ.get("SAIL_ROUNDING_LOSS", "1") != "0"
+LOSS_KEYS = ("metres_lost", "metres_lost_raw", "clean_m", "lost_before_m", "lost_after_m")
+
+
 def js() -> str:
     """A script tag giving the page's charts the class (read by charts.js, replay3d.js)."""
     return (f"<script>window.BOAT_CLASS={{name:{NAME!r},length_m:{LENGTH_M},beam_m:{CLS['beam_m']}}};"
-            f"window.BOAT_LENGTH_M={LENGTH_M};</script>")
+            f"window.BOAT_LENGTH_M={LENGTH_M};"
+            f"window.ROUNDING_LOSS={'true' if ROUNDING_LOSS else 'false'};</script>")

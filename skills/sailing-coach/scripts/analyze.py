@@ -2054,7 +2054,8 @@ def roundings_plot(race: Race, res: dict, out: Path, plt):
                 g.SOG.rolling(3, center=True, min_periods=1).mean(),
                 color=(BLUE, ORANGE, AQUA)[k % 3],
                 lw=1.8,
-                label=f"#{r['n']} at {_fmt_mmss(r['time_s'])}: {m_bl(r['metres_lost'])} lost",
+                label=f"#{r['n']} at {_fmt_mmss(r['time_s'])}"
+                + (f": {m_bl(r['metres_lost'])} lost" if r.get("metres_lost") is not None else ""),
             )
         ax.axvline(0, color=INK, lw=1, ls="--")
         ax.set_title(f"{kind.capitalize()} roundings")
@@ -2435,6 +2436,8 @@ def roundings_md(rs: list | None) -> list[str]:
         [
             "## Mark roundings",
             (
+                "Settled: 10 s VMC back to 90% of the next leg's."
+                if not boatclass.ROUNDING_LOSS else
                 "Metres lost toward the marks: VMC (speed toward this mark, then the next) from 30 s "
                 "before to 60 s after the rounding against the steady VMC of the leg before and after, "
                 "beyond what a clean rounding loses (3 m off the mark, a steady 15° a second turn, and "
@@ -2460,22 +2463,25 @@ def roundings_md(rs: list | None) -> list[str]:
                     ("SOG min", "sog_min"),
                     ("SOG out", "sog_exit"),
                     ("Settled s", "settle_s"),
-                    ("m lost (lengths)", lambda r: mbl_cell(r.get("metres_lost"))),
+                ]
+                + ([("m lost (lengths)", lambda r: mbl_cell(r.get("metres_lost")))] if boatclass.ROUNDING_LOSS else [])
+                + [
                     ("Closest to mark m (lengths)", lambda r: mbl_cell(r.get("mark_dist_m"))),
                     ("Gate", "gate_side"),
-                    ("vs best m (lengths)", lambda r: mbl_cell(r.get("vs_best_m"))),
-                ],
+                ]
+                + ([("vs best m (lengths)", lambda r: mbl_cell(r.get("vs_best_m")))] if boatclass.ROUNDING_LOSS else []),
             ),
-            (
+        ]
+        + (
+            [
                 "vs best: metres more than the best rounding of the same type in this analysis. "
-                "The goal is zero lost; the best is the next milestone."
-            ),
-            "",
-        ]
-        + [
-            f"- #{r['n']} {r['type']}: " + " ".join(r.get("tips") or ["(no suggestions)"])
-            for r in rs
-        ]
+                "The goal is zero lost; the best is the next milestone.",
+                "",
+            ]
+            + [f"- #{r['n']} {r['type']}: " + " ".join(r.get("tips") or ["(no suggestions)"]) for r in rs]
+            if boatclass.ROUNDING_LOSS
+            else []
+        )
         + [""]
     )
 
@@ -3007,7 +3013,13 @@ def run(
     for p in csvs:
         race = load_race(p, tz)
         analysed.append((race, analyze_race(race, tws)))
-    compare_roundings([res for _, res in analysed])
+    if boatclass.ROUNDING_LOSS:
+        compare_roundings([res for _, res in analysed])
+    else:  # the metres-lost measure is left out (SAIL_ROUNDING_LOSS=0)
+        for _, res in analysed:
+            for r in res.get("roundings") or []:
+                for k in boatclass.LOSS_KEYS:
+                    r.pop(k, None)
     results = []
     for race, res in analysed:
         d = out / race.stem

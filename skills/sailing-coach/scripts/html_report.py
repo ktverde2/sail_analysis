@@ -956,8 +956,12 @@ def roundings_page(runs) -> str:
             ("#", "n"),
             ("Type", "type"),
             ("From gun", lambda r: _mmss(r["time_s"])),
+        ]
+        + ([
             ("m lost (lengths)", lambda r: mbl_cell(r.get("metres_lost"))),
             ("vs your best", lambda r: _plus(r.get("vs_best_m")) + (f" ({lengths(r['vs_best_m'])})" if r.get("vs_best_m") else "") if r.get("vs_best_m") is not None else None),
+        ] if boatclass.ROUNDING_LOSS else [])
+        + [
             ("Approach", "approach"),
             ("SOG in", "sog_entry"),
             ("SOG min", "sog_min"),
@@ -966,7 +970,7 @@ def roundings_page(runs) -> str:
             ("Closest to mark m (lengths)", lambda r: mbl_cell(r.get("mark_dist_m"))),
             ("Gate", "gate_side"),
         ],
-        keep=[0, 1, 2, 4],
+        keep=[0, 1, 2, 4] if boatclass.ROUNDING_LOSS else [0, 1, 2, 3, 9],
     )
     summary = []
     for kind in ("windward", "leeward"):
@@ -990,12 +994,14 @@ def roundings_page(runs) -> str:
         "Every rounding",
         goal
         + (f"<ul>{''.join(summary)}</ul>" if summary else "")
-        + '<p class="facts">Metres lost toward the marks: VMC (speed toward this mark, then the next) from 30 s '
+        + ('<p class="facts">Metres lost toward the marks: VMC (speed toward this mark, then the next) from 30 s '
         "before to 60 s after the rounding, against the steady VMC of the leg before and after, beyond what a "
         "clean rounding loses (3 m off the mark, a steady 15° a second turn, and at a leeward mark straight "
         "back to upwind speed): 0 m is clean, below 0 beat it. Settled: 10 s "
-        "VMC back to 90% of the next leg's.</p>"
-        '<p class="facts">Each track map opens zoomed on the mark: the dashed circle is the zone (three '
+        "VMC back to 90% of the next leg's.</p>" if boatclass.ROUNDING_LOSS else
+        '<p class="facts">SOG in: 15 to 5 s before the mark. SOG min: lowest from 10 s before to 20 s after. '
+        "SOG out: 20 to 30 s after. Settled: seconds until the 10 s VMC is back to 90% of the next leg's.</p>")
+        + '<p class="facts">Each track map opens zoomed on the mark: the dashed circle is the zone (three '
         f"{boatclass.NAME} lengths, {boatclass.ZONE_M:.0f} m, where mark-room applies) and the open circle is where the boat entered it. "
         "<em>Wider view</em> shows the minute either side. The fleet report shows the roundings where "
         "boats arrived together.</p>"
@@ -1009,8 +1015,8 @@ def roundings_page(runs) -> str:
             continue
         if interactive(d):
             inner = HINT + "".join(
-                f'<h3 class="leg">{r["type"].capitalize()} rounding #{r["n"]} · +{_mmss(r["time_s"])} from gun · '
-                f"{m_bl(r['metres_lost'])} lost"
+                f'<h3 class="leg">{r["type"].capitalize()} rounding #{r["n"]} · +{_mmss(r["time_s"])} from gun'
+                + (f" · {m_bl(r['metres_lost'])} lost" if r.get("metres_lost") is not None else "")
                 + (
                     " · your best"
                     if r.get("is_best")
@@ -1033,7 +1039,8 @@ def roundings_page(runs) -> str:
             )
         else:
             inner = "".join(
-                f'<h3 class="leg">{r["type"].capitalize()} rounding #{r["n"]}: {m_bl(r["metres_lost"])} lost</h3>'
+                f'<h3 class="leg">{r["type"].capitalize()} rounding #{r["n"]}'
+                + (f': {m_bl(r["metres_lost"])} lost' if r.get("metres_lost") is not None else "") + "</h3>"
                 + _tips_html(r)
                 for r in rs
             ) + figures([(d / "roundings.png", "Speed through the roundings")])
@@ -1048,7 +1055,8 @@ def roundings_page(runs) -> str:
     return page(
         "roundings",
         "Roundings",
-        "Windward and leeward marks: approach, speed through the turn, and what each one cost. Open a section to see it.",
+        "Windward and leeward marks: approach, speed through the turn"
+        + (", and what each one cost" if boatclass.ROUNDING_LOSS else "") + ". Open a section to see it.",
         body,
     )
 
@@ -1154,6 +1162,7 @@ def build(
     history: list[Path] | None = None,
     data_only: bool = False,
     notes: str | None = None,
+    findings: str | None = None,
 ) -> str:
     global INTERACTIVE, DATA_ONLY
     INTERACTIVE = interactive and VENDOR.exists() and CHARTS_JS.exists()
@@ -1201,6 +1210,16 @@ def build(
                 "The coaching debrief.",
                 card(md_to_html(debrief), "debrief"),
                 2,
+            )
+        )
+    if findings:  # facts only: where this boat and the others diverged, no advice (kept with --data-only)
+        pages.append(
+            page(
+                "findings",
+                "Findings",
+                "Where this boat's performance diverged from the other tracked boats. Facts only, no recommendations.",
+                card(md_to_html(findings), "debrief"),
+                1,
             )
         )
     if notes:
@@ -1280,6 +1299,7 @@ def build(
     names = {
         "quick": "Quick look",
         "about": "About the data",
+        "findings": "Findings",
         "summary": "Summary",
         "trends": "Across regattas",
         "debrief": "Debrief",
@@ -1398,6 +1418,7 @@ def write_html(
     history: list[Path] | None = None,
     data_only: bool = False,
     notes_path: Path | None = None,
+    findings_path: Path | None = None,
 ) -> Path:
     def text(p):
         return p.read_text() if p else None
@@ -1415,6 +1436,7 @@ def write_html(
             history,
             data_only,
             text(notes_path),
+            text(findings_path),
         )
     )
     return out
@@ -1448,6 +1470,9 @@ def main():
         help="leave the coaching out (debrief, tips, goals), for a coach to debrief from",
     )
     ap.add_argument("--notes", type=Path, help="About the data page (Markdown)")
+    ap.add_argument("--findings", type=Path,
+                    help="facts-only findings (Markdown): where this boat diverged from the others, no advice; "
+                         "kept with --data-only")
     a = ap.parse_args()
     print(
         write_html(
@@ -1462,6 +1487,7 @@ def main():
             a.history,
             a.data_only,
             a.notes,
+            a.findings,
         )
     )
 

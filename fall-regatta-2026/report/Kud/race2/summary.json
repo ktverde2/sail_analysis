@@ -424,25 +424,11 @@
       "settle_s": 87,
       "vmg_before": 3.14,
       "vmg_after": 4.1,
-      "metres_lost": 95.2,
-      "metres_lost_raw": 108.7,
-      "clean_m": 13.5,
-      "lost_before_m": 31.7,
-      "lost_after_m": 63.5,
       "entry_twa": 53.0,
       "exit_twa": 138.0,
       "offset_s": null,
       "mark_dist_m": 4.0,
-      "gate_side": null,
-      "vs_best_m": 64.4,
-      "best_ref": "Race 1 #1",
-      "best_m": 30.8,
-      "is_best": false,
-      "tips": [
-        "Reached off at 138\u00b0 to the wind for the first 15\u201340 s after the mark (your best exited at 146\u00b0). Bear away all the way to the run angle first, then set.",
-        "Took 87 s to settle on the run (best 17 s). Pole and halyard ready on the layline, so the set happens as you bear away.",
-        "Gave away 32 m (4.3 lengths) in the 30 s before the mark. Keep target speed on the layline; don't pinch up to the mark."
-      ]
+      "gate_side": null
     },
     {
       "n": 2,
@@ -459,24 +445,11 @@
       "settle_s": 17,
       "vmg_before": 4.1,
       "vmg_after": 3.96,
-      "metres_lost": -21.3,
-      "metres_lost_raw": -6.3,
-      "clean_m": 15.0,
-      "lost_before_m": -3.4,
-      "lost_after_m": -17.9,
       "entry_twa": 152.0,
       "exit_twa": 14.0,
       "offset_s": null,
       "mark_dist_m": 7.0,
-      "gate_side": null,
-      "vs_best_m": 0.0,
-      "best_ref": "Race 2 #2",
-      "best_m": -21.3,
-      "is_best": true,
-      "tips": [
-        "Your best of this type so far: the benchmark to beat. The goal is still zero.",
-        "Passed 7 m (1.0 lengths) from the mark. Wide in, tight out: leave it about a boat length (3 m) away on the exit."
-      ]
+      "gate_side": null
     }
   ]
 }

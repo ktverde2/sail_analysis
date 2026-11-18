@@ -10,5 +10,6 @@ How it was made:
 - The logs were read with `skills/sailing-coach/scripts/vkx/vtk_parser.py`. Kud pinged the start line; its pings were 23–26 m downwind of where both boats were at the gun, so the start lines, marks and finishes were estimated from the tracks and corrected by hand on the course map (`regatta.json`).
 - Guns: 12:54 and 14:38 local. WR's timer also ran to zero for other sequences (12:30, 12:37, 12:45, 14:20, 14:32); those are skipped.
 - No wind sensor on either boat, and no J/24 target card, so the boats are compared with each other.
-- The reports are data only (no coaching); `report/about-the-data.md` is their About the data page.
-- `rebuild.sh` regenerates everything (with `SAIL_CLASS=J24`) from `vtk/`, `regatta.json` and `report/about-the-data.md`.
+- The reports are data only (no coaching). Their Findings pages (`report/findings.md`, `report/<boat>/findings.md`) say where the boats diverged, without recommendations; `report/about-the-data.md` is the About the data page.
+- Metres lost at mark roundings are left out (`SAIL_ROUNDING_LOSS=0`) while that measure is refined.
+- `rebuild.sh` regenerates everything (with `SAIL_CLASS=J24`) from `vtk/`, `regatta.json`, the findings and `report/about-the-data.md`.

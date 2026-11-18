@@ -50,13 +50,6 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 | 4 downwind to Finish | WR | 10:23 | 0 | 3.77 | 3.87 | 0.67 / 0.66 | 0 | 0 | 98 | 3.3° |
 | 4 downwind to Finish | Kud | 10:58 | +0:35 | 3.47 | 3.77 | 0.69 / 0.66 | 0 | 0 | 31 | 2.6° |
 
-**Roundings (metres lost toward the marks, boat lengths in brackets; each boat against its own steady VMC, beyond a clean rounding)**
-
-| Boat | Windward 1 | Leeward 1 | Windward 2 |
-|---|---|---|---|
-| WR | 69 (9.5) | -50 (-6.9) | 46 (6.3) |
-| Kud | 31 (4.2) | -16 (-2.2) | 59 (8.1) |
-
 **Starts, relative to each other** (line 83 m; the pin end was 31 m (4.2 lengths) further up the course, 43 m (5.9 lengths) less to sail (first beat's ladder))
 
 | Boat | Late (s) | Crossed (% from pin) | Spot gave away, m to sail (lengths) | Back at gun m (lengths) | SOG −30 s / gun | Time on distance at −10 s | Ladder +30 s | +1 min | +2 min |
@@ -137,13 +130,6 @@ Gap in min:s; order among the tracked boats at that mark in brackets.
 | 2 downwind to Leeward 1 | Kud | 14:57 | +1:02 | 4.01 | 4.3 | 1.07 / 1.0 | 2 | 0 | 100 | 1.9° |
 | 3 upwind to Finish | WR | 5:25 | 0 | 4.24 | 5.08 | 0.46 / 0.42 | 1 | 0 | 78 | 11.5° |
 | 3 upwind to Finish | Kud | 6:06 | +0:41 | 3.8 | 4.74 | 0.48 / 0.42 | 2 | 0 | 44 | 9.7° |
-
-**Roundings (metres lost toward the marks, boat lengths in brackets; each boat against its own steady VMC, beyond a clean rounding)**
-
-| Boat | Windward 1 | Leeward 1 |
-|---|---|---|
-| WR | 124 (17) | 27 (3.7) |
-| Kud | 95 (13) | -21 (-2.9) |
 
 **Starts, relative to each other** (line 134 m; the pin end was 22 m (3.1 lengths) further up the course, 27 m (3.7 lengths) less to sail (first beat's ladder))
 

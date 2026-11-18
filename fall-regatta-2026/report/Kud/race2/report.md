@@ -65,17 +65,13 @@ Tacks: 2 on a header, 1 double tack, 1 layline.
 Headed before: + means the old tack was headed (a good time to tack). New tack after: + means the new tack was lifted over the next minute.
 
 ## Mark roundings
-Metres lost toward the marks: VMC (speed toward this mark, then the next) from 30 s before to 60 s after the rounding against the steady VMC of the leg before and after, beyond what a clean rounding loses (3 m off the mark, a steady 15° a second turn, and at a leeward mark straight back to upwind speed): 0 m is clean, below 0 beat it. Settled: 10 s VMC back to 90% of the next leg's.
+Settled: 10 s VMC back to 90% of the next leg's.
 
-| # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | m lost (lengths) | Closest to mark m (lengths) | Gate | vs best m (lengths) |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | windward | 12:40 | layline tack 23 s out | 2.18 | 2.2 | 2.98 | 87 | 95 (13) | 4 (0.5) | – | 64 (8.8) |
-| 2 | leeward | 27:37 | no gybe on the run | 4.79 | 3.0 | 5.1 | 17 | -21 (-2.9) | 7 (1.0) | – | 0 (0.0) |
+| # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | Closest to mark m (lengths) | Gate |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | windward | 12:40 | layline tack 23 s out | 2.18 | 2.2 | 2.98 | 87 | 4 (0.5) | – |
+| 2 | leeward | 27:37 | no gybe on the run | 4.79 | 3.0 | 5.1 | 17 | 7 (1.0) | – |
 
-vs best: metres more than the best rounding of the same type in this analysis. The goal is zero lost; the best is the next milestone.
-
-- #1 windward: Reached off at 138° to the wind for the first 15–40 s after the mark (your best exited at 146°). Bear away all the way to the run angle first, then set. Took 87 s to settle on the run (best 17 s). Pole and halyard ready on the layline, so the set happens as you bear away. Gave away 32 m (4.3 lengths) in the 30 s before the mark. Keep target speed on the layline; don't pinch up to the mark.
-- #2 leeward: Your best of this type so far: the benchmark to beat. The goal is still zero. Passed 7 m (1.0 lengths) from the mark. Wide in, tight out: leave it about a boat length (3 m) away on the exit.
 
 ## Upwind vs. targets
 Not computed: wind speed not trustworthy (no TWS channel); pass --tws, e.g. --tws 8-10.

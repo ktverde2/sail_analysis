@@ -2,12 +2,14 @@
 # Rebuild the Fall Regatta 2026 J/24 reports from the Velocitek logs and the checked course.
 #   vtk/<boat>/*.vtk   the boats' Velocitek logs
 #   regatta.json       the course for each race, checked and corrected on the course map
-#   report/            about-the-data.md and noaa.json are kept; everything else is regenerated.
-#                      The reports are data only: no coaching (--data-only).
+#   report/            about-the-data.md, the findings (findings.md, <boat>/findings.md) and noaa.json
+#                      are kept; everything else is regenerated. The reports are data only (--data-only):
+#                      findings say where the boats diverged, without recommendations.
 set -euo pipefail
 cd "$(dirname "$0")"
 S=${SAILING_COACH_SCRIPTS:-../skills/sailing-coach/scripts}
 export SAIL_CLASS=J24   # J/24 lengths (7.32 m), mark zone and heel
+export SAIL_ROUNDING_LOSS=0   # metres lost at roundings: left out while the measure is refined
 TITLE="Fall Regatta 2026"
 BOATS=(Kud WR)
 
@@ -23,11 +25,11 @@ for b in "${BOATS[@]}"; do python3 "$S/analyze.py" data/$b/race*.csv --out repor
 [ -f report/noaa.json ] || python3 "$S/noaa.py" --reports report
 
 for b in "${BOATS[@]}"; do
-  python3 "$S/html_report.py" report/$b --data-only --notes report/about-the-data.md \
+  python3 "$S/html_report.py" report/$b --data-only --notes report/about-the-data.md --findings report/$b/findings.md \
     --title "$b · $TITLE" --out report/$b/Fall-Regatta-2026_${b}_report.html
 done
 python3 "$S/fleet.py" --data data --reports report --out report --title "$TITLE · J/24s" \
-  --data-only --notes report/about-the-data.md --html
+  --data-only --notes report/about-the-data.md --findings report/findings.md --html
 for k in tack gybe; do
   python3 "$S/maneuver_overlay.py" --reports report --kind $k --out report/${k}s.html --title "$TITLE · ${k^}s"
 done

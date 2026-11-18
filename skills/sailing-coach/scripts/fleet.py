@@ -1938,22 +1938,23 @@ def write_md(fa: dict, out: Path, title: str) -> str:
                     f"{lg['sailed_nm']} / {lg['straight_nm']} | {lg['tacks']} | {lg['gybes']} | "
                     f"{lg.get('pct_right', '–')} | {lg['heel_abs_avg']}° |"
                 )
-        L += [
-            "",
-            "**Roundings (metres lost toward the marks, boat lengths in brackets; each boat against its own steady VMC, beyond a clean rounding)**",
-            "",
-            "| Boat | " + " | ".join(r["marks"][: len(bs[ids[0]]["roundings"])]) + " |",
-            "|---|" + "---|" * len(bs[ids[0]]["roundings"]),
-        ]
-        for k in ids:
-            L.append(
-                f"| {bs[k]['name']} | "
-                + " | ".join(
-                    "–" if x.get("metres_lost") is None else A.mbl_cell(x["metres_lost"])
-                    for x in bs[k]["roundings"]
+        if boatclass.ROUNDING_LOSS:  # SAIL_ROUNDING_LOSS=0 leaves the metres-lost measure out
+            L += [
+                "",
+                "**Roundings (metres lost toward the marks, boat lengths in brackets; each boat against its own steady VMC, beyond a clean rounding)**",
+                "",
+                "| Boat | " + " | ".join(r["marks"][: len(bs[ids[0]]["roundings"])]) + " |",
+                "|---|" + "---|" * len(bs[ids[0]]["roundings"]),
+            ]
+            for k in ids:
+                L.append(
+                    f"| {bs[k]['name']} | "
+                    + " | ".join(
+                        "–" if x.get("metres_lost") is None else A.mbl_cell(x["metres_lost"])
+                        for x in bs[k]["roundings"]
+                    )
+                    + " |"
                 )
-                + " |"
-            )
         L += starts_md(r) + wind_md(r) + shifts_md(r) + roundings_md(r)
     L += [
         "",
@@ -2561,9 +2562,9 @@ FLEET_JS = r"""
       const traces = IDS.map(id => ({
         type: 'bar', name: FLEET.day[id].name, x: ls.map(l => l.label),
         y: ls.map(l => l.rs[id] ? l.rs[id].sog_exit : null), marker: { color: col(FLEET.day[id]) },
-        customdata: ls.map(l => l.rs[id] ? [l.name, l.rs[id].settle_s, mbl(l.rs[id].metres_lost)] : ['', '', '']),
+        customdata: ls.map(l => l.rs[id] ? [l.name, l.rs[id].settle_s, l.rs[id].metres_lost == null ? '' : ', ' + mbl(l.rs[id].metres_lost) + ' lost'] : ['', '', '']),
         hovertemplate: '<b>' + FLEET.day[id].name + '</b> · %{customdata[0]}<br>%{y} kt out of the mark' +
-          '<br>%{customdata[1]} s to get back to speed, %{customdata[2]} lost<extra></extra>' }));
+          '<br>%{customdata[1]} s to get back to speed%{customdata[2]}<extra></extra>' }));
       const lay = base('Speed out of the leeward mark (20–30 s after it)', 340, el);
       lay.barmode = 'group'; lay.bargap = 0.3; lay.bargroupgap = 0.08; lay.yaxis.title = 'kt';
       Plotly.newPlot(el, traces, lay, CONFIG);
@@ -3697,6 +3698,7 @@ def write_html(
     data_only: bool = False,
     notes: str | None = None,
     replay: dict | None = None,
+    findings: str | None = None,
 ) -> Path:
     if data_only:  # no coaching: a coach debriefs from the data
         debrief = None
@@ -3721,6 +3723,19 @@ def write_html(
             summary,
         )
     ]
+    if findings:  # facts only: where the boats' numbers parted, without advice (shown with --data-only too)
+        pages.append(
+            H.page(
+                "findings",
+                "Findings",
+                "Where the boats' performance diverged, from the numbers. Facts only, no recommendations.",
+                H.card(
+                    '<p class="chart-hint">Hover any chart for the numbers behind it; drag to '
+                    "zoom, double-click to reset.</p>" + debrief_html(findings),
+                    "debrief",
+                ),
+            )
+        )
     if notes:
         pages.append(
             H.page("about", "About the data", "How the numbers were measured, and what they can't see.", H.card(H.md_to_html(notes)))
@@ -3850,6 +3865,7 @@ def write_html(
     names = {
         "summary": "Summary",
         "about": "About the data",
+        "findings": "Findings",
         "debrief": "Fleet debrief",
         "replay3d": "3D replay",
         "races": "Race by race",
@@ -3913,6 +3929,8 @@ def main():
     ap.add_argument("--tz")
     ap.add_argument("--html", action="store_true")
     ap.add_argument("--debrief", type=Path, help="fleet debrief (Markdown) for the HTML")
+    ap.add_argument("--findings", type=Path,
+                    help="facts-only findings (Markdown): where the boats diverged, no advice; kept with --data-only")
     ap.add_argument("--cdn", action="store_true", help="load Plotly online instead of inlining it")
     ap.add_argument("--data-only", action="store_true", help="leave the coaching (fleet debrief) out, for a coach to debrief from")
     ap.add_argument("--notes", type=Path, help="About the data page (Markdown)")
@@ -3943,7 +3961,9 @@ def main():
                 replay = R3.build_data(a.data, a.reports, title=a.title, fleet=fa)
             except Exception as e:  # the report is still useful without it
                 print(f"3D replay left out: {e}")
-        print(write_html(fa, md, a.out, a.title, debrief, a.reports, boats, a.cdn, a.data_only, notes, replay))
+        findings = a.findings.read_text() if a.findings else None
+        print(write_html(fa, md, a.out, a.title, debrief, a.reports, boats, a.cdn, a.data_only, notes, replay,
+                         findings))
 
 
 if __name__ == "__main__":

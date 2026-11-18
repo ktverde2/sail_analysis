@@ -68,17 +68,13 @@ Tacks: 1 off the start, 1 on a header, 1 no clear shift (< 3°), 1 double tack, 
 Headed before: + means the old tack was headed (a good time to tack). New tack after: + means the new tack was lifted over the next minute.
 
 ## Mark roundings
-Metres lost toward the marks: VMC (speed toward this mark, then the next) from 30 s before to 60 s after the rounding against the steady VMC of the leg before and after, beyond what a clean rounding loses (3 m off the mark, a steady 15° a second turn, and at a leeward mark straight back to upwind speed): 0 m is clean, below 0 beat it. Settled: 10 s VMC back to 90% of the next leg's.
+Settled: 10 s VMC back to 90% of the next leg's.
 
-| # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | m lost (lengths) | Closest to mark m (lengths) | Gate | vs best m (lengths) |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | windward | 11:40 | layline tack 47 s out | 2.13 | 2.18 | 2.51 | 58 | 124 (17) | 7 (0.9) | – | 79 (11) |
-| 2 | leeward | 25:35 | no gybe on the run | 3.14 | 2.78 | 4.97 | 21 | 27 (3.7) | 5 (0.7) | – | 78 (11) |
+| # | Type | From gun | Approach | SOG in | SOG min | SOG out | Settled s | Closest to mark m (lengths) | Gate |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | windward | 11:40 | layline tack 47 s out | 2.13 | 2.18 | 2.51 | 58 | 7 (0.9) | – |
+| 2 | leeward | 25:35 | no gybe on the run | 3.14 | 2.78 | 4.97 | 21 | 5 (0.7) | – |
 
-vs best: metres more than the best rounding of the same type in this analysis. The goal is zero lost; the best is the next milestone.
-
-- #1 windward: Reached off at 140° to the wind for the first 15–40 s after the mark (your best exited at 174°). Bear away all the way to the run angle first, then set. Gave away 60 m (8.2 lengths) in the 30 s before the mark. Keep target speed on the layline; don't pinch up to the mark. Took 58 s to settle on the run (best 38 s). Pole and halyard ready on the layline, so the set happens as you bear away.
-- #2 leeward: Lost 28 m (3.8 lengths) on the way in. Drop earlier and set up wide so the turn starts before the mark, not at it.
 
 ## Upwind vs. targets
 Not computed: wind speed not trustworthy (no TWS channel); pass --tws, e.g. --tws 8-10.
