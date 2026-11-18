@@ -262,7 +262,7 @@ function CurrentMap(root, D) {
       n.push(current
         ? `<b>It behaves like current:</b> ${parts.join(", ")}. About ${sgn(ag.sog_median, 2, " kt")} across the course (+ toward the right, looking upwind).`
         : `<b>It doesn't behave like current:</b> ${parts.join(", ")}. A current would favour the same side of the course on beats and runs and show in the drift. ` +
-          `More likely waves (one tack sailing into the sea) or pressure. Coach it as a mode question on that tack, not a current to play.`);
+          `More likely waves (one tack sailing into the sea) or pressure.` + (window.REPORT_DATA_ONLY ? '' : ` Coach it as a mode question on that tack, not a current to play.`));
     $("t2tnotes").innerHTML = n.length ? "<ul>" + n.map(x => `<li>${x}</li>`).join("") + "</ul>" : "";
   }
 

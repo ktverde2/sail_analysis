@@ -1736,10 +1736,14 @@ def shift_totals_md(fa: dict) -> list[str]:
     L += [
         "",
         "Lifted and headed are against the wind's average over the last few minutes (8, centred), within 2° counts as "
-        "neither. 50% on the lifted tack is what tacking at random gets. Not every tack should be on a header: laylines, "
-        "lanes and covering come first, and near a layline the headed tack is often the one that gets to the mark.",
+        "neither. 50% on the lifted tack is what tacking at random gets." + SHIFTS_ADVICE,
     ]
     return L
+
+
+# left out of --data-only reports
+SHIFTS_ADVICE = (" Not every tack should be on a header: laylines, lanes and covering come first, and near a layline "
+                 "the headed tack is often the one that gets to the mark.")
 
 
 def _rel_s(d: float) -> str:
@@ -3881,13 +3885,16 @@ def write_html(
         + "<footer>Numbers from analyze.py and fleet.py. Speeds are over ground. "
         "Times are local to the event.</footer></main>"
         f'<script type="application/json" id="fleet-data">{data}</script>{lib}'
-        + boatclass.js() + f"<script>{(Path(__file__).parent / 'ladder.js').read_text()}</script>"
+        + boatclass.js() + ("<script>window.REPORT_DATA_ONLY=true;</script>" if data_only else "")
+        + f"<script>{(Path(__file__).parent / 'ladder.js').read_text()}</script>"
         f"<script>{FLEET_JS.replace('%BL%', str(A.BOAT_LENGTH_M))}</script>{cur[1] if cur else ''}"
         f"<script>{RX.fleet_assets(fa)}</script>"
         + (R3.assets() + f"<script>{R3_BOOT}</script>" if replay else "")
         + "</body></html>"
     )
     path = out / "fleet.html"
+    if data_only:
+        doc = doc.replace(SHIFTS_ADVICE, "")
     path.write_text(doc)
     return path
 

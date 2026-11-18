@@ -1369,7 +1369,7 @@ def chart_scripts(races: list[Path], cdn: bool = False, overlays: dict[str, str]
         f'<script src="{PLOTLY_CDN}"></script>' if cdn else f"<script>{VENDOR.read_text()}</script>"
     )
     ladder_js = (Path(__file__).parent / "ladder.js").read_text()
-    return data + lib + boatclass.js() + f"<script>{ladder_js}</script><script>{CHARTS_JS.read_text()}</script>"
+    return data + lib + boatclass.js() + ("<script>window.REPORT_DATA_ONLY=true;</script>" if DATA_ONLY else "") + f"<script>{ladder_js}</script><script>{CHARTS_JS.read_text()}</script>"
 
 
 def no_tips(o):
