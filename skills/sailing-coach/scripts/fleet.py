@@ -22,6 +22,7 @@ each boat's coach's summary from <reports>/<boat>/debrief.md when present).
 
 from __future__ import annotations
 
+import boatclass
 import argparse
 import datetime as dt
 import html
@@ -2438,7 +2439,7 @@ FLEET_JS = r"""
           (p.same_mark ? '' : ' (different gate marks)')).join('; ');
         facts.innerHTML = '<table><thead><tr><th>Boat</th><th>Into zone</th><th>Rounded</th><th>Out of zone</th><th>Closest to mark</th>' +
           '<th>When ' + first.name + ' reached the zone</th></tr></thead><tbody>' + rows + '</tbody></table>' +
-          '<p class="chart-hint">' + (pairs ? 'Close passes: ' + pairs + '. ' : '') + 'Times are from the first boat’s rounding. The zone is three Etchells lengths (' +
+          '<p class="chart-hint">' + (pairs ? 'Close passes: ' + pairs + '. ' : '') + 'Times are from the first boat’s rounding. The zone is three ' + (window.BOAT_CLASS ? window.BOAT_CLASS.name : 'Etchells') + ' lengths (' +
           Math.round(c.zone_m) + ' m). Overlap is judged from GPS (a metre or two): good for a debrief, not a protest.</p>';
       });
     },
@@ -3880,7 +3881,7 @@ def write_html(
         + "<footer>Numbers from analyze.py and fleet.py. Speeds are over ground. "
         "Times are local to the event.</footer></main>"
         f'<script type="application/json" id="fleet-data">{data}</script>{lib}'
-        f"<script>{(Path(__file__).parent / 'ladder.js').read_text()}</script>"
+        + boatclass.js() + f"<script>{(Path(__file__).parent / 'ladder.js').read_text()}</script>"
         f"<script>{FLEET_JS.replace('%BL%', str(A.BOAT_LENGTH_M))}</script>{cur[1] if cur else ''}"
         f"<script>{RX.fleet_assets(fa)}</script>"
         + (R3.assets() + f"<script>{R3_BOOT}</script>" if replay else "")

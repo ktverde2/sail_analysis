@@ -14,7 +14,9 @@ from pathlib import Path
 
 # The 2026 Worlds standard on this water (references/playbook/starts.md): 1–2 m back at full speed
 WORLDS_BACK_M = (1, 2)
-LENGTH_M = 9.3  # one Etchells length
+import boatclass  # noqa: E402
+
+LENGTH_M = boatclass.LENGTH_M  # one boat length of the class
 
 # Plain-language definitions, shown when a term is tapped or hovered. Keys are matched as whole words,
 # case-insensitively; each term is explained the first time it appears on a page.
@@ -24,7 +26,7 @@ TERMS = {
     "SOG": "Speed over the ground, from GPS. Includes the effect of current.",
     "COG": "Course over the ground, from GPS: where the boat actually went, leeway and current included.",
     "TWA": "True wind angle: the angle between the bow and the true wind.",
-    "lengths": "Etchells boat lengths. One length is about 9.3 m (30.5 ft).",
+    "lengths": f"{boatclass.NAME} boat lengths. One length is about {boatclass.LENGTH_M:g} m ({boatclass.CLS['length_ft']} ft).",
     "lifted": "The wind has shifted so you can point closer to the mark on this tack. Stay on it.",
     "lift": "A wind shift that lets you point closer to the mark on your tack. Stay on it.",
     "headed": "The wind has shifted so you point further from the mark on this tack. Usually a cue to tack.",
@@ -147,9 +149,10 @@ def scorecard(report_dir: Path) -> str:
     # Starts
     if m["back_m"] is not None:
         bv, bb = best("back_m")
-        cmp_ = f"Worlds standard: {WORLDS_BACK_M[0]}–{WORLDS_BACK_M[1]} m back at full speed"
+        cmp_ = (f"Worlds standard: {WORLDS_BACK_M[0]}–{WORLDS_BACK_M[1]} m back at full speed"
+                if boatclass.CLS["start_standard"] else "")
         if others and bb and bb != me:
-            cmp_ += f". Best here: {html.escape(bb)}, {bv:.1f} m"
+            cmp_ += ("; b" if cmp_ else "B") + f"est here: {html.escape(bb)}, {bv:.1f} m"
         tiles.append(
             tile(
                 "Starts",
@@ -521,7 +524,8 @@ def fleet_scorecard(reports_dir: Path) -> str:
     dn = {b: leg_losses(fleet, b, "downwind")[0] for b in fleet}
     areas = [
         ("Starts", "starts", {b: mets[b]["back_m"] for b in fleet}, lambda v: f"{v:.1f} m", "back at the gun on average",
-         f"Worlds standard: {WORLDS_BACK_M[0]}–{WORLDS_BACK_M[1]} m back at full speed"),
+         f"Worlds standard: {WORLDS_BACK_M[0]}–{WORLDS_BACK_M[1]} m back at full speed"
+         if boatclass.CLS["start_standard"] else ""),
         ("Upwind", "pairs", up, _mmss, "lost to the fastest boat, summed over the beats", ""),
         ("Downwind", "pairs", dn, _mmss, "lost to the fastest boat, summed over the runs", ""),
         ("Tacks", "races", {b: mets[b]["tack_m"] for b in fleet}, lambda v: f"{v:.1f} m", "lost per tack on average", ""),

@@ -149,7 +149,13 @@ def tide(station: dict, start: datetime, end: datetime) -> dict:
     common = {"station": station["id"], "begin_date": _fmt(start), "end_date": _fmt(end),
               "time_zone": "gmt", "units": "english", "datum": "MLLW", "format": "json", "application": APP}
     pred = _get(API, {**common, "product": "predictions", "interval": STEP_MIN})["predictions"]
-    hilo = _get(API, {**common, "product": "predictions", "interval": "hilo"})["predictions"]
+    # a short day can hold no high or low water: look 12 h either side for the ones around it
+    try:
+        hilo = _get(API, {**common, "product": "predictions", "interval": "hilo",
+                          "begin_date": _fmt(start - timedelta(hours=12)),
+                          "end_date": _fmt(end + timedelta(hours=12))})["predictions"]
+    except RuntimeError:
+        hilo = []
     try:  # observations exist only for the past, and gauges have gaps
         obs = _get(API, {**common, "product": "water_level"}).get("data", [])
     except Exception:  # noqa: BLE001 - a missing observation shouldn't stop the predictions

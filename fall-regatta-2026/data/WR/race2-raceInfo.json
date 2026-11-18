@@ -1,0 +1,28 @@
+{
+  "events": [
+    {
+      "time": "2026-11-14T22:36:40.633Z",
+      "eventType": "LineCrossed",
+      "LineCrossDirection": "Forward"
+    },
+    {
+      "time": "2026-11-14T22:37:50.712Z",
+      "eventType": "LineCrossed",
+      "LineCrossDirection": "Backward"
+    },
+    {
+      "time": "2026-11-14T22:37:59.790Z",
+      "eventType": "Gun"
+    },
+    {
+      "time": "2026-11-14T22:38:06.335Z",
+      "eventType": "LineCrossed",
+      "LineCrossDirection": "Forward"
+    },
+    {
+      "time": "2026-11-14T23:09:00.980Z",
+      "eventType": "LineCrossed",
+      "LineCrossDirection": "Forward"
+    }
+  ]
+}

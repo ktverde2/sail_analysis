@@ -63,7 +63,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from vkx_parser import parse_vkx, ts_to_iso
+from vkx_parser import LineEnd, parse_vkx, ts_to_iso
 from vtk_parser import parse_vtk
 
 MS_TO_KN = 1.94384
@@ -237,10 +237,12 @@ def resample_rows(fixes, start_ms, end_ms, variation):
     return rows
 
 
-def add_below_line(rows, line: LineTracker, gun_ms):
+def add_below_line(rows, line: LineTracker, gun_ms, first_mark=None):
     """BelowLineCalc: metres from the start line, + behind the line,
-    − on the course side. Sign is oriented so the boat's median pre-start
-    position (2 min to 30 s before the gun) is positive."""
+    − on the course side. With a first mark, the course side is the mark's
+    side; otherwise the sign is oriented so the boat's median pre-start
+    position (2 min to 30 s before the gun) is positive (wrong for a boat
+    that spent the pre-start above the line)."""
     dists = []
     for row in rows:
         ends = line.at(row["ms"])
@@ -254,6 +256,15 @@ def add_below_line(rows, line: LineTracker, gun_ms):
     pre = [d for row, d in zip(rows, dists)
            if d is not None and gun_ms - 120000 <= row["ms"] <= gun_ms - 30000]
     sign = 1.0
+    ends = line.at(gun_ms)
+    if first_mark is not None and ends is not None:
+        dm, _ = line_distance_m(first_mark[0], first_mark[1], ends[0], ends[1],
+                                ref_lat=first_mark[0])
+        if dm:
+            sign = -1.0 if dm > 0 else 1.0
+            for row, d in zip(rows, dists):
+                row["BelowLineCalc"] = None if d is None else sign * d
+            return sign
     if pre:
         pre.sort()
         if pre[len(pre) // 2] < 0:
@@ -596,8 +607,17 @@ def main(argv=None):
             print(f"Race {race.number}: no track data in window — skipped")
             continue
 
-        sign = add_below_line(rows, line, race.gun_ms)
-        crossings = detect_line_crossings(fixes, start_ms, stop_ms, line, sign)
+        # a start line in the regatta file (checked on the map) wins over the logged ends
+        rline = line
+        given = next((c for c in race.course if c.get("type") == "StartLine"), None)
+        if given:
+            rline = LineTracker([LineEnd(0, 0, given["coord1"]["lat"], given["coord1"]["lon"]),
+                                 LineEnd(0, 1, given["coord2"]["lat"], given["coord2"]["lon"])],
+                                max_age_ms=10 ** 15)
+        tg = course_targets(race.course)
+        sign = add_below_line(rows, rline, race.gun_ms,
+                              first_mark=(tg[0][1], tg[0][2]) if tg else None)
+        crossings = detect_line_crossings(fixes, start_ms, stop_ms, rline, sign)
 
         # course: VKX start line (averaged over the last minute before the gun)
         if not any(c.get("type") == "StartLine" for c in race.course):

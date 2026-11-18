@@ -1,0 +1,57 @@
+{
+  "event": "Fall Regatta 2026",
+  "race": "Race 1",
+  "boat": "Kud",
+  "timezone": "America/Los_Angeles",
+  "startTime": "2026-11-14T20:54:00.000Z",
+  "endTime": "2026-11-14T21:54:18.000Z",
+  "source": "Velocitek",
+  "course": [
+    {
+      "coord1": {
+        "lat": 32.723213,
+        "lon": -117.200482
+      },
+      "coord2": {
+        "lat": 32.722488,
+        "lon": -117.200694
+      },
+      "type": "StartLine"
+    },
+    {
+      "coord1": {
+        "lat": 32.722459,
+        "lon": -117.213162
+      },
+      "coord2": null,
+      "type": "Mark"
+    },
+    {
+      "coord1": {
+        "lat": 32.719164,
+        "lon": -117.193877
+      },
+      "coord2": null,
+      "type": "Mark"
+    },
+    {
+      "coord1": {
+        "lat": 32.722363,
+        "lon": -117.213236
+      },
+      "coord2": null,
+      "type": "Mark"
+    },
+    {
+      "coord1": {
+        "lat": 32.723382,
+        "lon": -117.200319
+      },
+      "coord2": {
+        "lat": 32.724616,
+        "lon": -117.200316
+      },
+      "type": "FinishLine"
+    }
+  ]
+}

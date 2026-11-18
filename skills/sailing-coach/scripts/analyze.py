@@ -81,7 +81,9 @@ def adiff(a, b):
     return np.where(d > 180, d - 360, d)
 
 
-BOAT_LENGTH_M = 9.3  # Etchells LOA (30 ft 6 in): distances gained or lost are also given in lengths
+import boatclass  # noqa: E402
+
+BOAT_LENGTH_M = boatclass.LENGTH_M  # the class LOA (Etchells 9.3 m): distances gained or lost are also given in lengths
 
 
 def lengths(m) -> str | None:
@@ -645,7 +647,7 @@ def tack_call(df, r, lg, gun, med, half, leeway, i, n) -> dict:
     return call
 
 
-UPWIND_HEEL_DEG = 9  # Etchells: ~15-25 deg upwind, ~2-6 deg downwind
+UPWIND_HEEL_DEG = boatclass.CLS["upwind_heel_deg"]  # Etchells 9: ~15-25 deg upwind, ~2-6 deg downwind
 MIN_LEG_S = 120
 
 

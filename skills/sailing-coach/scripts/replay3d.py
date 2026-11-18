@@ -17,6 +17,7 @@ Bay is included) the shoreline and water depth are drawn too.
 
 from __future__ import annotations
 
+import boatclass
 import argparse
 import base64
 import csv
@@ -287,7 +288,7 @@ def assets() -> str:
     tpl = (HERE / "replay3d.html").read_text()
     return (f'<template id="r3-template">{tpl}</template>'
             f"<script>{script_safe((HERE / 'vendor' / 'three.min.js').read_text())}</script>"
-            f"<script>{script_safe((HERE / 'replay3d.js').read_text())}</script>")
+            + boatclass.js() + f"<script>{script_safe((HERE / 'replay3d.js').read_text())}</script>")
 
 
 def page(data: dict) -> str:

@@ -36,6 +36,7 @@ import re
 from datetime import datetime
 from pathlib import Path
 
+import boatclass
 import current as CU
 import report_extras as RX
 from analyze import lengths, m_bl, mbl_cell  # metres and boat lengths
@@ -994,8 +995,8 @@ def roundings_page(runs) -> str:
         "clean rounding loses (3 m off the mark, a steady 15° a second turn, and at a leeward mark straight "
         "back to upwind speed): 0 m is clean, below 0 beat it. Settled: 10 s "
         "VMC back to 90% of the next leg's.</p>"
-        '<p class="facts">Each track map opens zoomed on the mark: the dashed circle is the zone (three Etchells '
-        "lengths, 28 m, where mark-room applies) and the open circle is where the boat entered it. "
+        '<p class="facts">Each track map opens zoomed on the mark: the dashed circle is the zone (three '
+        f"{boatclass.NAME} lengths, {boatclass.ZONE_M:.0f} m, where mark-room applies) and the open circle is where the boat entered it. "
         "<em>Wider view</em> shows the minute either side. The fleet report shows the roundings where "
         "boats arrived together.</p>"
         + table,
@@ -1368,7 +1369,7 @@ def chart_scripts(races: list[Path], cdn: bool = False, overlays: dict[str, str]
         f'<script src="{PLOTLY_CDN}"></script>' if cdn else f"<script>{VENDOR.read_text()}</script>"
     )
     ladder_js = (Path(__file__).parent / "ladder.js").read_text()
-    return data + lib + f"<script>{ladder_js}</script><script>{CHARTS_JS.read_text()}</script>"
+    return data + lib + boatclass.js() + f"<script>{ladder_js}</script><script>{CHARTS_JS.read_text()}</script>"
 
 
 def no_tips(o):

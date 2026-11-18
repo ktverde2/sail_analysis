@@ -1,0 +1,43 @@
+{
+  "events": [
+    {
+      "time": "2026-11-14T20:49:06.154Z",
+      "eventType": "LineCrossed",
+      "LineCrossDirection": "Forward"
+    },
+    {
+      "time": "2026-11-14T20:52:27.287Z",
+      "eventType": "LineCrossed",
+      "LineCrossDirection": "Forward"
+    },
+    {
+      "time": "2026-11-14T20:53:02.505Z",
+      "eventType": "LineCrossed",
+      "LineCrossDirection": "Backward"
+    },
+    {
+      "time": "2026-11-14T20:53:13.248Z",
+      "eventType": "LineCrossed",
+      "LineCrossDirection": "Forward"
+    },
+    {
+      "time": "2026-11-14T20:53:31.497Z",
+      "eventType": "LineCrossed",
+      "LineCrossDirection": "Backward"
+    },
+    {
+      "time": "2026-11-14T20:54:00.190Z",
+      "eventType": "Gun"
+    },
+    {
+      "time": "2026-11-14T20:54:04.431Z",
+      "eventType": "LineCrossed",
+      "LineCrossDirection": "Forward"
+    },
+    {
+      "time": "2026-11-14T21:31:39.241Z",
+      "eventType": "LineCrossed",
+      "LineCrossDirection": "Forward"
+    }
+  ]
+}

@@ -36,7 +36,7 @@ function reportData() {
     const s = Math.floor(a / 60) + ':' + String(a % 60).padStart(2, '0');
     return t < 0 ? '−' + s + ' to gun' : '+' + s;
   }
-  const BOAT_LENGTH_M = 9.3;  // Etchells LOA: distances gained or lost are also given in lengths
+  const BOAT_LENGTH_M = window.BOAT_LENGTH_M || 9.3;  // the class LOA (Etchells 9.3): distances gained or lost are also given in lengths
   const ZONE_M = 3 * BOAT_LENGTH_M;  // RRS zone: three hull lengths
   function lens(m) { const x = Math.abs(m) / BOAT_LENGTH_M; return Math.round(x * 10) / 10 < 10 ? x.toFixed(1) : x.toFixed(0); }
   // '12.5 m (1.3 lengths)'

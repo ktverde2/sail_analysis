@@ -1,0 +1,78 @@
+{
+  "boat": "Kud",
+  "race": "Race 1",
+  "gun": "2026-11-14T20:54:00.000Z",
+  "start": {
+    "at": {
+      "-60s": {
+        "distanceToLine_m": 46.8,
+        "sog_kn": 3.72
+      },
+      "-30s": {
+        "distanceToLine_m": 17.8,
+        "sog_kn": 1.67
+      },
+      "-10s": {
+        "distanceToLine_m": 13.0,
+        "sog_kn": 0.37
+      },
+      "gun": {
+        "distanceToLine_m": 10.6,
+        "sog_kn": 0.97
+      }
+    },
+    "crossedAfterGun_s": 21.4,
+    "ocs": false,
+    "recrossWithin2Min": false
+  },
+  "legs": [
+    {
+      "leg": 1,
+      "from": "Start",
+      "to": "Mark",
+      "startTime": "2026-11-14T20:54:00.000Z",
+      "endTime": "2026-11-14T21:06:50.000Z",
+      "duration_s": 770.0,
+      "vmg_kn": 2.97,
+      "avgSog_kn": 4.32,
+      "sailed_m": 1717,
+      "straightLine_m": 1176
+    },
+    {
+      "leg": 2,
+      "from": "Mark",
+      "to": "Mark",
+      "startTime": "2026-11-14T21:06:50.000Z",
+      "endTime": "2026-11-14T21:27:25.000Z",
+      "duration_s": 1235.0,
+      "vmg_kn": 2.9,
+      "avgSog_kn": 3.17,
+      "sailed_m": 2018,
+      "straightLine_m": 1841
+    },
+    {
+      "leg": 3,
+      "from": "Mark",
+      "to": "Mark",
+      "startTime": "2026-11-14T21:27:25.000Z",
+      "endTime": "2026-11-14T21:42:50.000Z",
+      "duration_s": 925.0,
+      "vmg_kn": 3.89,
+      "avgSog_kn": 4.82,
+      "sailed_m": 2292,
+      "straightLine_m": 1850
+    },
+    {
+      "leg": 4,
+      "from": "Mark",
+      "to": "FinishLine",
+      "startTime": "2026-11-14T21:42:50.000Z",
+      "endTime": "2026-11-14T21:53:48.000Z",
+      "duration_s": 658.0,
+      "vmg_kn": 3.56,
+      "avgSog_kn": 3.77,
+      "sailed_m": 1275,
+      "straightLine_m": 1206
+    }
+  ]
+}

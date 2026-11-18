@@ -1,0 +1,49 @@
+{
+  "event": "Fall Regatta 2026",
+  "race": "Race 2",
+  "boat": "WR",
+  "timezone": "America/Los_Angeles",
+  "startTime": "2026-11-14T22:38:00.000Z",
+  "endTime": "2026-11-14T23:09:30.000Z",
+  "source": "Velocitek",
+  "course": [
+    {
+      "coord1": {
+        "lat": 32.723771,
+        "lon": -117.200438
+      },
+      "coord2": {
+        "lat": 32.722623,
+        "lon": -117.200879
+      },
+      "type": "StartLine"
+    },
+    {
+      "coord1": {
+        "lat": 32.722383,
+        "lon": -117.213259
+      },
+      "coord2": null,
+      "type": "Mark"
+    },
+    {
+      "coord1": {
+        "lat": 32.719131,
+        "lon": -117.193889
+      },
+      "coord2": null,
+      "type": "Mark"
+    },
+    {
+      "coord1": {
+        "lat": 32.723742,
+        "lon": -117.200414
+      },
+      "coord2": {
+        "lat": 32.72262,
+        "lon": -117.200844
+      },
+      "type": "FinishLine"
+    }
+  ]
+}

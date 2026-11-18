@@ -17,7 +17,9 @@ window.Replay3D = { mount: function (host, D) {
   const mmss = (s) => { const a = Math.abs(Math.round(s)); return Math.floor(a / 60) + ':' + String(a % 60).padStart(2, '0'); };
   const ord = (n) => n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th');
 
-  const BOAT = { L: 9.3, B: 2.12, mastZ: -1.05, deck: 0.62, boomY: 1.35, boomL: 3.6, headY: 10.6, houndsY: 8.2 };
+  // an Etchells, scaled to the class's length (window.BOAT_CLASS, from boatclass.js()); beam as the class's
+  const BC = (typeof window !== 'undefined' && window.BOAT_CLASS) || { length_m: 9.3, beam_m: 2.12 }, SC = BC.length_m / 9.3;
+  const BOAT = { L: 9.3 * SC, B: BC.beam_m, mastZ: -1.05 * SC, deck: 0.62 * SC, boomY: 1.35 * SC, boomL: 3.6 * SC, headY: 10.6 * SC, houndsY: 8.2 * SC };
   const RATES = [1, 2, 5, 10, 30];
   const TAILS = [[30, '30 s'], [120, '2 min'], [600, '10 min'], [1e6, 'All']];
   const TWS_KT = 10; // for the sails' apparent wind only; there's no wind sensor

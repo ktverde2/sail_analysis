@@ -112,6 +112,8 @@ The page opens on **Quick look**, and a three-way switch at the top moves betwee
 
 When Kevin sends Vakaros Atlas logs instead of a Njord event, `scripts/vkx/` reads them into the same per-race files Njord gives (`raceN.csv`, `raceN-race.json`, `raceN-raceInfo.json`), so everything from `analyze.py` on is unchanged. A `.vkx` has **no wind, no marks and no finish line**, so `scripts/course.py` estimates the marks, gates and finish from the boats' tracks and builds a map page where Kevin checks, adjusts and saves them.
 
+Velocitek `.vtk` logs go the same way (`vkx_report.py` reads them; see the Velocitek section of `references/vkx-workflow.md`). For a class other than the Etchells, set `SAIL_CLASS` (e.g. `SAIL_CLASS=J24`) before running any script: boat lengths, the mark zone and the heel threshold come from `scripts/boatclass.py`, and there's no target card, so the fastest tracked boat is the benchmark.
+
 Follow `references/vkx-workflow.md` step by step: parse each boat without a course, `course.py detect`, `course.py page` (publish it as an artifact with the `db` capability and read the saved course back, or send the HTML file), `course.py check`, parse again with the saved course, get the wind from nearby stations, then analyse as usual. Nothing is analysed on a course Kevin hasn't confirmed.
 
 ## Fleet comparison (several tracked boats in one event)
